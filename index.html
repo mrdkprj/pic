@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="main.css">
+        <script>
+            window.onload = function(){
+
+                window.addEventListener("beforeunload", (e) => {
+                    window.api.send("reload", null);
+                })
+
+                document.addEventListener("keydown", (e) => {
+                    if(e.key === "Delete"){
+                        deleteFile();
+                    }
+
+                    if(e.key === "ArrowRight"){
+                        startFetch(1);
+                    }
+
+                    if(e.key === "ArrowLeft"){
+                        startFetch(-1);
+                    }
+
+                })
+
+                document.addEventListener("click", (e) =>{
+                    if(e.target.id == "deleteBtn"){
+                        deleteFile();
+                    }
+
+                    if(e.target.classList.contains("prev")){
+                        startFetch(-1);
+                    }
+                    if(e.target.classList.contains("next")){
+                        startFetch(1);
+                    }
+                })
+
+                document.getElementById("pic").addEventListener("dragover", (e) => {
+                    e.preventDefault();
+                })
+                document.getElementById("pic").addEventListener("drop", (e) =>{
+
+                    e.preventDefault();
+                    if(e.dataTransfer.items[0].kind === "file" && e.dataTransfer.items[0].type.includes("image")){
+                        dropFile(e.dataTransfer.items[0].getAsFile());
+                    }
+                })
+
+                init();
+
+            }
+
+            function prepare(){
+                const loader = document.getElementById("loader");
+
+                if(loader.style.display == "block"){
+                    return false;
+                }
+
+                loader.style.display = "block";
+                return true;
+            }
+
+            function init(){
+                if(prepare()){
+                    window.api.send("domready", null);
+                }
+            }
+
+            function dropFile(file){
+                if(prepare()){
+                    window.api.send("start", {name:file.name,path:file.path});
+                }
+            }
+
+            function startFetch(index){
+                if(prepare()){
+                    window.api.send("fetch", index);
+                }
+            }
+
+            function deleteFile(){
+                if(prepare()){
+                    window.api.send("delete", null);
+                }
+            }
+
+            window.api.receive("afterfetch", data => {
+                if(data){
+                    document.getElementById("img").src = data;
+                }
+                document.getElementById("loader").style.display = "none";
+            });
+
+            window.api.receive("onError", data => {
+                alert(data);
+            })
+
+        </script>
+        <meta charset="UTF-8">
+        <title>Pic</title>
+    </head>
+    <body>
+        <div id="loader">
+            <div class="loader">
+                <div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="menu">
+                <div class="header">
+                    <svg xmlns="http://www.w3.org/2000/svg" id="deleteBtn" class="delete" viewBox="0 0 48 48">
+                        <defs>
+                        <style>
+                            .a {
+                            fill: none;
+                            stroke: #231815;
+                            stroke-linecap: round;
+                            stroke-linejoin: round;
+                            stroke-width: 2px;
+                            }
+                        </style>
+                        </defs>
+                        <g>
+                        <path class="a" d="M14.5,14.41h19"/>
+                        <g>
+                            <line class="a" x1="21.25" y1="23.56" x2="21.25" y2="32.37"/>
+                            <line class="a" x1="26.75" y1="23.56" x2="26.75" y2="32.37"/>
+                        </g>
+                        <polygon class="a" points="32.76 17.95 30.8 37.5 17.2 37.5 15.24 17.95 32.76 17.95"/>
+                        <polyline class="a" points="20.24 13.92 20.24 10.5 27.76 10.5 27.76 13.92"/>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+            <div id="pic" class="main">
+                <div class="prev-area prev"><i class="arrow left"></i></div>
+                <div class="image-area">
+                    <img id="img"></img>
+                </div>
+                <div class="next-area next"><i class="arrow right"></i></div>
+            </div>
+            <div class="menu">
+                <div class="footer"></div>
+            </div>
+        </div>
+  </body>
+</html>
