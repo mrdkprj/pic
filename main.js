@@ -53,14 +53,6 @@ app.on('ready', () => {
         targetFile = null;
 
         targetfiles.length = 0;
-/*
-        directLaunch = process.argv.length > 1 && process.argv[1] != "main.js";
-
-        if(directLaunch){
-            targetFile = path.basename(process.argv[1]);
-            folder = path.dirname(process.argv[1]);
-        }
-*/
     }
 
     function loadImage(args){
@@ -70,23 +62,25 @@ app.on('ready', () => {
 
         targetfiles.length = 0;
         fs.readdir(folder, (err, files) => {
-            files.forEach((file, index) => {
+            files.sort(sortByName).forEach((file, index) => {
                 if(targetFile == file){
                     currentIndex = index;
                 }
                 targetfiles.push(folder + "\\" + file);
             })
-            mainWindow.webContents.send("afterfetch", targetfiles[currentIndex]);
+            mainWindow.webContents.send("afterfetch", {name: path.basename(targetfiles[currentIndex]), path:targetfiles[currentIndex]});
         });
     }
 
-    ipcMain.on("reload", (e, data) => {
-        init();
-    });
+    function sortByName(a, b){
+        return a.replace(path.extname(a), "") - b.replace(path.extname(b), "");
+    }
 
     ipcMain.on("domready", (event, args) => {
-        if(directLaunch){
-            loadImage({name:path.basename(process.argv[1]), path:rocess.argv[1]});
+        if(directLaunch && targetfiles.length == 0){
+            loadImage({name:path.basename(process.argv[1]), path:process.argv[1]});
+        }else if(targetfiles.length > 0){
+            mainWindow.webContents.send("afterfetch", {name: path.basename(targetfiles[currentIndex]), path:targetfiles[currentIndex]});
         }else{
             mainWindow.webContents.send("afterfetch", null);
         }
@@ -116,7 +110,7 @@ app.on('ready', () => {
             currentIndex--;
         }
 
-        mainWindow.webContents.send("afterfetch", targetfiles[currentIndex]);
+        mainWindow.webContents.send("afterfetch", {name: path.basename(targetfiles[currentIndex]), path:targetfiles[currentIndex]});
     });
 
     ipcMain.on("delete", async (event, args) => {
@@ -139,7 +133,7 @@ app.on('ready', () => {
                 currentIndex--;
             }
 
-            mainWindow.webContents.send("afterfetch", targetfiles[currentIndex]);
+            mainWindow.webContents.send("afterfetch", {name: path.basename(targetfiles[currentIndex]), path:targetfiles[currentIndex]});
 
         }catch(ex){
             mainWindow.webContents.send("onError", ex.message);

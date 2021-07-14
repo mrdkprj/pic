@@ -6,10 +6,6 @@
         <script>
             window.onload = function(){
 
-                window.addEventListener("beforeunload", (e) => {
-                    window.api.send("reload", null);
-                })
-
                 document.addEventListener("keydown", (e) => {
                     if(e.key === "Delete"){
                         deleteFile();
@@ -90,7 +86,8 @@
 
             window.api.receive("afterfetch", data => {
                 if(data){
-                    document.getElementById("img").src = data;
+                    document.getElementById("img").src = data.path;
+                    document.title = "PicViewer - " + data.name;
                 }
                 document.getElementById("loader").style.display = "none";
             });
@@ -101,7 +98,7 @@
 
         </script>
         <meta charset="UTF-8">
-        <title>Pic</title>
+        <title>PicViewer</title>
     </head>
     <body>
         <div id="loader">

@@ -5,16 +5,16 @@ builder.build({
         "appId": "PicViewer",
         "win":{
             "target": {
-                "target": "zip",
+                "target": "dir",
                 "arch": [
                     "x64",
-                    "ia32",
+                    //"ia32",
                 ]
             },
             "fileAssociations": [
                 {
                   // 拡張子
-                  "ext": ["ico", "gif", "png", "jpg", "jpeg", "webp"],
+                  "ext": ["ico", "gif", "png", "jpg", "jpeg"],
                   // ファイルの種類
                   "description": "Image files",
                 },
