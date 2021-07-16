@@ -129,8 +129,8 @@ app.on('ready', () => {
                 currentIndex--;
             }
 
-            if(targetfiles.length < currentIndex){
-                currentIndex--;
+            if(targetfiles.length > currentIndex){
+                currentIndex++;
             }
 
             mainWindow.webContents.send("afterfetch", {name: path.basename(targetfiles[currentIndex]), path:targetfiles[currentIndex]});

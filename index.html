@@ -86,7 +86,13 @@
 
             window.api.receive("afterfetch", data => {
                 if(data){
-                    document.getElementById("img").src = data.path;
+                    const img = document.getElementById("img");
+                    img.src = data.path;
+                    const dummy = new Image();
+                    dummy.src = data.path;
+                    dummy.onload = function(){
+                        img.title = dummy.width + " x " + dummy.height;
+                    }
                     document.title = "PicViewer - " + data.name;
                 }
                 document.getElementById("loader").style.display = "none";
@@ -134,11 +140,11 @@
                 </div>
             </div>
             <div id="pic" class="main">
-                <div class="prev-area prev"><i class="arrow left"></i></div>
+                <div class="prev-area prev"><span class="arrow left"></span></div>
                 <div class="image-area">
-                    <img id="img"></img>
+                    <img id="img" title=""></img>
                 </div>
-                <div class="next-area next"><i class="arrow right"></i></div>
+                <div class="next-area next"><span class="arrow right"></span></div>
             </div>
             <div class="menu">
                 <div class="footer"></div>
