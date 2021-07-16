@@ -22,13 +22,19 @@
                 })
 
                 document.addEventListener("click", (e) =>{
+
                     if(e.target.id == "deleteBtn"){
                         deleteFile();
+                    }
+
+                    if(e.target.id == "openFile"){
+                        window.api.send("open", null);
                     }
 
                     if(e.target.classList.contains("prev")){
                         startFetch(-1);
                     }
+
                     if(e.target.classList.contains("next")){
                         startFetch(1);
                     }
@@ -115,28 +121,33 @@
         <div class="container">
             <div class="menu">
                 <div class="header">
-                    <svg xmlns="http://www.w3.org/2000/svg" id="deleteBtn" class="delete" viewBox="0 0 48 48">
-                        <defs>
-                        <style>
-                            .a {
-                            fill: none;
-                            stroke: #231815;
-                            stroke-linecap: round;
-                            stroke-linejoin: round;
-                            stroke-width: 2px;
-                            }
-                        </style>
-                        </defs>
-                        <g>
-                        <path class="a" d="M14.5,14.41h19"/>
-                        <g>
-                            <line class="a" x1="21.25" y1="23.56" x2="21.25" y2="32.37"/>
-                            <line class="a" x1="26.75" y1="23.56" x2="26.75" y2="32.37"/>
-                        </g>
-                        <polygon class="a" points="32.76 17.95 30.8 37.5 17.2 37.5 15.24 17.95 32.76 17.95"/>
-                        <polyline class="a" points="20.24 13.92 20.24 10.5 27.76 10.5 27.76 13.92"/>
-                        </g>
-                    </svg>
+                    <div id="deleteBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="delete" viewBox="0 0 48 48">
+                            <defs>
+                            <style>
+                                .a {
+                                fill: none;
+                                stroke: #231815;
+                                stroke-linecap: round;
+                                stroke-linejoin: round;
+                                stroke-width: 2px;
+                                }
+                            </style>
+                            </defs>
+                            <g>
+                            <path class="a" d="M14.5,14.41h19"/>
+                            <g>
+                                <line class="a" x1="21.25" y1="23.56" x2="21.25" y2="32.37"/>
+                                <line class="a" x1="26.75" y1="23.56" x2="26.75" y2="32.37"/>
+                            </g>
+                            <polygon class="a" points="32.76 17.95 30.8 37.5 17.2 37.5 15.24 17.95 32.76 17.95"/>
+                            <polyline class="a" points="20.24 13.92 20.24 10.5 27.76 10.5 27.76 13.92"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <div class="open-file">
+                        <button id="openFile">Open</button>
+                    </div>
                 </div>
             </div>
             <div id="pic" class="main">

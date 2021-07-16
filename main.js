@@ -6,7 +6,7 @@ const {
 const path = require("path");
 const trash = require('trash');
 const fs = require("fs");
-const { inherits } = require("util");
+const proc = require('child_process');
 
 let mainWindow;
 
@@ -138,5 +138,15 @@ app.on('ready', () => {
         }catch(ex){
             mainWindow.webContents.send("onError", ex.message);
         }
+    });
+
+    ipcMain.on("open", async (event, args) => {
+
+        if(targetfiles.length <= 0){
+            return;
+        }
+
+        proc.exec('explorer /e,/select,"' + targetfiles[currentIndex] + '"');
+
     });
 });

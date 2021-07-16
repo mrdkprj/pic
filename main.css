@@ -87,14 +87,26 @@ body{
     width:100%;
 }
 
+#deleteBtn{
+    display:flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#deleteBtn:hover{
+    background-color: #00000012;
+}
+
 .delete{
     width:30px;
     height:30px;
-    padding: 0 10px;
+    padding: 0 20px;
+    pointer-events: none;
 }
 
-.delete:hover{
-    background-color: #00000012;
+.open-file{
+    position: absolute;
+    right: 100px;
 }
 
 .arrow-sm {
@@ -104,6 +116,7 @@ body{
     padding: 5px;
     width:5px;
     height:5px;
+    pointer-events: none;
   }
 
   .arrow {
@@ -114,6 +127,7 @@ body{
     width: 10px;
     height: 10px;
     margin: 0 auto;
+    pointer-events: none;
   }
 
   .next-area:hover .arrow,
