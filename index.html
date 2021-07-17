@@ -6,6 +6,8 @@
         <script>
             window.onload = function(){
 
+                let moveByClick = false;
+
                 document.addEventListener("keydown", (e) => {
                     if(e.key === "Delete"){
                         deleteFile();
@@ -21,14 +23,20 @@
 
                 })
 
-                document.getElementById("imageArea").addEventListener("mouseup", e => {
-                    e.preventDefault();
-                    if(e.button == 0){
-                        startFetch(-1);
-                    }
+                document.getElementById("simpleMove").addEventListener("change", e => {
+                    moveByClick = e.target.checked
+                })
 
-                    if(e.button == 2){
-                        startFetch(1);
+                document.getElementById("imageArea").addEventListener("mouseup", e => {
+                    if(moveByClick){
+                        e.preventDefault();
+                        if(e.button == 0){
+                            startFetch(-1);
+                        }
+
+                        if(e.button == 2){
+                            startFetch(1);
+                        }
                     }
                 })
 
@@ -108,9 +116,8 @@
                     const dummy = new Image();
                     dummy.src = data.path;
                     dummy.onload = function(){
-                        img.title = dummy.width + " x " + dummy.height;
+                        document.title = "PicViewer - " + data.name + "(" + dummy.width + " x " + dummy.height + ")";
                     }
-                    document.title = "PicViewer - " + data.name;
                 }
                 document.getElementById("loader").style.display = "none";
             });
@@ -132,6 +139,9 @@
         <div class="container">
             <div class="menu">
                 <div class="header">
+                    <div class="option">
+                        <input type="checkbox" id="simpleMove"><label for="simpleMove">Move by click</label>
+                    </div>
                     <div id="deleteBtn">
                         <svg xmlns="http://www.w3.org/2000/svg" class="delete" viewBox="0 0 48 48">
                             <defs>

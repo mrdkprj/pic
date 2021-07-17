@@ -102,7 +102,7 @@ app.on('ready', () => {
             currentIndex = 0;
         }
 
-        if(args == 1 && targetfiles.length > currentIndex){
+        if(args == 1 && targetfiles.length - 1 > currentIndex){
             currentIndex++;
         }
 
@@ -129,7 +129,7 @@ app.on('ready', () => {
                 currentIndex--;
             }
 
-            if(targetfiles.length > currentIndex){
+            if(targetfiles.length - 1 > currentIndex){
                 currentIndex++;
             }
 

@@ -106,6 +106,10 @@ body{
     pointer-events: none;
 }
 
+.option{
+    position:absolute;
+    left:100px;
+}
 .open-file{
     position: absolute;
     right: 100px;
