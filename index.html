@@ -21,6 +21,17 @@
 
                 })
 
+                document.getElementById("imageArea").addEventListener("mouseup", e => {
+                    e.preventDefault();
+                    if(e.button == 0){
+                        startFetch(-1);
+                    }
+
+                    if(e.button == 2){
+                        startFetch(1);
+                    }
+                })
+
                 document.addEventListener("click", (e) =>{
 
                     if(e.target.id == "deleteBtn"){
@@ -152,7 +163,7 @@
             </div>
             <div id="pic" class="main">
                 <div class="prev-area prev"><span class="arrow left"></span></div>
-                <div class="image-area">
+                <div id="imageArea" class="image-area">
                     <img id="img" title=""></img>
                 </div>
                 <div class="next-area next"><span class="arrow right"></span></div>
