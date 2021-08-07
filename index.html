@@ -9,6 +9,11 @@
                 let moveByClick = false;
 
                 document.addEventListener("keydown", (e) => {
+
+                    if(e.ctrlKey && e.key == "q"){
+                        rotate();
+                    }
+
                     if(e.key === "Delete"){
                         deleteFile();
                     }
@@ -50,6 +55,14 @@
                         window.api.send("open", null);
                     }
 
+                    if(e.target.id == "saveFile"){
+                        window.api.send("save", null);
+                    }
+
+                    if(e.target.id == "restoreFile"){
+                        window.api.send("restore", null);
+                    }
+
                     if(e.target.classList.contains("prev")){
                         startFetch(-1);
                     }
@@ -72,6 +85,15 @@
 
                 init();
 
+            }
+
+            function rotate(){
+                const img = document.getElementById("img");
+                if(img.classList.contains("rotate")){
+                    img.classList.remove("rotate");
+                }else{
+                    img.classList.add("rotate");
+                }
             }
 
             function prepare(){
@@ -168,6 +190,8 @@
                     </div>
                     <div class="open-file">
                         <button id="openFile">Open</button>
+                        <button id="saveFile">Save</button>
+                        <button id="restoreFile">Restore</button>
                     </div>
                 </div>
             </div>

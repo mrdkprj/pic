@@ -35,6 +35,8 @@ app.on('ready', () => {
 
     const directLaunch = process.argv.length > 1 && process.argv[1] != "main.js";;
 
+    const dir = path.join(app.getPath("userData"), "temp");
+
     init();
 
     mainWindow.maximize();
@@ -46,6 +48,11 @@ app.on('ready', () => {
     });
 
     function init(){
+
+        if (!fs.existsSync(dir)){
+            fs.mkdirSync(dir);
+        }
+
         folder = null;
 
         currentIndex = 0;
@@ -140,7 +147,7 @@ app.on('ready', () => {
         }
     });
 
-    ipcMain.on("open", async (event, args) => {
+    ipcMain.on("open", (event, args) => {
 
         if(targetfiles.length <= 0){
             return;
@@ -148,5 +155,22 @@ app.on('ready', () => {
 
         proc.exec('explorer /e,/select,"' + targetfiles[currentIndex] + '"');
 
+    });
+
+
+    ipcMain.on("save", (event, args) => {
+
+        if(targetfiles.length <= 0){
+            return;
+        }
+
+        fs.writeFileSync(path.join(dir,"file.txt"), targetfiles[currentIndex]);
+    });
+
+    ipcMain.on("restore", (event, args) => {
+
+        const body = fs.readFileSync(path.join(dir,"file.txt"), {encoding:"utf8"});
+
+        loadImage({name:path.basename(body), path:body});
     });
 });
