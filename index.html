@@ -139,9 +139,12 @@
                     dummy.src = data.path;
                     dummy.onload = function(){
                         document.title = "PicViewer - " + data.name + "(" + dummy.width + " x " + dummy.height + ")";
+                        document.getElementById("loader").style.display = "none";
                     }
+                }else{
+                    document.getElementById("loader").style.display = "none";
                 }
-                document.getElementById("loader").style.display = "none";
+
             });
 
             window.api.receive("onError", data => {
