@@ -1,7 +1,8 @@
 const {
     app,
     BrowserWindow,
-    ipcMain
+    ipcMain,
+    dialog
 } = require("electron");
 const path = require("path");
 const trash = require('trash');
@@ -37,6 +38,12 @@ app.on('ready', () => {
 
     const dir = path.join(app.getPath("userData"), "temp");
 
+    const savedPathFile = path.join(dir,"path.txt");
+    let currentDir;
+    if(fs.existsSync(savedPathFile)){
+        currentDir = fs.readFileSync(savedPathFile, {encoding:"utf8"});
+    }
+
     init();
 
     mainWindow.maximize();
@@ -65,15 +72,15 @@ app.on('ready', () => {
     function loadImage(args){
 
         targetFile = args.name;
-        folder = path.dirname(args.path);
+        currentDir = path.dirname(args.path);
 
         targetfiles.length = 0;
-        fs.readdir(folder, (err, files) => {
+        fs.readdir(currentDir, (err, files) => {
             files.sort(sortByName).forEach((file, index) => {
                 if(targetFile == file){
                     currentIndex = index;
                 }
-                targetfiles.push(folder + "\\" + file);
+                targetfiles.push(currentDir + "\\" + file);
             })
             mainWindow.webContents.send("afterfetch", {name: path.basename(targetfiles[currentIndex]), path:targetfiles[currentIndex]});
         });
@@ -147,7 +154,7 @@ app.on('ready', () => {
         }
     });
 
-    ipcMain.on("open", (event, args) => {
+    ipcMain.on("reveal", (event, args) => {
 
         if(targetfiles.length <= 0){
             return;
@@ -157,6 +164,25 @@ app.on('ready', () => {
 
     });
 
+    ipcMain.on("open", async (event, args) => {
+
+        const result = await dialog.showOpenDialog(null, {
+            properties: ["openFile"],
+            title: "Select image",
+            defaultPath: currentDir ? currentDir :'.',
+            filters: [
+                {name: "image file", extensions: ["jpeg","jpg","png","ico","gif"]}
+            ]
+        });
+
+        if(result.filePaths.length == 1){
+            const file = result.filePaths[0];
+            currentDir = path.dirname(file);
+            fs.writeFileSync(path.join(dir,"path.txt"), currentDir);
+            loadImage({name:path.basename(file), path:file});
+        }
+
+    });
 
     ipcMain.on("save", (event, args) => {
 
@@ -165,6 +191,10 @@ app.on('ready', () => {
         }
 
         fs.writeFileSync(path.join(dir,"file.txt"), targetfiles[currentIndex]);
+
+        if(currentDir){
+            fs.writeFileSync(path.join(dir,"path.txt"), currentDir);
+        }
     });
 
     ipcMain.on("restore", (event, args) => {
