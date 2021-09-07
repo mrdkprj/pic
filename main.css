@@ -92,6 +92,13 @@ body{
 .footer{
     height:50px;
     width:100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+#counter{
+    font-size: 14px;
 }
 
 #deleteBtn{

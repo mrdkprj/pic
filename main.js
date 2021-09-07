@@ -13,8 +13,8 @@ let mainWindow;
 
 app.on('ready', () => {
     mainWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: 1200,
+        height: 800,
         webPreferences: {
         nodeIntegration: false, // is default value after Electron v5
         contextIsolation: true, // protect against prototype pollution
@@ -82,7 +82,7 @@ app.on('ready', () => {
                 }
                 targetfiles.push(currentDir + "\\" + file);
             })
-            mainWindow.webContents.send("afterfetch", {name: path.basename(targetfiles[currentIndex]), path:targetfiles[currentIndex]});
+            respond(targetfiles[currentIndex]);
         });
     }
 
@@ -90,17 +90,27 @@ app.on('ready', () => {
         return a.replace(path.extname(a), "") - b.replace(path.extname(b), "");
     }
 
+    function respond(filePath){
+        if(filePath){
+            const data = {name: path.basename(filePath), path:filePath, counter: (currentIndex + 1) + " / " + targetfiles.length}
+            mainWindow.webContents.send("afterfetch", data);
+        }else{
+            mainWindow.webContents.send("afterfetch", null);
+        }
+
+    }
+
     ipcMain.on("domready", (event, args) => {
         if(directLaunch && targetfiles.length == 0){
             loadImage({name:path.basename(process.argv[1]), path:process.argv[1]});
         }else if(targetfiles.length > 0){
-            mainWindow.webContents.send("afterfetch", {name: path.basename(targetfiles[currentIndex]), path:targetfiles[currentIndex]});
+            respond(targetfiles[currentIndex]);
         }else{
-            mainWindow.webContents.send("afterfetch", null);
+            respond();
         }
     });
 
-    ipcMain.on("start", (event, args) => {
+    ipcMain.on("drop", (event, args) => {
         loadImage(args);
     });
 
@@ -108,7 +118,7 @@ app.on('ready', () => {
     ipcMain.on("fetch", (event, args) => {
 
         if(targetfiles.length <= 0){
-            mainWindow.webContents.send("afterfetch", null);
+            respond();
             return;
         }
 
@@ -124,17 +134,18 @@ app.on('ready', () => {
             currentIndex--;
         }
 
-        mainWindow.webContents.send("afterfetch", {name: path.basename(targetfiles[currentIndex]), path:targetfiles[currentIndex]});
+        respond(targetfiles[currentIndex]);
     });
 
     ipcMain.on("delete", async (event, args) => {
 
         if(targetfiles.length <= 0){
-            mainWindow.webContents.send("afterfetch", null);
+            respond();
             return;
         }
 
         try{
+
             const result = await trash(targetfiles[currentIndex]);
 
             targetfiles.splice(currentIndex, 1);
@@ -147,7 +158,7 @@ app.on('ready', () => {
                 currentIndex++;
             }
 
-            mainWindow.webContents.send("afterfetch", {name: path.basename(targetfiles[currentIndex]), path:targetfiles[currentIndex]});
+            respond(targetfiles[currentIndex]);
 
         }catch(ex){
             mainWindow.webContents.send("onError", ex.message);
