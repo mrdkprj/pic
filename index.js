@@ -100,7 +100,7 @@ window.onload = function(){
         moving = false;
     })
 
-    document.getElementById("img").addEventListener("wheel", e => {
+    document.getElementById("imageArea").addEventListener("wheel", e => {
         zoom(e);
     })
 
@@ -157,7 +157,7 @@ function resetScale(){
     const area = document.getElementById("imageArea");
 
     if(area.classList.contains("org")){
-        //area.classList.remove("org");
+        area.classList.remove("org");
     }
 
     const img = document.getElementById("img");
@@ -173,25 +173,28 @@ function onScaleChanged(scaleDirection){
     let rect = img.getBoundingClientRect();
     createRect(imgRect, rect);
 
-    console.log(scale > minScale)
-    if(scale > minScale){
-        console.log(imgRect)
-        console.log(originalImgRect)
+    if(scale >= minScale){
         imgRect.top = (imgRect.height - originalImgRect.height) / 2;
-        console.log(imgRect.top)
+        imgRect.left = (imgRect.width - originalImgRect.width) / 2;
+        console.log(imgRect.width)
+        console.log(originalImgRect.width)
     }
 
-        if(img.offsetTop > imgRect.top ){
-            img.style.top = imgRect.top + "px";
-        }
+    if(img.offsetTop > imgRect.top ){
+        img.style.top = imgRect.top + "px";
+    }
 
-        if(img.offsetTop < imgRect.top * -1){
+    if(img.offsetTop < imgRect.top * -1){
+        img.style.top = imgRect.top * -1 + "px";
+    }
 
-            img.style.top = imgRect.top * -1 + "px";
-        }
+    if(img.offsetLeft > imgRect.left){
+        img.style.left = imgRect.left + "px";
+    }
 
-
-
+    if(img.offsetLeft < imgRect.left * -1){
+        img.style.left = imgRect.left * -1 + "px";
+    }
 
 }
 
@@ -243,7 +246,7 @@ function moveImage(e){
     }
 
     if(right){
-        if(img.offsetLeft + dx > containerRect.left){
+        if(img.offsetLeft + dx > imgRect.left){
 
         }else{
             img.style.left = (img.offsetLeft + dx) + "px"
@@ -251,7 +254,7 @@ function moveImage(e){
     }
 
     if(!right){
-        if(img.offsetLeft + imgRect.width + dx < containerRect.width){
+        if(img.offsetLeft + dx < imgRect.left * -1){
 
         }else{
             img.style.left = (img.offsetLeft - Math.abs(dx)) + "px"
@@ -313,18 +316,24 @@ function createRect(target, base){
 
 window.api.receive("afterfetch", data => {
     if(data){
-        resetScale();
+
         const img = document.getElementById("img");
         img.src = data.path;
         const dummy = new Image();
         dummy.src = data.path;
         dummy.onload = function(){
             document.title = "PicViewer - " + data.name + "(" + dummy.width + " x " + dummy.height + ")";
+            const imgArea = document.getElementById("imageArea");
             createRect(originalImgRect, img.getBoundingClientRect());
+            console.log(img.getBoundingClientRect())
+            scale = Math.min(originalImgRect.width / dummy.width, originalImgRect.height / dummy.height);
+            minScale = scale;
+            resetScale();
+            //const imgArea = document.getElementById("imageArea");
+
             originalImgRect.top = img.offsetTop;
             originalImgRect.left = img.offsetLeft;
-            scale = 1//Math.min(originalImgRect.width / dummy.width, originalImgRect.height / dummy.height, 1);
-            minScale = scale;
+
             document.getElementById("counter").textContent = data.counter;
             document.getElementById("loader").style.display = "none";
         }
