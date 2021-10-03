@@ -110,9 +110,9 @@ window.onload = function(){
 
 let x;
 let y;
-let containerRect;
-let originalImgRect = {top:0, left:0, width:0, height:0};
-let imgRect = {top:0, left:0, width:0, height:0};
+let containerRect = {top:0, left:0, width:0, height:0};
+let originalimgBoundRect = {top:0, left:0, width:0, height:0};
+let imgBoundRect = {top:0, left:0, width:0, height:0};
 let scale = 1;
 let minScale;
 let zoomed = false;
@@ -135,7 +135,7 @@ function zoom(event) {
         scaleDirection = 1;
     }else{
         scale = Math.max(Math.max(.125, scale), minScale);
-        scaleDirection = 0;
+        scaleDirection = -1;
     }
 
     // Apply scale transform
@@ -170,59 +170,100 @@ function resetScale(){
 
 function onScaleChanged(scaleDirection){
     const img = document.getElementById("img");
+    imgBoundRect = img.getBoundingClientRect();
+/*
+    const img = document.getElementById("img");
     let rect = img.getBoundingClientRect();
-    createRect(imgRect, rect);
+    createRect(imgBoundRect, rect);
 
-    if(scale >= minScale){
-        imgRect.top = (imgRect.height - originalImgRect.height) / 2;
-        imgRect.left = (imgRect.width - originalImgRect.width) / 2;
-        console.log(imgRect.width)
-        console.log(originalImgRect.width)
+    calculateBound();
+
+    if(scaleDirection > 0) return;
+    if(img.offsetTop > imgBoundRect.top ){
+        img.style.top = imgBoundRect.top + "px";
     }
 
-    if(img.offsetTop > imgRect.top ){
-        img.style.top = imgRect.top + "px";
+    if(img.offsetTop < imgBoundRect.top * -1){
+        img.style.top = imgBoundRect.top * -1 + "px";
     }
 
-    if(img.offsetTop < imgRect.top * -1){
-        img.style.top = imgRect.top * -1 + "px";
+    if(img.offsetLeft > imgBoundRect.left){
+        img.style.left = imgBoundRect.left + "px";
     }
 
-    if(img.offsetLeft > imgRect.left){
-        img.style.left = imgRect.left + "px";
+    if(img.offsetLeft < imgBoundRect.left * -1){
+        img.style.left = imgBoundRect.left * -1 + "px";
+    }
+*/
+if(scaleDirection > 0) return;
+
+const p = calculateBound();
+
+console.log(imgBoundRect.top)
+console.log(containerRect.top)
+
+    if(imgBoundRect.top > containerRect.top){
+        console.log("--------")
+        console.log(containerRect.top)
+        img.style.top = containerRect.top + "px"
     }
 
-    if(img.offsetLeft < imgRect.left * -1){
-        img.style.left = imgRect.left * -1 + "px";
+    if(imgBoundRect.bottom > containerRect.bottom){
+        //img.style.top = (containerRect.bottom - imgBoundRect.bottom) + "px"
     }
 
+
+    if(imgBoundRect.left <= containerRect.left){
+        //img.style.left = containerRect.left + "px"
+    }
+
+    if(imgBoundRect.right <= containerRect.right){
+        //img.style.left = (img.offsetLeft + dx) + "px"
+    };
+
+}
+
+function calculateBound(){
+
+    const relTop = Math.max((imgBoundRect.height - containerRect.height) / 2, 0);
+    const scTop = Math.min((imgBoundRect.height - originalimgBoundRect.height) / 2, relTop)
+
+    const scLeft = (containerRect.width - imgBoundRect.width) / 2//Math.max((imgBoundRect.width - originalimgBoundRect.width) / 2, (containerRect.width - imgBoundRect.width) / 2)
+
+    //imgBoundRect.top = (imgBoundRect.height - originalimgBoundRect.height) / 2;
+    //imgBoundRect.left = (imgBoundRect.width - originalimgBoundRect.width) / 2
+    return {top: (imgBoundRect.height - originalimgBoundRect.height) / 2, left:(imgBoundRect.width - originalimgBoundRect.width) / 2}
 }
 
 function setPos(e){
     x = e.x;
     y = e.y;
-
-    containerRect = document.getElementById("imageArea").getBoundingClientRect();
 }
 
 let t = 0;
 function moveImage(e){
     const img = document.getElementById("img");
-    const cont = document.getElementById("imageArea")
+    imgBoundRect = img.getBoundingClientRect();
 
     let right = false;
-    const dx = e.x - x;
+    const dx = e ? e.x - x : 0;
     if(dx > 0){
         right = true;
     }
-    x = e.x;
+
+    if(e){
+        x = e.x;
+    }
 
     let down = false;
-    const dy = e.y - y;
+    const dy = e ? e.y - y : 0;
     if(dy > 0){
         down = true;
     }
-    y = e.y;
+
+    if(e){
+        y = e.y;
+    }
 
     if(t > 10){
         //return;
@@ -230,7 +271,7 @@ function moveImage(e){
 
 
     if(down){
-        if(img.offsetTop + dy > imgRect.top){
+        if(imgBoundRect.top + dy >= containerRect.top){
 
         }else{
             img.style.top = (img.offsetTop + dy) + "px"
@@ -238,15 +279,15 @@ function moveImage(e){
     }
 
     if(!down){
-        if(img.offsetTop + dy < imgRect.top * -1){
+        if(imgBoundRect.bottom + dy <= containerRect.bottom){
 
         }else{
-            img.style.top = (img.offsetTop - Math.abs(dy)) + "px"
+            img.style.top = (img.offsetTop + dy) + "px"
         }
     }
 
     if(right){
-        if(img.offsetLeft + dx > imgRect.left){
+        if(imgBoundRect.left + dx >= containerRect.left){
 
         }else{
             img.style.left = (img.offsetLeft + dx) + "px"
@@ -254,10 +295,10 @@ function moveImage(e){
     }
 
     if(!right){
-        if(img.offsetLeft + dx < imgRect.left * -1){
+        if(imgBoundRect.right + dx <= containerRect.right){
 
         }else{
-            img.style.left = (img.offsetLeft - Math.abs(dx)) + "px"
+            img.style.left = (img.offsetLeft + dx) + "px"
         }
     }
 t++
@@ -323,17 +364,23 @@ window.api.receive("afterfetch", data => {
         dummy.src = data.path;
         dummy.onload = function(){
             document.title = "PicViewer - " + data.name + "(" + dummy.width + " x " + dummy.height + ")";
-            const imgArea = document.getElementById("imageArea");
-            createRect(originalImgRect, img.getBoundingClientRect());
-            console.log(img.getBoundingClientRect())
-            scale = Math.min(originalImgRect.width / dummy.width, originalImgRect.height / dummy.height);
+            const cont = document.getElementById("imageArea")
+            createRect(containerRect, cont.getBoundingClientRect());
+            scale = 1//Math.min(containerRect.width / dummy.width, containerRect.height / dummy.height);
             minScale = scale;
             resetScale();
+
             //const imgArea = document.getElementById("imageArea");
+            createRect(originalimgBoundRect, img.getBoundingClientRect());
 
-            originalImgRect.top = img.offsetTop;
-            originalImgRect.left = img.offsetLeft;
+            originalimgBoundRect.top = img.offsetTop;
+            originalimgBoundRect.left = img.offsetLeft;
 
+            //createRect(imgBoundRect, originalimgBoundRect);
+            //calculateBound();
+            imgBoundRect = img.getBoundingClientRect()
+            img.style.top = img.offsetTop + "px";
+            img.style.left = img.offsetLeft + "px"
             document.getElementById("counter").textContent = data.counter;
             document.getElementById("loader").style.display = "none";
         }
