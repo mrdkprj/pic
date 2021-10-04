@@ -142,7 +142,6 @@ function zoom(event) {
     const img = document.getElementById("img");
     img.style.transform = `scale(${scale})`;
 
-    createRect(prevRect , imgBoundRect)
     onScaleChanged(scaleDirection);
 
   }
@@ -154,7 +153,6 @@ function initScale(){
 
 }
 
-let prevRect = {};
 function resetScale(){
     const area = document.getElementById("imageArea");
 
@@ -169,7 +167,6 @@ function resetScale(){
     zoomed = false;
     moveY = 0;
     moveX = 0;
-    createRect(prevRect , imgBoundRect)
     img.style.transform = `scale(${scale})`;
 }
 
@@ -203,25 +200,24 @@ function onScaleChanged(scaleDirection){
 
     calculateBound();
 
-    const dmoveY = (imgBoundRect.height - prevRect.height) / 2;
-    const dmoveX = (imgBoundRect.width - prevRect.width) / 2;
-
-    if(moveY > 0 && dmoveY >= imgBoundRect.top){
+    if(moveY > imgBoundRect.top){
         img.style.top = imgBoundRect.top + "px"
         moveY = imgBoundRect.top
     }
 
-    if(moveY < 0 && dmoveY <= imgBoundRect.top * -1){
-        console.log(imgBoundRect.top)
+    if(moveY <= imgBoundRect.top * -1){
         img.style.top = imgBoundRect.top * -1 + "px"
         moveY = imgBoundRect.top * -1
     }
 
-    if(moveX > 0 && dmoveX >= imgBoundRect.left){
+    if(moveX > imgBoundRect.left){
+        img.style.left = imgBoundRect.left + "px"
+        moveX = imgBoundRect.left
     }
 
-    if(moveX < 0 && dmoveX <= imgBoundRect.left * -1){
-
+    if(moveX  < imgBoundRect.left * -1){
+        img.style.left = imgBoundRect.left * -1 + "px"
+        moveX = imgBoundRect.left * -1
     }
 
 }
