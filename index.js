@@ -1,6 +1,21 @@
+let moveByClick = false;
+let ready = false;
+let x;
+let y;
+let containerRect = {};
+let originalimgBoundRect = {};
+let imgBoundRect = {};
+let scale = 1;
+let minScale;
+let zoomed = false;
+
 window.onload = function(){
 
-    let moveByClick = false;
+    window.addEventListener("resize", e => {
+        if(ready){
+            console.log(e)
+        }
+    })
 
     document.addEventListener("keydown", (e) => {
 
@@ -108,29 +123,15 @@ window.onload = function(){
 
 }
 
-let x;
-let y;
-let containerRect = {};
-let originalimgBoundRect = {};
-let imgBoundRect = {};
-let scale = 1;
-let minScale;
-let zoomed = false;
-
-function zoom(event) {
+function zoom(e) {
 
     let scaleDirection;
 
-    if(!zoomed){
-        initScale();
-    }
+    e.preventDefault();
 
-    event.preventDefault();
+    scale += e.deltaY * -0.001;
 
-    scale += event.deltaY * -0.001;
-
-    // Restrict scale
-    if(event.deltaY < 0){
+    if(e.deltaY < 0){
         scale = Math.min(Math.max(.125, scale), 4);
         scaleDirection = 1;
     }else{
@@ -138,27 +139,34 @@ function zoom(event) {
         scaleDirection = -1;
     }
 
-    // Apply scale transform
     const img = document.getElementById("img");
     img.style.transform = `scale(${scale})`;
 
     onScaleChanged(scaleDirection);
 
-  }
+}
 
-function initScale(){
-    const area = document.getElementById("imageArea");
+function recalculate(){
+    const cont = document.getElementById("imageArea")
+    createRect(containerRect, cont.getBoundingClientRect());
+    scale = 1//Math.min(containerRect.width / dummy.width, containerRect.height / dummy.height);
+    minScale = scale;
+    resetScale();
 
-    area.classList.add("org");
+    //const imgArea = document.getElementById("imageArea");
+    createRect(originalimgBoundRect, img.getBoundingClientRect());
 
+    originalimgBoundRect.top = img.offsetTop;
+    originalimgBoundRect.left = img.offsetLeft;
+
+    createRect(imgBoundRect, originalimgBoundRect);
+    calculateBound();
+    //imgBoundRect = img.getBoundingClientRect()
+    img.style.top = img.offsetTop + "px";
+    img.style.left = img.offsetLeft + "px"
 }
 
 function resetScale(){
-    const area = document.getElementById("imageArea");
-
-    if(area.classList.contains("org")){
-        area.classList.remove("org");
-    }
 
     const img = document.getElementById("img");
     img.style.top = null;
@@ -167,57 +175,51 @@ function resetScale(){
     zoomed = false;
     moveY = 0;
     moveX = 0;
+    createRect( imgBoundRect, img.getBoundingClientRect())
     img.style.transform = `scale(${scale})`;
 }
 
 function onScaleChanged(scaleDirection){
+
+    if(scale == minScale){
+        resetScale();
+        return;
+    }
+
     const img = document.getElementById("img");
     createRect( imgBoundRect, img.getBoundingClientRect())
-/*
-    const img = document.getElementById("img");
-    let rect = img.getBoundingClientRect();
-    createRect(imgBoundRect, rect);
 
     calculateBound();
 
     if(scaleDirection > 0) return;
-    if(img.offsetTop > imgBoundRect.top ){
-        img.style.top = imgBoundRect.top + "px";
-    }
-
-    if(img.offsetTop < imgBoundRect.top * -1){
-        img.style.top = imgBoundRect.top * -1 + "px";
-    }
-
-    if(img.offsetLeft > imgBoundRect.left){
-        img.style.left = imgBoundRect.left + "px";
-    }
-
-    if(img.offsetLeft < imgBoundRect.left * -1){
-        img.style.left = imgBoundRect.left * -1 + "px";
-    }
-*/
 
     calculateBound();
 
+    let newX;
+    let newY;
+
     if(moveY > imgBoundRect.top){
-        img.style.top = imgBoundRect.top + "px"
-        moveY = imgBoundRect.top
+        newY = (originalimgBoundRect.top + imgBoundRect.top) * -1;
+        img.style.top = newY + "px"
+        moveY = newY
     }
 
     if(moveY <= imgBoundRect.top * -1){
-        img.style.top = imgBoundRect.top * -1 + "px"
-        moveY = imgBoundRect.top * -1
+        newY = originalimgBoundRect.top + imgBoundRect.top
+        img.style.top = newY + "px"
+        moveY = newY
     }
 
     if(moveX > imgBoundRect.left){
-        img.style.left = imgBoundRect.left + "px"
-        moveX = imgBoundRect.left
+        newX = (originalimgBoundRect.left + imgBoundRect.left) * -1;
+        img.style.left = newX + "px"
+        moveX = newX
     }
 
     if(moveX  < imgBoundRect.left * -1){
-        img.style.left = imgBoundRect.left * -1 + "px"
-        moveX = imgBoundRect.left * -1
+        newX = originalimgBoundRect.left + imgBoundRect.left
+        img.style.left = newX + "px"
+        moveX = newX
     }
 
 }
@@ -351,6 +353,7 @@ window.api.receive("afterfetch", data => {
         const dummy = new Image();
         dummy.src = data.path;
         dummy.onload = function(){
+            ready = true;
             document.title = "PicViewer - " + data.name + "(" + dummy.width + " x " + dummy.height + ")";
             const cont = document.getElementById("imageArea")
             createRect(containerRect, cont.getBoundingClientRect());
