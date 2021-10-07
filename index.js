@@ -199,27 +199,27 @@ function onScaleChanged(scaleDirection){
     let newY;
 
     if(moveY > imgBoundRect.top){
-        newY = (originalimgBoundRect.top + imgBoundRect.top) * -1;
+        newY = (originalimgBoundRect.top + imgBoundRect.top) * 1;
         img.style.top = newY + "px"
-        moveY = newY
+        moveY = imgBoundRect.top
     }
 
-    if(moveY <= imgBoundRect.top * -1){
-        newY = originalimgBoundRect.top + imgBoundRect.top
+    if(moveY < imgBoundRect.top * -1){
+        newY = (originalimgBoundRect.top - imgBoundRect.top) * 1
         img.style.top = newY + "px"
-        moveY = newY
+        moveY = imgBoundRect.top * -1
     }
 
     if(moveX > imgBoundRect.left){
-        newX = (originalimgBoundRect.left + imgBoundRect.left) * -1;
+        newX = (originalimgBoundRect.left + imgBoundRect.left) * 1;
         img.style.left = newX + "px"
-        moveX = newX
+        moveX = imgBoundRect.left
     }
 
-    if(moveX  < imgBoundRect.left * -1){
-        newX = originalimgBoundRect.left + imgBoundRect.left
+    if(moveX < imgBoundRect.left * -1){
+        newX = (originalimgBoundRect.left - imgBoundRect.left) * 1;
         img.style.left = newX + "px"
-        moveX = newX
+        moveX = imgBoundRect.left * -1
     }
 
 }
