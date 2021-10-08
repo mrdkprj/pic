@@ -1,27 +1,39 @@
+let img;
+let imageArea;
+let loader;
 let moveByClick = false;
 let ready = false;
+let dragging = false;
+let moved = false;
 let x;
 let y;
+let moveX = 0;
+let moveY = 0;
 let containerRect = {};
 let originalimgBoundRect = {};
 let imgBoundRect = {};
 let scale = 1;
-let minScale;
+const minScale = 1;
 let zoomed = false;
+let scaleDirection;
 
 window.onload = function(){
 
+    img = document.getElementById("img");
+    imageArea = document.getElementById("imageArea");
+    loader = document.getElementById("loader");
+
     window.addEventListener("resize", e => {
         if(ready){
-            console.log(e)
+            createRect(containerRect, imageArea.getBoundingClientRect());
+            onScaleChanged();
         }
     })
 
     document.addEventListener("keydown", (e) => {
 
         if(e.ctrlKey && e.key == "q"){
-            //rotate();
-            max();
+            rotate();
         }
 
         if(e.key === "Delete"){
@@ -38,21 +50,8 @@ window.onload = function(){
 
     })
 
-    document.getElementById("mouseMove").addEventListener("change", e => {
+    document.getElementById("mouseOnly").addEventListener("change", e => {
         moveByClick = e.target.checked
-    })
-
-    document.getElementById("imageArea").addEventListener("mouseup", e => {
-        if(moveByClick){
-            e.preventDefault();
-            if(e.button == 0){
-                startFetch(-1);
-            }
-
-            if(e.button == 2){
-                startFetch(1);
-            }
-        }
     })
 
     document.addEventListener("click", (e) =>{
@@ -86,11 +85,11 @@ window.onload = function(){
         }
     })
 
-    document.getElementById("pic").addEventListener("dragover", (e) => {
+    document.getElementById("container").addEventListener("dragover", (e) => {
         e.preventDefault();
     })
 
-    document.getElementById("pic").addEventListener("drop", (e) =>{
+    document.getElementById("container").addEventListener("drop", (e) =>{
 
         e.preventDefault();
         if(e.dataTransfer.items[0].kind === "file" && e.dataTransfer.items[0].type.includes("image")){
@@ -98,24 +97,40 @@ window.onload = function(){
         }
     });
 
-    let moving = false;
-    document.getElementById("img").addEventListener("mousedown", e => {
-        moving = true;
-        setPos(e);
+    img.addEventListener("mousedown", e => {
+        moved = false;
+        dragging = true;
+        resetMousePosition(e);
     })
 
     document.addEventListener("mousemove", e => {
-        if(moving){
+        if(dragging){
+            moved = true;
             e.preventDefault();
             moveImage(e);
         }
     })
 
     document.addEventListener("mouseup", e => {
-        moving = false;
+
+        if(!moved && e.target.classList.contains("clickable")){
+            if(moveByClick){
+
+                e.preventDefault();
+                if(e.button == 0){
+                    startFetch(-1);
+                }
+
+                if(e.button == 2){
+                    startFetch(1);
+                }
+            }
+        }
+        moved = false;
+        dragging = false;
     })
 
-    document.getElementById("imageArea").addEventListener("wheel", e => {
+    imageArea.addEventListener("wheel", e => {
         zoom(e);
     })
 
@@ -123,9 +138,31 @@ window.onload = function(){
 
 }
 
-function zoom(e) {
 
-    let scaleDirection;
+function onImageLoaded(data, dummy){
+
+    ready = true;
+    document.title = "PicViewer - " + data.name + "(" + dummy.width + " x " + dummy.height + ")";
+
+    createRect(containerRect, imageArea.getBoundingClientRect());
+
+    scale = minScale;
+    resetScale();
+
+    createRect(originalimgBoundRect, img.getBoundingClientRect());
+    originalimgBoundRect.top = img.offsetTop;
+    originalimgBoundRect.left = img.offsetLeft;
+
+    createRect(imgBoundRect, originalimgBoundRect);
+    calculateBound();
+    img.style.top = img.offsetTop + "px";
+    img.style.left = img.offsetLeft + "px"
+
+    document.getElementById("counter").textContent = data.counter;
+    document.getElementById("loader").style.display = "none";
+}
+
+function zoom(e) {
 
     e.preventDefault();
 
@@ -139,7 +176,6 @@ function zoom(e) {
         scaleDirection = -1;
     }
 
-    const img = document.getElementById("img");
     img.style.transform = `scale(${scale})`;
 
     onScaleChanged(scaleDirection);
@@ -147,136 +183,77 @@ function zoom(e) {
 }
 
 function recalculate(){
-    const cont = document.getElementById("imageArea")
-    createRect(containerRect, cont.getBoundingClientRect());
-    scale = 1//Math.min(containerRect.width / dummy.width, containerRect.height / dummy.height);
-    minScale = scale;
-    resetScale();
 
-    //const imgArea = document.getElementById("imageArea");
-    createRect(originalimgBoundRect, img.getBoundingClientRect());
-
-    originalimgBoundRect.top = img.offsetTop;
-    originalimgBoundRect.left = img.offsetLeft;
-
-    createRect(imgBoundRect, originalimgBoundRect);
-    calculateBound();
-    //imgBoundRect = img.getBoundingClientRect()
-    img.style.top = img.offsetTop + "px";
-    img.style.left = img.offsetLeft + "px"
 }
 
 function resetScale(){
 
-    const img = document.getElementById("img");
     img.style.top = null;
     img.style.left = null;
     scale = minScale;
     zoomed = false;
     moveY = 0;
     moveX = 0;
-    createRect( imgBoundRect, img.getBoundingClientRect())
+    createRect(imgBoundRect, img.getBoundingClientRect())
     img.style.transform = `scale(${scale})`;
 }
 
 function onScaleChanged(scaleDirection){
 
     if(scale == minScale){
+        zoomed = false;
         resetScale();
         return;
     }
 
-    const img = document.getElementById("img");
-    createRect( imgBoundRect, img.getBoundingClientRect())
+    zoomed = true;
+
+    createRect(imgBoundRect, img.getBoundingClientRect())
 
     calculateBound();
 
     if(scaleDirection > 0) return;
 
-    calculateBound();
-
-    let newX;
-    let newY;
-
     if(moveY > imgBoundRect.top){
-        newY = (originalimgBoundRect.top + imgBoundRect.top) * 1;
-        img.style.top = newY + "px"
+        img.style.top = originalimgBoundRect.top + imgBoundRect.top + "px"
         moveY = imgBoundRect.top
     }
 
     if(moveY < imgBoundRect.top * -1){
-        newY = (originalimgBoundRect.top - imgBoundRect.top) * 1
-        img.style.top = newY + "px"
+        img.style.top = originalimgBoundRect.top - imgBoundRect.top + "px"
         moveY = imgBoundRect.top * -1
     }
 
     if(moveX > imgBoundRect.left){
-        newX = (originalimgBoundRect.left + imgBoundRect.left) * 1;
-        img.style.left = newX + "px"
+        img.style.left = originalimgBoundRect.left + imgBoundRect.left + "px"
         moveX = imgBoundRect.left
     }
 
     if(moveX < imgBoundRect.left * -1){
-        newX = (originalimgBoundRect.left - imgBoundRect.left) * 1;
-        img.style.left = newX + "px"
+        img.style.left = originalimgBoundRect.left - imgBoundRect.left + "px"
         moveX = imgBoundRect.left * -1
     }
 
 }
 
 function calculateBound(){
-
-    const relTop = Math.max((imgBoundRect.height - containerRect.height) / 2, 0);
-    const scTop = Math.min((imgBoundRect.height - originalimgBoundRect.height) / 2, relTop)
-
-    const scLeft = (containerRect.width - imgBoundRect.width) / 2//Math.max((imgBoundRect.width - originalimgBoundRect.width) / 2, (containerRect.width - imgBoundRect.width) / 2)
-
-    //imgBoundRect.top = (imgBoundRect.height - originalimgBoundRect.height) / 2;
-    //imgBoundRect.left = (imgBoundRect.width - originalimgBoundRect.width) / 2
     imgBoundRect.top = Math.max((imgBoundRect.height - containerRect.height) / 2,0);
     imgBoundRect.left = Math.max((imgBoundRect.width - containerRect.width) / 2,0);
-
 }
 
-let moveX = 0;
-let moveY = 0;
-
-function setPos(e){
+function resetMousePosition(e){
     x = e.x;
     y = e.y;
 }
 
-let t = 0;
 function moveImage(e){
-    const img = document.getElementById("img");
-    //imgBoundRect = img.getBoundingClientRect();
 
-    let right = false;
     const dx = e ? e.x - x : 0;
-    if(dx > 0){
-        right = true;
-    }
+    x = e.x;
 
-    if(e){
-        x = e.x;
-    }
-
-    let down = false;
     const dy = e ? e.y - y : 0;
-    if(dy > 0){
-        down = true;
-    }
+    y = e.y;
 
-    if(e){
-        y = e.y;
-    }
-
-    if(t > 10){
-        //return;
-    }
-
-//console.log(imgBoundRect.top)
-//console.log(moveY)
     if(moveY + dy >= imgBoundRect.top || moveY + dy <= imgBoundRect.top * -1){
 
     }else{
@@ -291,11 +268,9 @@ function moveImage(e){
         moveX += dx;
     }
 
-t++
 }
 
 function rotate(){
-    const img = document.getElementById("img");
     if(img.classList.contains("rotate")){
         img.classList.remove("rotate");
     }else{
@@ -304,8 +279,6 @@ function rotate(){
 }
 
 function prepare(){
-    const loader = document.getElementById("loader");
-
     if(loader.style.display == "block"){
         return false;
     }
@@ -347,34 +320,12 @@ function createRect(target, base){
 
 window.api.receive("afterfetch", data => {
     if(data){
-
-        const img = document.getElementById("img");
         img.src = data.path;
         const dummy = new Image();
         dummy.src = data.path;
         dummy.onload = function(){
-            ready = true;
-            document.title = "PicViewer - " + data.name + "(" + dummy.width + " x " + dummy.height + ")";
-            const cont = document.getElementById("imageArea")
-            createRect(containerRect, cont.getBoundingClientRect());
-            scale = 1//Math.min(containerRect.width / dummy.width, containerRect.height / dummy.height);
-            minScale = scale;
-            resetScale();
-
-            //const imgArea = document.getElementById("imageArea");
-            createRect(originalimgBoundRect, img.getBoundingClientRect());
-
-            originalimgBoundRect.top = img.offsetTop;
-            originalimgBoundRect.left = img.offsetLeft;
-
-            createRect(imgBoundRect, originalimgBoundRect);
-            calculateBound();
-            //imgBoundRect = img.getBoundingClientRect()
-            img.style.top = img.offsetTop + "px";
-            img.style.left = img.offsetLeft + "px"
-            document.getElementById("counter").textContent = data.counter;
-            document.getElementById("loader").style.display = "none";
-        }
+            onImageLoaded(data, dummy);
+        };
     }else{
         document.getElementById("loader").style.display = "none";
     }
