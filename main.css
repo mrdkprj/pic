@@ -19,6 +19,7 @@ body{
     height:10%;
     max-height: 40px;
     box-shadow: inset 0 -1px 0 rgb(100 121 143 / 12%);
+    user-select: none;
 }
 
 .header{
@@ -89,12 +90,6 @@ body{
     max-height: 100%;
     user-select: none;
     position: absolute;
-}
-
-.org .pic{
-    /*max-width: initial;
-    max-height: initial;
-    position: absolute;*/
 }
 
 .rotate{
