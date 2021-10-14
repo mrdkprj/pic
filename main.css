@@ -92,6 +92,11 @@ body{
     position: absolute;
 }
 
+.deg{
+    max-width: 100vh;
+    max-height: 100vw;
+}
+
 .rotate{
     transform: rotate(180deg);
 }
@@ -108,8 +113,16 @@ body{
     font-size: 14px;
 }
 
-#deleteBtn{
+#btnArea{
     display:flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#deleteBtn,
+#rotateLeft,
+#rotateRight{
+    display: flex;
     justify-content: center;
     align-items: center;
 }
@@ -120,6 +133,18 @@ body{
 
 .delete{
     width:30px;
+    height:30px;
+    padding: 0 20px;
+    pointer-events: none;
+}
+
+#rotateLeft:hover,
+#rotateRight:hover{
+    background-color: #00000012;
+}
+
+.rotate{
+    transform: rotate(180deg);
     height:30px;
     padding: 0 20px;
     pointer-events: none;
@@ -214,9 +239,9 @@ input:checked + .toggle::after{
     width:5px;
     height:5px;
     pointer-events: none;
-  }
+}
 
-  .arrow {
+.arrow {
     border: solid #00000012;
     border-width: 0 3px 3px 0;
     display: inline-block;
@@ -225,29 +250,30 @@ input:checked + .toggle::after{
     height: 10px;
     margin: 0 auto;
     pointer-events: none;
-  }
+}
 
-  .next-area:hover .arrow,
-  .prev-area:hover .arrow{
+.next-area:hover .arrow,
+.prev-area:hover .arrow{
     border: solid #00000075;
     border-width: 0 3px 3px 0;
-  }
+}
 
-  .right {
+.right {
     transform: rotate(-45deg);
     -webkit-transform: rotate(-45deg);
-  }
+}
 
-  .left {
+.left {
     transform: rotate(135deg);
     -webkit-transform: rotate(135deg);
-  }
+}
 
-  /*----------------------------*/
-  #loader{
-      display:none;
-  }
-.loader{
+/*----------------------------*/
+#loader{
+    display:none;
+}
+
+.overlay{
     display:none;
     position:fixed;
     z-index:9999;
@@ -260,6 +286,7 @@ input:checked + .toggle::after{
     align-items: center;
     background-color: rgb(204 204 204 / 30%);
 }
+
 .lds-spinner {
     color: official;
     display: inline-block;

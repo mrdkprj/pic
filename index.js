@@ -1,6 +1,7 @@
 let img;
 let imageArea;
 let loader;
+let settingDialog;
 let moveByClick = false;
 let ready = false;
 let dragging = false;
@@ -15,6 +16,8 @@ let imgBoundRect = {};
 let scale = 1;
 let zoomed = false;
 let scaleDirection;
+let rotation = 0;
+const rotationBasis = 90;
 const MIN_SCALE = 1;
 const BACKWARD = -1;
 const FORWARD = 1;
@@ -24,17 +27,18 @@ window.onload = function(){
     img = document.getElementById("img");
     imageArea = document.getElementById("imageArea");
     loader = document.getElementById("loader");
+    settingDialog = document.getElementById("settingArea");
 
     window.addEventListener("resize", e => {
         if(ready){
-            onImageLoaded();
+            onImageLoaded(null, null, true);
         }
     })
 
     document.addEventListener("keydown", (e) => {
 
         if(e.ctrlKey && e.key == "q"){
-            rotate();
+            rotate180();
         }
 
         if(e.key === "Delete"){
@@ -59,6 +63,14 @@ window.onload = function(){
 
         if(e.target.id == "deleteBtn"){
             deleteFile();
+        }
+
+        if(e.target.id == "rotateLeft"){
+            rotateLeft();
+        }
+
+        if(e.target.id == "rotateRight"){
+            rotateRight();
         }
 
         if(e.target.id == "reveal"){
@@ -139,18 +151,23 @@ window.onload = function(){
 
 }
 
-
-function onImageLoaded(data, dummy){
+let ratio;
+function onImageLoaded(data, dummy, doReset){
 
     ready = true;
 
     containerRect = createRect(imageArea.getBoundingClientRect());
 
-    resetScale();
+    if(doReset){
+        reset();
+    }
+
+    changeTransform();
 
     originalImgBoundRect = createRect(img.getBoundingClientRect());
     originalImgBoundRect.top = img.offsetTop;
     originalImgBoundRect.left = img.offsetLeft;
+    console.log(img.getBoundingClientRect())
 
     imgBoundRect = createRect(originalImgBoundRect);
     calculateBound();
@@ -158,21 +175,21 @@ function onImageLoaded(data, dummy){
     img.style.left = originalImgBoundRect.left + "px";
 
     if(data){
+        ratio = Math.max(dummy.width / dummy.height, dummy.height / dummy.width)
         document.title = `PicViewer - ${data.name} (${dummy.width} x ${dummy.height})`;
         document.getElementById("counter").textContent = data.counter;
         document.getElementById("loader").style.display = "none";
     }
 }
 
-function resetScale(){
+function reset(){
     scale = MIN_SCALE;
     zoomed = false;
     moveY = 0;
     moveX = 0;
+    rotation = 0;
     img.style.top = null;
     img.style.left = null;
-
-    img.style.transform = `scale(${scale})`;
 }
 
 function zoom(e) {
@@ -189,7 +206,7 @@ function zoom(e) {
         scaleDirection = -1;
     }
 
-    img.style.transform = `scale(${scale})`;
+    changeTransform();
 
     onScaleChanged(scaleDirection);
 
@@ -198,7 +215,7 @@ function zoom(e) {
 function onScaleChanged(scaleDirection){
 
     if(scale == MIN_SCALE){
-        resetScale();
+        reset();
         img.style.top =  originalImgBoundRect.top + "px";
         img.style.left = originalImgBoundRect.left + "px";
         return;
@@ -268,12 +285,46 @@ function moveImage(e){
 
 }
 
-function rotate(){
-    if(img.classList.contains("rotate")){
-        img.classList.remove("rotate");
-    }else{
-        img.classList.add("rotate");
+function rotateLeft(){
+    rotation += rotationBasis * -1
+    if(rotation <= -360){
+        rotation = 0;
     }
+    rotate();
+}
+
+function rotateRight(){
+
+    rotation += rotationBasis
+    if(rotation >= 360){
+        rotation = 0;
+    }
+
+    rotate();
+
+}
+
+function rotate180(){
+    rotation = 180;
+    rotate();
+}
+
+function rotate(){
+    //onImageLoaded(null, null, true);
+    if((Math.abs(rotation) / 90) % 2 == 0){
+        scale = MIN_SCALE;
+    }else{
+        scale = ratio;
+    }
+    onImageLoaded();
+}
+
+function changeTransform(){
+    img.style.transform = `scale(${scale}) rotate(${rotation}deg)`;
+}
+
+function openSetting(){
+    settingDialog.style.display = "block";
 }
 
 function prepare(){
@@ -324,7 +375,7 @@ window.api.receive("afterfetch", data => {
         const dummy = new Image();
         dummy.src = data.path;
         dummy.onload = function(){
-            onImageLoaded(data, dummy);
+            onImageLoaded(data, dummy, true);
         };
     }else{
         document.getElementById("loader").style.display = "none";
