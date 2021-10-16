@@ -1,7 +1,6 @@
 let img;
 let imageArea;
 let loader;
-let settingDialog;
 let moveByClick = false;
 let ready = false;
 let dragging = false;
@@ -13,12 +12,14 @@ let moveY = 0;
 let containerRect = {};
 let originalImgBoundRect = {};
 let imgBoundRect = {};
-let scale = 1;
+let scale;
 let zoomed = false;
 let scaleDirection;
 let rotation = 0;
+let minScale;
+let ratio;
 const rotationBasis = 90;
-const MIN_SCALE = 1;
+const DEFAULT_SCALE = 1;
 const BACKWARD = -1;
 const FORWARD = 1;
 
@@ -27,11 +28,10 @@ window.onload = function(){
     img = document.getElementById("img");
     imageArea = document.getElementById("imageArea");
     loader = document.getElementById("loader");
-    settingDialog = document.getElementById("settingArea");
 
     window.addEventListener("resize", e => {
         if(ready){
-            onImageLoaded(null, null, true);
+            resetImage();
         }
     })
 
@@ -151,28 +151,17 @@ window.onload = function(){
 
 }
 
-let ratio;
 function onImageLoaded(data, dummy, doReset){
 
     ready = true;
 
+    rotation = 0;
+    minScale = DEFAULT_SCALE;
+    setScale(minScale);
+
     containerRect = createRect(imageArea.getBoundingClientRect());
 
-    if(doReset){
-        reset();
-    }
-
-    changeTransform();
-
-    originalImgBoundRect = createRect(img.getBoundingClientRect());
-    originalImgBoundRect.top = img.offsetTop;
-    originalImgBoundRect.left = img.offsetLeft;
-    console.log(img.getBoundingClientRect())
-
-    imgBoundRect = createRect(originalImgBoundRect);
-    calculateBound();
-    img.style.top =  originalImgBoundRect.top + "px";
-    img.style.left = originalImgBoundRect.left + "px";
+    resetImage();
 
     if(data){
         ratio = Math.max(dummy.width / dummy.height, dummy.height / dummy.width)
@@ -182,14 +171,26 @@ function onImageLoaded(data, dummy, doReset){
     }
 }
 
-function reset(){
-    scale = MIN_SCALE;
+function resetPosition(){
     zoomed = false;
     moveY = 0;
     moveX = 0;
-    rotation = 0;
     img.style.top = null;
     img.style.left = null;
+}
+
+function resetImage(){
+
+    resetPosition();
+
+    originalImgBoundRect = createRect(img.getBoundingClientRect());
+    originalImgBoundRect.top = img.offsetTop;
+    originalImgBoundRect.left = img.offsetLeft;
+
+    imgBoundRect = createRect(originalImgBoundRect);
+    calculateBound();
+    img.style.top =  originalImgBoundRect.top + "px";
+    img.style.left = originalImgBoundRect.left + "px";
 }
 
 function zoom(e) {
@@ -202,22 +203,21 @@ function zoom(e) {
         scale = Math.min(Math.max(.125, scale), 4);
         scaleDirection = 1;
     }else{
-        scale = Math.max(Math.max(.125, scale), MIN_SCALE);
+        scale = Math.max(Math.max(.125, scale), minScale);
         scaleDirection = -1;
     }
 
     changeTransform();
 
-    onScaleChanged(scaleDirection);
+    afterZooom(scaleDirection);
 
 }
 
-function onScaleChanged(scaleDirection){
+function afterZooom(scaleDirection){
 
-    if(scale == MIN_SCALE){
-        reset();
-        img.style.top =  originalImgBoundRect.top + "px";
-        img.style.left = originalImgBoundRect.left + "px";
+    if(scale == minScale){
+        setScale(minScale);
+        resetImage();
         return;
     }
 
@@ -227,7 +227,7 @@ function onScaleChanged(scaleDirection){
 
     calculateBound();
 
-    if(scaleDirection > 0) return;
+    //if(scaleDirection > 0) return;
 
     if(moveY > imgBoundRect.top){
         img.style.top = originalImgBoundRect.top + imgBoundRect.top + "px"
@@ -294,14 +294,11 @@ function rotateLeft(){
 }
 
 function rotateRight(){
-
     rotation += rotationBasis
     if(rotation >= 360){
         rotation = 0;
     }
-
     rotate();
-
 }
 
 function rotate180(){
@@ -310,13 +307,19 @@ function rotate180(){
 }
 
 function rotate(){
-    //onImageLoaded(null, null, true);
     if((Math.abs(rotation) / 90) % 2 == 0){
-        scale = MIN_SCALE;
+        setScale(DEFAULT_SCALE);
     }else{
-        scale = ratio;
+        setScale(ratio);
     }
-    onImageLoaded();
+
+    minScale = scale;
+    resetImage();
+}
+
+function setScale(newScale){
+    scale = newScale;
+    changeTransform();
 }
 
 function changeTransform(){
