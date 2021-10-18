@@ -197,6 +197,7 @@ function zoom(e) {
 
     e.preventDefault();
 
+    previousScale = scale;
     scale += e.deltaY * -0.001;
 
     if(e.deltaY < 0){
@@ -207,13 +208,14 @@ function zoom(e) {
         scaleDirection = -1;
     }
 
-    changeTransform();
-
-    afterZooom(scaleDirection);
+    afterZooom(e);
 
 }
 
-function afterZooom(scaleDirection){
+let imageX;
+let imageY;
+let previousScale;
+function afterZooom(e){
 
     if(scale == minScale){
         setScale(minScale);
@@ -223,11 +225,27 @@ function afterZooom(scaleDirection){
 
     zoomed = true;
 
+    changeTransform();
+
     imgBoundRect = createRect(img.getBoundingClientRect())
 
     calculateBound();
 
-    //if(scaleDirection > 0) return;
+    if(imgBoundRect.top > 0 && imgBoundRect.left > 0){
+        centric = true;
+    }else{
+        centric = false;
+    }
+
+    calc(e);
+
+
+
+
+
+    //changeTransform();
+
+    if(scaleDirection > 0) return;
 
     if(moveY > imgBoundRect.top){
         img.style.top = originalImgBoundRect.top + imgBoundRect.top + "px"
@@ -248,6 +266,69 @@ function afterZooom(scaleDirection){
         img.style.left = originalImgBoundRect.left - imgBoundRect.left + "px"
         moveX = imgBoundRect.left * -1
     }
+
+}
+
+let centric = false;
+let current= {x:0, y:0, orgX:0, orgY:1}
+function calc(e){
+
+        // current cursor position on image
+        console.log("-----------")
+        const r = img.getBoundingClientRect();
+           let imageX;
+        let imageY;
+
+        if(centric){
+            imageX = (e.pageX - r.left).toFixed(2)//(mouseX - offsetLeft)
+            imageY = (e.pageY - r.top).toFixed(2)//(mouseY - offsetTop)
+        }else{
+            imageX = ((containerRect.width / 2)  - r.left).toFixed(2)//(mouseX - offsetLeft)
+            imageY = ((containerRect.height / 2) - r.top).toFixed(2)//(mouseY - offsetTop)
+            imageX = (e.pageX - r.left).toFixed(2)//(mouseX - offsetLeft)
+            imageY = (e.pageY - r.top).toFixed(2)//(mouseY - offsetTop)
+        }
+
+        //imageX = (e.clientX - r.left)
+        //imageX = (e.clientY - r.top)
+        // previous cursor position on image
+        let prevOrigX = (current.orgX*previousScale).toFixed(2)
+        let prevOrigY = (current.orgY*previousScale).toFixed(2)
+        // previous zooming frame translate
+        let translateX = current.x;
+        let translateY = current.y;
+        // set origin to current cursor position
+        let newOrigX = imageX/previousScale;
+        let newOrigY = imageY/previousScale;
+        // move zooming frame to current cursor position
+        if ((Math.abs(imageX-prevOrigX)>1 || Math.abs(imageY-prevOrigY)>1) && previousScale < 4) {
+            translateX = translateX + (imageX-prevOrigX)*(1-1/previousScale);
+            translateY = translateY + (imageY-prevOrigY)*(1-1/previousScale);
+        }
+
+        // stabilize position by zooming on previous cursor position
+        else if(previousScale != 1 || (imageX != prevOrigX && imageY != prevOrigY)) {
+            newOrigX = prevOrigX/previousScale;
+            newOrigY = prevOrigY/previousScale;
+
+        }
+
+        if(centric == false){
+
+            translateX = 0//(imgBoundRect.width - (imgBoundRect.width / scale)) / 2
+            translateY = 0
+        }
+        current.x = translateX;
+        current.y = translateY;
+        current.orgX = newOrigX;
+        current.orgY = newOrigY;
+
+
+        console.log(imgBoundRect.width)
+        console.log((imgBoundRect.width / scale))
+
+        //img.style.transform = `matrix(${scale},0,0,${scale}, ${current.x},${current.y})`;
+
 
 }
 
@@ -323,7 +404,16 @@ function setScale(newScale){
 }
 
 function changeTransform(){
-    img.style.transform = `scale(${scale}) rotate(${rotation}deg)`;
+
+    if(centric){
+        img.style["transform-origin"] = `${current.orgX}px ${current.orgY}px`;
+        img.style.transform = `matrix(${scale},0,0,${scale}, ${current.x},${current.y})`;
+    }else{
+        img.style["transform-origin"] = "50% 50%"
+        //img.style.transform = `matrix(${scale},0,0,${scale},0,0`;
+        img.style.transform = `matrix(${scale},0,0,${scale}, ${current.x},${current.y})`;
+    }
+    //img.style.transform = `scale(${scale}) rotate(${rotation}deg) `;
 }
 
 function openSetting(){
