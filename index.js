@@ -218,12 +218,17 @@ let previousScale;
 function afterZooom(e){
 
     if(scale == minScale){
+        calc(e)
         setScale(minScale);
+
+
         resetImage();
         return;
     }
 
     zoomed = true;
+
+    calc(e);
 
     changeTransform();
 
@@ -237,14 +242,12 @@ function afterZooom(e){
         centric = false;
     }
 
-    calc(e);
-
 
 
 
 
     //changeTransform();
-
+/*
     if(scaleDirection > 0) return;
 
     if(moveY > imgBoundRect.top){
@@ -266,7 +269,7 @@ function afterZooom(e){
         img.style.left = originalImgBoundRect.left - imgBoundRect.left + "px"
         moveX = imgBoundRect.left * -1
     }
-
+*/
 }
 
 let centric = false;
@@ -279,15 +282,9 @@ function calc(e){
            let imageX;
         let imageY;
 
-        if(centric){
-            imageX = (e.pageX - r.left).toFixed(2)//(mouseX - offsetLeft)
-            imageY = (e.pageY - r.top).toFixed(2)//(mouseY - offsetTop)
-        }else{
-            imageX = ((containerRect.width / 2)  - r.left).toFixed(2)//(mouseX - offsetLeft)
-            imageY = ((containerRect.height / 2) - r.top).toFixed(2)//(mouseY - offsetTop)
-            imageX = (e.pageX - r.left).toFixed(2)//(mouseX - offsetLeft)
-            imageY = (e.pageY - r.top).toFixed(2)//(mouseY - offsetTop)
-        }
+
+        imageX = (e.pageX - r.left).toFixed(2)//(mouseX - offsetLeft)
+        imageY = (e.pageY - r.top).toFixed(2)//(mouseY - offsetTop)
 
         //imageX = (e.clientX - r.left)
         //imageX = (e.clientY - r.top)
@@ -300,6 +297,7 @@ function calc(e){
         // set origin to current cursor position
         let newOrigX = imageX/previousScale;
         let newOrigY = imageY/previousScale;
+
         // move zooming frame to current cursor position
         if ((Math.abs(imageX-prevOrigX)>1 || Math.abs(imageY-prevOrigY)>1) && previousScale < 4) {
             translateX = translateX + (imageX-prevOrigX)*(1-1/previousScale);
@@ -310,25 +308,22 @@ function calc(e){
         else if(previousScale != 1 || (imageX != prevOrigX && imageY != prevOrigY)) {
             newOrigX = prevOrigX/previousScale;
             newOrigY = prevOrigY/previousScale;
-
         }
 
-        if(centric == false){
-
-            translateX = 0//(imgBoundRect.width - (imgBoundRect.width / scale)) / 2
-            translateY = 0
+        if(imgBoundRect.top == 0){
+            translateY = 0;
+            newOrigY =  (imgBoundRect.height / 2)/previousScale;
         }
+        if(imgBoundRect.left == 0){
+            translateX = 0;
+            newOrigX = (imgBoundRect.width / 2)/previousScale;
+        }
+
+
         current.x = translateX;
         current.y = translateY;
         current.orgX = newOrigX;
         current.orgY = newOrigY;
-
-
-        console.log(imgBoundRect.width)
-        console.log((imgBoundRect.width / scale))
-
-        //img.style.transform = `matrix(${scale},0,0,${scale}, ${current.x},${current.y})`;
-
 
 }
 
@@ -350,19 +345,24 @@ function moveImage(e){
     const dy = e.y - y;
     y = e.y;
 
-    if(moveY + dy >= imgBoundRect.top || moveY + dy <= imgBoundRect.top * -1){
+
+    if(moveY + dy > imgBoundRect.top || moveY + dy < imgBoundRect.top * -1){
 
     }else{
-        img.style.top = (img.offsetTop + dy) + "px"
+        //img.style.top = (img.offsetTop + dy) + "px"
         moveY += dy;
+        current.y += dy
     }
 
     if(moveX + dx >= imgBoundRect.left || moveX + dx <= imgBoundRect.left * -1){
 
     }else{
-        img.style.left = (img.offsetLeft + dx) + "px"
+        //img.style.left = (img.offsetLeft + dx) + "px"
         moveX += dx;
+        current.x += dx;
     }
+
+    changeTransform();
 
 }
 
@@ -405,14 +405,8 @@ function setScale(newScale){
 
 function changeTransform(){
 
-    if(centric){
-        img.style["transform-origin"] = `${current.orgX}px ${current.orgY}px`;
-        img.style.transform = `matrix(${scale},0,0,${scale}, ${current.x},${current.y})`;
-    }else{
-        img.style["transform-origin"] = "50% 50%"
-        //img.style.transform = `matrix(${scale},0,0,${scale},0,0`;
-        img.style.transform = `matrix(${scale},0,0,${scale}, ${current.x},${current.y})`;
-    }
+    img.style["transform-origin"] = `${current.orgX}px ${current.orgY}px`;
+    img.style.transform = `matrix(${scale},0,0,${scale}, ${current.x},${current.y})`;
     //img.style.transform = `scale(${scale}) rotate(${rotation}deg) `;
 }
 
