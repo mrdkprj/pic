@@ -158,6 +158,7 @@ function onImageLoaded(data, dummy, doReset){
     rotation = 0;
     minScale = DEFAULT_SCALE;
     setScale(minScale);
+    previousScale = scale;
 
     containerRect = createRect(imageArea.getBoundingClientRect());
 
@@ -198,7 +199,7 @@ function zoom(e) {
     e.preventDefault();
 
     previousScale = scale;
-    scale += e.deltaY * -0.001;
+    scale += e.deltaY * -0.002;
 
     if(e.deltaY < 0){
         scale = Math.min(Math.max(.125, scale), 4);
@@ -228,20 +229,13 @@ function afterZooom(e){
 
     zoomed = true;
 
-    calc(e);
-
-    changeTransform();
-
-    imgBoundRect = createRect(img.getBoundingClientRect())
+    //imgBoundRect = createRect(img.getBoundingClientRect())
 
     calculateBound();
 
-    if(imgBoundRect.top > 0 && imgBoundRect.left > 0){
-        centric = true;
-    }else{
-        centric = false;
-    }
+    calc(e);
 
+    changeTransform();
 
 
 
@@ -279,12 +273,17 @@ function calc(e){
         // current cursor position on image
         console.log("-----------")
         const r = img.getBoundingClientRect();
-           let imageX;
+        let imageX;
         let imageY;
+        const left = r.left;
+        const top = r.top
 
+        if(e == null){
+            e = {pageX:0,pageY:0}
+        }
 
-        imageX = (e.pageX - r.left).toFixed(2)//(mouseX - offsetLeft)
-        imageY = (e.pageY - r.top).toFixed(2)//(mouseY - offsetTop)
+        imageX = (e.pageX - left).toFixed(2)//(mouseX - offsetLeft)
+        imageY = (e.pageY - top).toFixed(2)//(mouseY - offsetTop)
 
         //imageX = (e.clientX - r.left)
         //imageX = (e.clientY - r.top)
@@ -299,7 +298,8 @@ function calc(e){
         let newOrigY = imageY/previousScale;
 
         // move zooming frame to current cursor position
-        if ((Math.abs(imageX-prevOrigX)>1 || Math.abs(imageY-prevOrigY)>1) && previousScale < 4) {
+        if ((Math.abs(imageX-prevOrigX)>1 || Math.abs(imageY-prevOrigY)>1)) {
+            console.log("enter")
             translateX = translateX + (imageX-prevOrigX)*(1-1/previousScale);
             translateY = translateY + (imageY-prevOrigY)*(1-1/previousScale);
         }
@@ -312,13 +312,22 @@ function calc(e){
 
         if(imgBoundRect.top == 0){
             translateY = 0;
-            newOrigY =  (imgBoundRect.height / 2)/previousScale;
-        }
-        if(imgBoundRect.left == 0){
-            translateX = 0;
-            newOrigX = (imgBoundRect.width / 2)/previousScale;
+            newOrigY =  (imgBoundRect.height / 2);
+        }else{
+
         }
 
+        if(imgBoundRect.left == 0){
+            translateX = 0;
+            newOrigX = (imgBoundRect.width / 2);
+        }else{
+
+            console.log(r.left)
+            console.log(imgBoundRect.left)
+        }
+
+        //console.log((r.left + r.width + r.left).toFixed(0))
+        //console.log(containerRect.width)
 
         current.x = translateX;
         current.y = translateY;
@@ -328,8 +337,8 @@ function calc(e){
 }
 
 function calculateBound(){
-    imgBoundRect.top = Math.max((imgBoundRect.height - containerRect.height) / 2,0);
-    imgBoundRect.left = Math.max((imgBoundRect.width - containerRect.width) / 2,0);
+    imgBoundRect.top = Math.max((imgBoundRect.height * scale - containerRect.height) / 2,0);
+    imgBoundRect.left = Math.max((imgBoundRect.width * scale - containerRect.width) / 2,0);
 }
 
 function resetMousePosition(e){
@@ -346,20 +355,35 @@ function moveImage(e){
     y = e.y;
 
 
-    if(moveY + dy > imgBoundRect.top || moveY + dy < imgBoundRect.top * -1){
-
+    //if(moveY + dy > imgBoundRect.top || moveY + dy < imgBoundRect.top * -1){
+    moveY = current.y + dy;
+    if(moveY+current.orgY*(1-scale) >= 0){
+        current.y = 0
+        current.orgY = 0
+    }else if(moveY+current.orgY+( containerRect.height - current.orgY)*scale <=  containerRect.height){
+        current.y = 0
+        current.orgY =  containerRect.height
     }else{
         //img.style.top = (img.offsetTop + dy) + "px"
         moveY += dy;
         current.y += dy
+
     }
 
-    if(moveX + dx >= imgBoundRect.left || moveX + dx <= imgBoundRect.left * -1){
+    //if(moveX + dx >= imgBoundRect.left || moveX + dx <= imgBoundRect.left * -1){
 
+    moveX = current.x + dx;
+    if(moveX+current.orgX*(1-scale) >= 0){
+        current.x = 0
+        current.orgX = 0
+    }else if(moveX+current.orgX+( containerRect.width - current.orgX)*scale <=  containerRect.width){
+        current.x = 0
+        current.orgX =  containerRect.width
     }else{
-        //img.style.left = (img.offsetLeft + dx) + "px"
+        //img.style.top = (img.offsetTop + dy) + "px"
         moveX += dx;
-        current.x += dx;
+        current.x += dx
+
     }
 
     changeTransform();
