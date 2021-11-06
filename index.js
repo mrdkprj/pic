@@ -151,6 +151,10 @@ window.onload = function(){
 
 }
 
+let previousScale;
+let padX = 0;
+let padY = 0;
+let current= {x:0, y:0, orgX:0, orgY:0}
 function onImageLoaded(data, dummy, doReset){
 
     ready = true;
@@ -176,22 +180,34 @@ function resetPosition(){
     zoomed = false;
     moveY = 0;
     moveX = 0;
-    img.style.top = null;
-    img.style.left = null;
+    current.x = 0;
+    current.y = 0;
+    current.orgX = 0;
+    current.orgY = 0;
 }
 
 function resetImage(){
 
+    containerRect = createRect(imageArea.getBoundingClientRect());
+
     resetPosition();
 
-    originalImgBoundRect = createRect(img.getBoundingClientRect());
-    originalImgBoundRect.top = img.offsetTop;
-    originalImgBoundRect.left = img.offsetLeft;
+    imgBoundRect = createRect(img.getBoundingClientRect());
 
-    imgBoundRect = createRect(originalImgBoundRect);
+    padX = (containerRect.width - imgBoundRect.width) / 2;
+    padY = (containerRect.height - imgBoundRect.height) / 2;
+
+    current.orgX = imgBoundRect.width / 2;
+    current.orgY = imgBoundRect.height / 2;
+
+    if((Math.abs(rotation) / 90) % 2 != 0){
+        current.orgX = (imgBoundRect.height/scale) / 2;
+        current.orgY = (imgBoundRect.width/scale) / 2;
+    }
+
     calculateBound();
-    //img.style.top =  originalImgBoundRect.top + "px";
-    //img.style.left = originalImgBoundRect.left + "px";
+
+    changeTransform();
 }
 
 function zoom(e) {
@@ -213,29 +229,17 @@ function zoom(e) {
 
 }
 
-let imageX;
-let imageY;
-let previousScale;
 function afterZooom(e, scaleDirection){
 
     if(scale == minScale){
-        calc(e)
         setScale(minScale);
-        current.x = 0;
-        current.y = 0;
-        changeTransform();
-
         resetImage();
         return;
     }
 
     zoomed = true;
 
-    //imgBoundRect = createRect(img.getBoundingClientRect())
-
-    //scale = previousScale + imgBoundRect.mleft;
-
-    calculateBound();
+    calculateBound(scale);
 
     calc(e);
 
@@ -244,49 +248,32 @@ function afterZooom(e, scaleDirection){
     }
 
     changeTransform();
-
-    //changeTransform();
-/*
-    if(scaleDirection > 0) return;
-
-    if(moveY > imgBoundRect.top){
-        img.style.top = originalImgBoundRect.top + imgBoundRect.top + "px"
-        moveY = imgBoundRect.top
-    }
-
-    if(moveY < imgBoundRect.top * -1){
-        img.style.top = originalImgBoundRect.top - imgBoundRect.top + "px"
-        moveY = imgBoundRect.top * -1
-    }
-
-    if(moveX > imgBoundRect.left){
-        img.style.left = originalImgBoundRect.left + imgBoundRect.left + "px"
-        moveX = imgBoundRect.left
-    }
-
-    if(moveX < imgBoundRect.left * -1){
-        img.style.left = originalImgBoundRect.left - imgBoundRect.left + "px"
-        moveX = imgBoundRect.left * -1
-    }
-*/
 }
 
-let centric = false;
-let padX = 0;
-let padY = 0;
-let current= {x:0, y:0, orgX:0, orgY:1}
 function calc(e){
 
         // current cursor position on image
         console.log("-----------")
         const r = img.getBoundingClientRect();
-        let imageX;
-        let imageY;
+        let mouseX;
+        let mouseY;
         let left = r.left
         let top = r.top
 
-        imageX = e.pageX - left
-        imageY = e.pageY - top
+        mouseX = e.pageX - left
+        mouseY = e.pageY - top
+
+        mouseX = e.pageY - top
+        mouseY = e.pageX - left
+        const ox = current.orgX
+        const oy =current.orgY
+        current.orgY = ox;
+        current.orgX = oy;
+        const cx = current.x;
+        const cy = current.y;
+        current.x = cy;
+        current.y = cx;
+
 
         // previous cursor position on image
         let prevOrigX = current.orgX*previousScale
@@ -295,118 +282,64 @@ function calc(e){
         let translateX = current.x;
         let translateY = current.y;
         // set origin to current cursor position
-        let newOrigX = imageX/previousScale
-        let newOrigY = imageY/previousScale
+        let newOrigX = mouseX/previousScale
+        let newOrigY = mouseY/previousScale
 
         // move zooming frame to current cursor position
-        if ((Math.abs(imageX-prevOrigX)>1 && Math.abs(imageY-prevOrigY)>1)) {
-            translateX = translateX + (imageX-prevOrigX)*(1-1/previousScale);
-            translateY = translateY + (imageY-prevOrigY)*(1-1/previousScale);
+        if ((Math.abs(mouseX-prevOrigX)>1 && Math.abs(mouseY-prevOrigY)>1)) {
+            translateX = translateX + (mouseX-prevOrigX)*(1-1/previousScale);
+            translateY = translateY + (mouseY-prevOrigY)*(1-1/previousScale);
         }
         // stabilize position by zooming on previous cursor position
-        else if(previousScale != 1 || (imageX != prevOrigX && imageY != prevOrigY)) {
+        else if(previousScale != 1 || (mouseX != prevOrigX && mouseY != prevOrigY)) {
             newOrigX = prevOrigX/previousScale;
             newOrigY = prevOrigY/previousScale;
         }
 
-
-        if(previousScale == 1){
-            padX = (containerRect.width - imgBoundRect.width) / 2;
-            padY = (containerRect.height - imgBoundRect.height) / 2;
-        }
-
-
         if(imgBoundRect.top == 0){
             translateY = 0;
             newOrigY =  (imgBoundRect.height / 2);
-        }else{
-            const di = imgBoundRect.top * (newOrigY+translateY) / (imgBoundRect.height / 2)
-
         }
 
         if(imgBoundRect.left == 0){
             translateX = 0;
             newOrigX = (imgBoundRect.width / 2);
-        }else {
-
-
         }
-
-        moveY = padY + (newOrigY - newOrigY*scale)+translateY ;
-        moveX = padX + (newOrigX - newOrigX*scale)+translateX;
 
         current.x = translateX;
         current.y = translateY;
         current.orgX = newOrigX;
         current.orgY = newOrigY;
 
+        moveY = padY + (newOrigY - newOrigY*scale)+translateY ;
+        moveX = padX + (newOrigX - newOrigX*scale)+translateX;
+
 }
 
 function adjustCalc(){
 
-    if(current.y+current.orgY*(1-scale) >= 0){
-        current.y = 0
-        current.orgY = 0
-    }else if(current.y+current.orgY+( containerRect.height - current.orgY)*scale <=  containerRect.height){
-        current.y = 0
-        current.orgY =  containerRect.height
-    }
-
-    if(current.x+current.orgX*(1-scale) >= 0){
-        current.x = 0
-        current.orgX = 0
-    }else if(current.x+current.orgX+(containerRect.width  - current.orgX)*scale <= containerRect.width ){
-        current.x = 0
-        current.orgX = containerRect.width
-    }
-
-    if(moveY > 0){
-        console.log(1)
+    if(imgBoundRect.top == 0){
         current.y = 0;
-        //current.orgY = imgBoundRect.
-    }
-
-    if(moveY < imgBoundRect.top * -1){
-        console.log(2)
-        current.y = 0;
-        //current.orgY = containerRect.height;
-
+    } else if(moveY > 0){
+        current.y -= moveY;
+    } else if(moveY < imgBoundRect.top * -1){
+        current.y += Math.abs(moveY) - imgBoundRect.top;
     }
 
     if(imgBoundRect.left == 0 ){
         current.x = 0;
     }else if(moveX > 0){
-        if(padX > 0){
-            current.x -= moveX;
-        }else{
-            current.x = 0
-        }
+        current.x -= moveX;
     } else if(moveX < imgBoundRect.left * -1){
-        if(padX > 0){
-            current.x += Math.abs(moveX) - imgBoundRect.left;
-        }else{
-            current.x = 0
-        }
+        current.x += Math.abs(moveX) - imgBoundRect.left;
     }
-    /*
-    if(imgBoundRect.top == 0 ){
-        current.x = 0;
-    }else if(moveY > 0){
-        console.log(1)
-        current.y += moveY;
-        //current.orgY = imgBoundRect.
-    }else if(moveY < imgBoundRect.top * -1){
-        console.log(2)
-        current.y += Math.abs(moveY) - imgBoundRect.top
 
-    }
-    */
 }
 
-function calculateBound(){
-    imgBoundRect.top = Math.max((imgBoundRect.height * scale - containerRect.height),0);
-    imgBoundRect.left = Math.max((imgBoundRect.width * scale - containerRect.width),0);
-//    imgBoundRect.left = Math.max((imgBoundRect.width * scale - containerRect.width),(containerRect.width - imgBoundRect.width * scale));
+function calculateBound(applicableScale){
+    const newScale = applicableScale ? applicableScale : 1;
+    imgBoundRect.top = Math.max((imgBoundRect.height * newScale - containerRect.height),0);
+    imgBoundRect.left = Math.max((imgBoundRect.width * newScale - containerRect.width),0);
 }
 
 function resetMousePosition(e){
@@ -424,29 +357,16 @@ function moveImage(e){
 
     if(moveY + dy > 0 || moveY + dy < imgBoundRect.top * -1){
 
-    /*
-    moveY = current.y + dy;
-    if(imgBoundRect.top > 0 && moveY+current.orgY*(1-scale) >= 0){
-        current.y = 0
-        current.orgY = 0
-    }else if(imgBoundRect.top > 0 && moveY+current.orgY+( containerRect.height - current.orgY)*scale <=  containerRect.height){
-        current.y = 0
-        current.orgY =  containerRect.height
-        */
     }else{
-        //img.style.top = (img.offsetTop + dy) + "px"
         moveY += dy;
         current.y += dy
-
     }
 
     if(moveX + dx > 0 || moveX + dx < imgBoundRect.left * -1){
 
     }else{
-        //img.style.top = (img.offsetTop + dy) + "px"
         moveX += dx;
         current.x += dx
-
     }
 
     changeTransform();
@@ -475,6 +395,9 @@ function rotate180(){
 }
 
 function rotate(){
+    current.orgX = 0;
+    current.orgY = 0;
+
     if((Math.abs(rotation) / 90) % 2 == 0){
         setScale(DEFAULT_SCALE);
     }else{
@@ -482,10 +405,12 @@ function rotate(){
     }
 
     minScale = scale;
+
     resetImage();
 }
 
 function setScale(newScale){
+    previousScale = scale;
     scale = newScale;
     changeTransform();
 }
@@ -493,7 +418,8 @@ function setScale(newScale){
 function changeTransform(){
 
     img.style["transform-origin"] = `${current.orgX}px ${current.orgY}px`;
-    img.style.transform = `matrix(${scale},0,0,${scale}, ${current.x},${current.y})`;
+    //img.style.transform = `matrix(${scale},0,0,${scale}, ${current.x},${current.y})`;
+    img.style.transform = `rotate(${rotation}deg) translate(${current.x}px, ${current.y}px) scale(${scale})`;
     //img.style.transform = `scale(${scale}) rotate(${rotation}deg) `;
 }
 
