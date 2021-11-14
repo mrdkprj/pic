@@ -10,15 +10,17 @@ let y;
 let moveX = 0;
 let moveY = 0;
 let containerRect = {};
-let originalImgBoundRect = {};
 let imgBoundRect = {};
 let scale;
 let zoomed = false;
 let scaleDirection;
-let rotation = 0;
 let minScale;
-let ratio;
-const rotationBasis = 90;
+let previousScale;
+let padX = 0;
+let padY = 0;
+let current= {x:0, y:0, orgX:0, orgY:0}
+const angles = [1,6,3,8];
+let angleIndex = 0;
 const DEFAULT_SCALE = 1;
 const BACKWARD = -1;
 const FORWARD = 1;
@@ -39,6 +41,11 @@ window.onload = function(){
 
         if(e.ctrlKey && e.key == "q"){
             rotate180();
+        }
+
+        if(e.ctrlKey && e.key == "a"){
+            e.preventDefault();
+            rotateRight();
         }
 
         if(e.key === "Delete"){
@@ -151,29 +158,23 @@ window.onload = function(){
 
 }
 
-let previousScale;
-let padX = 0;
-let padY = 0;
-let current= {x:0, y:0, orgX:0, orgY:0}
 function onImageLoaded(data, dummy, doReset){
 
     ready = true;
 
-    rotation = 0;
     minScale = DEFAULT_SCALE;
     setScale(minScale);
     previousScale = scale;
 
-    containerRect = createRect(imageArea.getBoundingClientRect());
-
-    resetImage();
-
     if(data){
-        ratio = Math.max(dummy.width / dummy.height, dummy.height / dummy.width)
+        const angle = data.angle? data.angle : 1;
+        angleIndex = angles.indexOf(angle);
         document.title = `PicViewer - ${data.name} (${dummy.width} x ${dummy.height})`;
         document.getElementById("counter").textContent = data.counter;
         document.getElementById("loader").style.display = "none";
     }
+
+    resetImage();
 }
 
 function resetPosition(){
@@ -183,7 +184,7 @@ function resetPosition(){
     current.x = 0;
     current.y = 0;
     current.orgX = 0;
-    current.orgY = 0;
+    current.orgY = 1;
 }
 
 function resetImage(){
@@ -199,11 +200,6 @@ function resetImage(){
 
     current.orgX = imgBoundRect.width / 2;
     current.orgY = imgBoundRect.height / 2;
-
-    if((Math.abs(rotation) / 90) % 2 != 0){
-        current.orgX = (imgBoundRect.height/scale) / 2;
-        current.orgY = (imgBoundRect.width/scale) / 2;
-    }
 
     calculateBound();
 
@@ -252,67 +248,54 @@ function afterZooom(e, scaleDirection){
 
 function calc(e){
 
-        // current cursor position on image
-        console.log("-----------")
-        const r = img.getBoundingClientRect();
-        let mouseX;
-        let mouseY;
-        let left = r.left
-        let top = r.top
+    // current cursor position on image
+    const rect = img.getBoundingClientRect();
+    let mouseX;
+    let mouseY;
+    let left = rect.left
+    let top = rect.top
 
-        mouseX = e.pageX - left
-        mouseY = e.pageY - top
+    mouseX = e.pageX - left;
+    mouseY = e.pageY - top;
 
-        mouseX = e.pageY - top
-        mouseY = e.pageX - left
-        const ox = current.orgX
-        const oy =current.orgY
-        current.orgY = ox;
-        current.orgX = oy;
-        const cx = current.x;
-        const cy = current.y;
-        current.x = cy;
-        current.y = cx;
+    // previous cursor position on image
+    let prevOrigX = current.orgX*previousScale
+    let prevOrigY = current.orgY*previousScale
+    // previous zooming frame translate
+    let translateX = current.x;
+    let translateY = current.y;
+    // set origin to current cursor position
+    let newOrigX = mouseX/previousScale
+    let newOrigY = mouseY/previousScale
 
+    // move zooming frame to current cursor position
+    if ((Math.abs(mouseX-prevOrigX)>1 && Math.abs(mouseY-prevOrigY)>1)) {
+        translateX = translateX + (mouseX-prevOrigX)*(1-1/previousScale);
+        translateY = translateY + (mouseY-prevOrigY)*(1-1/previousScale);
+    }
+    // stabilize position by zooming on previous cursor position
+    else if(previousScale != 1 || (mouseX != prevOrigX && mouseY != prevOrigY)) {
+        newOrigX = prevOrigX/previousScale;
+        newOrigY = prevOrigY/previousScale;
+    }
 
-        // previous cursor position on image
-        let prevOrigX = current.orgX*previousScale
-        let prevOrigY = current.orgY*previousScale
-        // previous zooming frame translate
-        let translateX = current.x;
-        let translateY = current.y;
-        // set origin to current cursor position
-        let newOrigX = mouseX/previousScale
-        let newOrigY = mouseY/previousScale
+    if(imgBoundRect.top == 0){
+        translateY = 0;
+        newOrigY =  (imgBoundRect.height / 2);
+    }
 
-        // move zooming frame to current cursor position
-        if ((Math.abs(mouseX-prevOrigX)>1 && Math.abs(mouseY-prevOrigY)>1)) {
-            translateX = translateX + (mouseX-prevOrigX)*(1-1/previousScale);
-            translateY = translateY + (mouseY-prevOrigY)*(1-1/previousScale);
-        }
-        // stabilize position by zooming on previous cursor position
-        else if(previousScale != 1 || (mouseX != prevOrigX && mouseY != prevOrigY)) {
-            newOrigX = prevOrigX/previousScale;
-            newOrigY = prevOrigY/previousScale;
-        }
+    if(imgBoundRect.left == 0){
+        translateX = 0;
+        newOrigX = (imgBoundRect.width / 2);
+    }
 
-        if(imgBoundRect.top == 0){
-            translateY = 0;
-            newOrigY =  (imgBoundRect.height / 2);
-        }
+    current.x = translateX;
+    current.y = translateY;
+    current.orgX = newOrigX;
+    current.orgY = newOrigY;
 
-        if(imgBoundRect.left == 0){
-            translateX = 0;
-            newOrigX = (imgBoundRect.width / 2);
-        }
-
-        current.x = translateX;
-        current.y = translateY;
-        current.orgX = newOrigX;
-        current.orgY = newOrigY;
-
-        moveY = padY + (newOrigY - newOrigY*scale)+translateY ;
-        moveX = padX + (newOrigX - newOrigX*scale)+translateX;
+    moveY = padY + (newOrigY - newOrigY*scale)+translateY ;
+    moveX = padX + (newOrigX - newOrigX*scale)+translateX;
 
 }
 
@@ -374,39 +357,30 @@ function moveImage(e){
 }
 
 function rotateLeft(){
-    rotation += rotationBasis * -1
-    if(rotation <= -360){
-        rotation = 0;
+    angleIndex--;
+    if(angleIndex < 0){
+        angleIndex = angles.length - 1;
     }
+
     rotate();
 }
 
 function rotateRight(){
-    rotation += rotationBasis
-    if(rotation >= 360){
-        rotation = 0;
+    angleIndex++;
+    if(angleIndex > angles.length - 1){
+        angleIndex = 0;
     }
+
     rotate();
 }
 
 function rotate180(){
-    rotation = 180;
+    angleIndex = 3;
     rotate();
 }
 
 function rotate(){
-    current.orgX = 0;
-    current.orgY = 0;
-
-    if((Math.abs(rotation) / 90) % 2 == 0){
-        setScale(DEFAULT_SCALE);
-    }else{
-        setScale(ratio);
-    }
-
-    minScale = scale;
-
-    resetImage();
+    window.api.send("rotate", {angle:angles[angleIndex]});
 }
 
 function setScale(newScale){
@@ -416,11 +390,8 @@ function setScale(newScale){
 }
 
 function changeTransform(){
-
     img.style["transform-origin"] = `${current.orgX}px ${current.orgY}px`;
-    //img.style.transform = `matrix(${scale},0,0,${scale}, ${current.x},${current.y})`;
-    img.style.transform = `rotate(${rotation}deg) translate(${current.x}px, ${current.y}px) scale(${scale})`;
-    //img.style.transform = `scale(${scale}) rotate(${rotation}deg) `;
+    img.style.transform = `matrix(${scale},0,0,${scale}, ${current.x},${current.y})`;
 }
 
 function openSetting(){
@@ -471,9 +442,10 @@ function createRect(base){
 
 window.api.receive("afterfetch", data => {
     if(data){
-        img.src = data.path;
+        const src = data.path + "?" + new Date().getTime();
+        img.src = src
         const dummy = new Image();
-        dummy.src = data.path;
+        dummy.src = src;
         dummy.onload = function(){
             onImageLoaded(data, dummy, true);
         };

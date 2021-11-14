@@ -6,8 +6,11 @@ const {
 } = require("electron");
 const path = require("path");
 const trash = require('trash');
+const sharp = require('sharp');
 const fs = require("fs");
 const proc = require('child_process');
+
+sharp.cache(false);
 
 let mainWindow;
 
@@ -90,13 +93,25 @@ app.on('ready', () => {
         return a.replace(path.extname(a), "") - b.replace(path.extname(b), "");
     }
 
-    function respond(filePath){
-        if(filePath){
-            const data = {name: path.basename(filePath), path:filePath, counter: (currentIndex + 1) + " / " + targetfiles.length}
-            mainWindow.webContents.send("afterfetch", data);
-        }else{
+    async function respond(filePath, angle){
+        if(!filePath){
             mainWindow.webContents.send("afterfetch", null);
+            return;
         }
+
+        let orientation = angle;
+        if(!angle){
+            orientation = await (await sharp(filePath).metadata()).orientation;
+        }
+
+        const data = {
+            name: path.basename(filePath),
+            path:filePath,
+            counter: (currentIndex + 1) + " / " + targetfiles.length,
+            angle:orientation
+        }
+
+        mainWindow.webContents.send("afterfetch", data);
 
     }
 
@@ -213,5 +228,30 @@ app.on('ready', () => {
         const body = fs.readFileSync(path.join(dir,"file.txt"), {encoding:"utf8"});
 
         loadImage({name:path.basename(body), path:body});
+    });
+
+    ipcMain.on("rotate", async (event, args) => {
+
+        try{
+            /*
+            const buffer = await sharp(targetfiles[currentIndex])
+                .rotate(args.angle)
+                .withMetadata()
+                .toBuffer();
+
+            const result = await sharp(buffer).toFile(targetfiles[currentIndex]);
+*/
+
+            const buffer = await sharp(targetfiles[currentIndex])
+                                .withMetadata({orientation: args.angle})
+                                .toBuffer();
+
+            const result = await sharp(buffer).withMetadata().toFile(targetfiles[currentIndex]);
+
+            respond(targetfiles[currentIndex], args.angle);
+
+        }catch(ex){
+            mainWindow.webContents.send("onError", ex.message);
+        }
     });
 });
