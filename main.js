@@ -7,33 +7,28 @@ const {
 const path = require("path");
 const trash = require('trash');
 const sharp = require('sharp');
-const fs = require("fs");
+const fs = require("fs").promises;
 const proc = require('child_process');
 
 sharp.cache(false);
 
 let mainWindow;
 
-app.on('ready', () => {
+app.on('ready', async () => {
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
         webPreferences: {
-        nodeIntegration: false, // is default value after Electron v5
-        contextIsolation: true, // protect against prototype pollution
-        enableRemoteModule: false, // turn off remote
-        preload: path.join(__dirname, "preload.js") // use a preload script
+        nodeIntegration: false,
+        contextIsolation: true,
+        enableRemoteModule: false,
+        preload: path.join(__dirname, "preload.js")
         }
     })
 
-    // Electronに表示するhtmlを絶対パスで指定（相対パスだと動かない）
     mainWindow.loadURL('file://' + __dirname + '/index.html');
 
-    let folder;
-
     let currentIndex = 0;
-
-    let targetFile = null;
 
     const targetfiles = [];
 
@@ -41,52 +36,58 @@ app.on('ready', () => {
 
     const dir = path.join(app.getPath("userData"), "temp");
 
-    const savedPathFile = path.join(dir,"path.txt");
-    let currentDir;
-    if(fs.existsSync(savedPathFile)){
-        currentDir = fs.readFileSync(savedPathFile, {encoding:"utf8"});
-    }
+    let config;
 
     init();
 
     mainWindow.maximize();
 
-    //mainWindow.webContents.openDevTools()
-
     mainWindow.on('closed', function() {
         mainWindow = null;
     });
 
-    function init(){
+    async function init(){
 
-        if (!fs.existsSync(dir)){
-            fs.mkdirSync(dir);
+        try{
+            await fs.stat(dir);
+        }catch(ex){
+            await fs.mkdir(dir);
         }
 
-        folder = null;
+        const savedPathFile = path.join(dir,"config.json");
+
+        try{
+            await fs.stat(savedPathFile);
+
+            config = await fs.readFile(savedPathFile, {encoding:"utf8"});
+
+        }catch(ex){
+            config =  {directory:null,file:null, mode:"key", angle:1}
+        }
 
         currentIndex = 0;
-
-        targetFile = null;
 
         targetfiles.length = 0;
     }
 
-    function loadImage(args){
+    async function loadImage(fullPath){
 
-        targetFile = args.name;
-        currentDir = path.dirname(args.path);
+        const targetFile = path.basename(fullPath);
+        config.directory = path.dirname(fullPath);
+        config.file = fullPath;
 
         targetfiles.length = 0;
-        fs.readdir(currentDir, (err, files) => {
-            files.sort(sortByName).forEach((file, index) => {
-                if(targetFile == file){
-                    currentIndex = index;
-                }
-                targetfiles.push(currentDir + "\\" + file);
-            })
-            respond(targetfiles[currentIndex]);
-        });
+
+        const files = await fs.readdir(config.directory);
+
+        files.sort(sortByName).forEach((file, index) => {
+            if(targetFile == file){
+                currentIndex = index;
+            }
+            targetfiles.push(config.directory + "\\" + file);
+        })
+
+        respond(targetfiles[currentIndex]);
     }
 
     function sortByName(a, b){
@@ -108,6 +109,7 @@ app.on('ready', () => {
             name: path.basename(filePath),
             path:filePath,
             counter: (currentIndex + 1) + " / " + targetfiles.length,
+            mode:config.mode,
             angle:orientation
         }
 
@@ -115,9 +117,21 @@ app.on('ready', () => {
 
     }
 
+    function sendError(ex){
+        mainWindow.webContents.send("onError", ex.message);
+    }
+
+    async function writeConfig(){
+        try{
+            await fs.writeFile(path.join(dir,"config.json"), JSON.stringify(config));
+        }catch(ex){
+            sendError(ex);
+        }
+    }
+
     ipcMain.on("domready", (event, args) => {
         if(directLaunch && targetfiles.length == 0){
-            loadImage({name:path.basename(process.argv[1]), path:process.argv[1]});
+            loadImage(process.argv[1]);
         }else if(targetfiles.length > 0){
             respond(targetfiles[currentIndex]);
         }else{
@@ -126,9 +140,8 @@ app.on('ready', () => {
     });
 
     ipcMain.on("drop", (event, args) => {
-        loadImage(args);
+        loadImage(args.file);
     });
-
 
     ipcMain.on("fetch", (event, args) => {
 
@@ -161,7 +174,7 @@ app.on('ready', () => {
 
         try{
 
-            const result = await trash(targetfiles[currentIndex]);
+            await trash(targetfiles[currentIndex]);
 
             targetfiles.splice(currentIndex, 1);
 
@@ -176,7 +189,7 @@ app.on('ready', () => {
             respond(targetfiles[currentIndex]);
 
         }catch(ex){
-            mainWindow.webContents.send("onError", ex.message);
+            sendError(ex);
         }
     });
 
@@ -195,7 +208,7 @@ app.on('ready', () => {
         const result = await dialog.showOpenDialog(null, {
             properties: ["openFile"],
             title: "Select image",
-            defaultPath: currentDir ? currentDir :'.',
+            defaultPath: config.directory ? config.directory :'.',
             filters: [
                 {name: "image file", extensions: ["jpeg","jpg","png","ico","gif"]}
             ]
@@ -203,55 +216,60 @@ app.on('ready', () => {
 
         if(result.filePaths.length == 1){
             const file = result.filePaths[0];
-            currentDir = path.dirname(file);
-            fs.writeFileSync(path.join(dir,"path.txt"), currentDir);
-            loadImage({name:path.basename(file), path:file});
+            config.directory = path.dirname(file);
+
+            try{
+                await writeConfig();
+            }catch(ex){
+                return sendError(ex);
+            }
+
+            loadImage(file);
         }
 
     });
 
-    ipcMain.on("save", (event, args) => {
+    ipcMain.on("save", async (event, args) => {
 
         if(targetfiles.length <= 0){
             return;
         }
 
-        fs.writeFileSync(path.join(dir,"file.txt"), targetfiles[currentIndex]);
-
-        if(currentDir){
-            fs.writeFileSync(path.join(dir,"path.txt"), currentDir);
+        try{
+            config.file = targetfiles[currentIndex];
+            await writeConfig();
+        }catch(ex){
+            return sendError(ex);
         }
+
     });
 
-    ipcMain.on("restore", (event, args) => {
+    ipcMain.on("restore", async (event, args) => {
 
-        const body = fs.readFileSync(path.join(dir,"file.txt"), {encoding:"utf8"});
+        const body = await fs.readFile(path.join(dir,"config.json"), {encoding:"utf8"});
+        config = JSON.parse(body);
 
-        loadImage({name:path.basename(body), path:body});
+        loadImage(config.file);
     });
 
     ipcMain.on("rotate", async (event, args) => {
 
         try{
-            /*
-            const buffer = await sharp(targetfiles[currentIndex])
-                .rotate(args.angle)
-                .withMetadata()
-                .toBuffer();
-
-            const result = await sharp(buffer).toFile(targetfiles[currentIndex]);
-*/
-
             const buffer = await sharp(targetfiles[currentIndex])
                                 .withMetadata({orientation: args.angle})
                                 .toBuffer();
 
-            const result = await sharp(buffer).withMetadata().toFile(targetfiles[currentIndex]);
+            await sharp(buffer).withMetadata().toFile(targetfiles[currentIndex]);
 
             respond(targetfiles[currentIndex], args.angle);
 
         }catch(ex){
-            mainWindow.webContents.send("onError", ex.message);
+            sendError(ex);
         }
     });
+
+    ipcMain.on("chgmode", (event, args) => {
+        config.mode = args.mouseOnly == true ? "mouse" : "key";
+    });
+
 });

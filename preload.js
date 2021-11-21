@@ -3,13 +3,23 @@ const {
   ipcRenderer
 } = require("electron");
 
-// Expose protected methods that allow the renderer process to use
-// the ipcRenderer without exposing the entire object
+
 contextBridge.exposeInMainWorld(
   "api", {
       send: (channel, data) => {
           // whitelist channels
-          let validChannels = ["domready", "drop", "fetch", "delete", "reveal", "save", "restore","open","rotate"];
+          let validChannels = [
+                "domready",
+                "drop",
+                "fetch",
+                "delete",
+                "reveal",
+                "save",
+                "restore",
+                "open",
+                "rotate",
+                "chgmode",
+            ];
           if (validChannels.includes(channel)) {
               ipcRenderer.send(channel, data);
           }

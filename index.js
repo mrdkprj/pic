@@ -1,7 +1,8 @@
 let img;
 let imageArea;
 let loader;
-let moveByClick = false;
+let mouseOnlyCheckbox;
+let mouseOnly = false;
 let ready = false;
 let dragging = false;
 let moved = false;
@@ -30,6 +31,7 @@ window.onload = function(){
     img = document.getElementById("img");
     imageArea = document.getElementById("imageArea");
     loader = document.getElementById("loader");
+    mouseOnlyCheckbox = document.getElementById("mouseOnly");
 
     window.addEventListener("resize", e => {
         if(ready){
@@ -48,6 +50,16 @@ window.onload = function(){
             rotateRight();
         }
 
+        if(e.ctrlKey && e.key == "s"){
+            e.preventDefault();
+            save();
+        }
+
+        if(e.ctrlKey && e.key == "z"){
+            e.preventDefault();
+            restore();
+        }
+
         if(e.key === "Delete"){
             deleteFile();
         }
@@ -62,8 +74,8 @@ window.onload = function(){
 
     })
 
-    document.getElementById("mouseOnly").addEventListener("change", e => {
-        moveByClick = e.target.checked
+    mouseOnlyCheckbox.addEventListener("change", e => {
+        changeMode(e);
     })
 
     document.addEventListener("click", (e) =>{
@@ -81,19 +93,19 @@ window.onload = function(){
         }
 
         if(e.target.id == "reveal"){
-            window.api.send("reveal", null);
+            reveal();
         }
 
         if(e.target.id == "openFile"){
-            window.api.send("open", null);
+            open();
         }
 
         if(e.target.id == "saveFile"){
-            window.api.send("save", null);
+            save();
         }
 
         if(e.target.id == "restoreFile"){
-            window.api.send("restore", null);
+            restore();
         }
 
         if(e.target.classList.contains("prev")){
@@ -134,7 +146,7 @@ window.onload = function(){
     document.addEventListener("mouseup", e => {
 
         if(!moved && e.target.classList.contains("clickable")){
-            if(moveByClick){
+            if(mouseOnly){
 
                 e.preventDefault();
                 if(e.button == 0){
@@ -169,6 +181,8 @@ function onImageLoaded(data, dummy, doReset){
     if(data){
         const angle = data.angle? data.angle : 1;
         angleIndex = angles.indexOf(angle);
+        mouseOnly = data.mode == "key" ? false : true;
+        mouseOnlyCheckbox.checked = mouseOnly;
         document.title = `PicViewer - ${data.name} (${dummy.width} x ${dummy.height})`;
         document.getElementById("counter").textContent = data.counter;
         document.getElementById("loader").style.display = "none";
@@ -394,8 +408,13 @@ function changeTransform(){
     img.style.transform = `matrix(${scale},0,0,${scale}, ${current.x},${current.y})`;
 }
 
-function openSetting(){
-    settingDialog.style.display = "block";
+function createRect(base){
+    return {
+            top: base.top,
+            left: base.left,
+            width: base.width,
+            height: base.height,
+    }
 }
 
 function prepare(){
@@ -415,7 +434,7 @@ function init(){
 
 function dropFile(file){
     if(prepare()){
-        window.api.send("drop", {name:file.name,path:file.path});
+        window.api.send("drop", {file:file.path});
     }
 }
 
@@ -431,13 +450,25 @@ function deleteFile(){
     }
 }
 
-function createRect(base){
-    return {
-            top: base.top,
-            left: base.left,
-            width: base.width,
-            height: base.height,
-    }
+function save(){
+    window.api.send("save", null);
+}
+
+function open(){
+    window.api.send("open", null);
+}
+
+function reveal(){
+    window.api.send("reveal", null);
+}
+
+function restore(){
+    window.api.send("restore", null);
+}
+
+function changeMode(e){
+    mouseOnly = e.target.checked;
+    window.api.send("chgmode", {mouseOnly: mouseOnly});
 }
 
 window.api.receive("afterfetch", data => {
