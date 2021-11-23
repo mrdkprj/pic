@@ -5,8 +5,77 @@ html, body{
 
 body{
     margin:0;
+    font-family: Segoe WPC,Segoe UI,sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
+#viewport{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.title-bar{
+    height:30px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fff;
+    color: #000;
+}
+
+.dark .title-bar{
+    background-color: #2b2a2af0;
+    color: #c3bebe;
+}
+
+.icon-area{
+    font-size: 12px;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+}
+
+.ico{
+    width: 16px;
+    height: 16px;
+    margin: 0 5px;
+}
+
+.window-area{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+}
+
+.minimize,
+.maximize,
+.close{
+    width: 45px;
+    height: 100%;
+    text-align: center;
+    line-height: 30px;
+    user-select: none;
+}
+
+.minimize:hover,
+.maximize:hover{
+    background-color: #00000012;
+}
+
+.dark .minimize:hover,
+.dark .maximize:hover{
+    background-color: #5f5b5b;
+}
+
+.close:hover{
+    background-color: #da0707c4;
+    color: #fff;
+}
 
 .container{
     display:flex;
@@ -22,6 +91,12 @@ body{
     user-select: none;
 }
 
+.dark .menu{
+    background-color: #272626;
+    box-shadow: inset 0 -1px 0 rgb(116 117 119 / 12%);
+    color: #c3bebe;
+}
+
 .header{
     width:100%;
     display: flex;
@@ -30,14 +105,18 @@ body{
     height: 100%;
 }
 
-.main{
+.image-container{
     display: flex;
     width:100%;
     height:80%;
     position: relative;
     flex: 1 1 auto;
-    margin: 5px 0px;
     overflow: hidden;
+}
+
+.dark .image-container{
+    background-color: #272626;
+    color:#c3bebe;
 }
 
 .prev-area{
@@ -83,15 +162,7 @@ body{
     overflow: hidden;
     position: relative;
     z-index: 10;
-}
-
-#wrapper{
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
+    margin: 5px 0px;
 }
 
 .pic{
@@ -101,25 +172,17 @@ body{
     position: absolute;
 }
 
-.deg{
-    max-width: 100vh;
-    max-height: 100vw;
-}
-
-.rotate{
-    transform: rotate(180deg);
-}
-
 .footer{
-    height:50px;
+    height:100%;
     width:100%;
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    justify-content: space-between;
+    align-items: center;
 }
 
 #counter{
     font-size: 14px;
+    margin-left: 200px;
 }
 
 #btnArea{
@@ -140,10 +203,14 @@ body{
     background-color: #00000012;
 }
 
+.dark #deleteBtn:hover{
+    background-color: #6b676775;
+}
+
 .delete{
-    width:30px;
-    height:30px;
-    padding: 0 20px;
+    width: 20px;
+    height: 30px;
+    padding: 0 22px;
     pointer-events: none;
 }
 
@@ -152,11 +219,9 @@ body{
     background-color: #00000012;
 }
 
-.rotate{
-    transform: rotate(180deg);
-    height:30px;
-    padding: 0 20px;
-    pointer-events: none;
+.dark #rotateLeft:hover,
+.dark #rotateRight:hover{
+    background-color: #6b676775;
 }
 
 .open-file{
@@ -176,8 +241,25 @@ body{
     cursor: pointer;
 }
 
+.dark .btn{
+    background-color: transparent;
+    color: #c3bebe;
+}
+
+.rotate-btn{
+    transform: rotate(180deg);
+    height:30px;
+    padding: 0 20px;
+    pointer-events: none;
+}
+
 .btn:hover{
     background-color: #dee5f5;
+}
+
+.dark .btn:hover{
+    background-color: #234eb9b0;
+    color: #fff;
 }
 
 .btn:focus{
@@ -217,7 +299,7 @@ input[type="checkbox"]{
 }
 
 input:checked + .toggle{
-    background-color: #dee5f5;
+    background-color: #234eb9b0;
 }
 
 .toggle::after {
@@ -238,6 +320,43 @@ input:checked + .toggle{
 input:checked + .toggle::after{
     left: 23px;
     background: #fff;
+}
+
+.toggle-theme {
+    width: 50px;
+    height: 27px;
+    background: #fff;
+    position: relative;
+    display: inline-block;
+    border-radius: 46px;
+    transition: 0.2s;
+    box-sizing: border-box;
+    border:1px solid #a7aab1;
+    cursor: pointer;
+}
+
+input:checked + .toggle-theme{
+    background-color: #999b9e;
+}
+
+.toggle-theme::after {
+    content: '';
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    border-radius: 100%;
+    left: 0;
+    top: 0;
+    z-index: 2;
+    background: #fff;
+    box-shadow: 0 0 5px rgb(0 0 0 / 46%);
+    transition: 0.2s;
+    cursor: pointer;
+}
+
+input:checked + .toggle-theme::after{
+    left: 23px;
+    background: #ece6e6;
 }
 
 .arrow-sm {
@@ -373,13 +492,4 @@ input:checked + .toggle::after{
     100% {
         opacity: 0;
     }
-}
-  /*-----------------------------*/
-.abc{
-    position: absolute;
-    top:0px;
-    left:0px;
-    width: 10px;
-    height: 10px;
-    border: 1px solid red;
 }

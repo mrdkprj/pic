@@ -1,9 +1,13 @@
 let img;
 let imageArea;
 let loader;
-let mouseOnlyCheckbox;
+let title;
+let viewport;
+let modeCheckbox;
 let mouseOnly = false;
-let ready = false;
+let isDark = false;
+let themeCheckbox;
+let isImageLoaded = false;
 let dragging = false;
 let moved = false;
 let x;
@@ -28,13 +32,16 @@ const FORWARD = 1;
 
 window.onload = function(){
 
+    title = document.getElementById("title");
+    viewport = document.getElementById("viewport");
     img = document.getElementById("img");
     imageArea = document.getElementById("imageArea");
     loader = document.getElementById("loader");
-    mouseOnlyCheckbox = document.getElementById("mouseOnly");
+    modeCheckbox = document.getElementById("mouseOnly");
+    themeCheckbox = document.getElementById("theme");
 
     window.addEventListener("resize", e => {
-        if(ready){
+        if(isImageLoaded){
             resetImage();
         }
     })
@@ -74,11 +81,23 @@ window.onload = function(){
 
     })
 
-    mouseOnlyCheckbox.addEventListener("change", e => {
+    modeCheckbox.addEventListener("change", e => {
         changeMode(e);
     })
 
     document.addEventListener("click", (e) =>{
+
+        if(e.target.id == "minimize"){
+            minimize();
+        }
+
+        if(e.target.id == "maximize"){
+            maximize();
+        }
+
+        if(e.target.id == "close"){
+            close();
+        }
 
         if(e.target.id == "deleteBtn"){
             deleteFile();
@@ -117,11 +136,11 @@ window.onload = function(){
         }
     })
 
-    document.getElementById("container").addEventListener("dragover", (e) => {
+    document.getElementById("imageContainer").addEventListener("dragover", (e) => {
         e.preventDefault();
     })
 
-    document.getElementById("container").addEventListener("drop", (e) =>{
+    document.getElementById("imageContainer").addEventListener("drop", (e) =>{
 
         e.preventDefault();
         if(e.dataTransfer.items[0].kind === "file" && e.dataTransfer.items[0].type.includes("image")){
@@ -166,13 +185,16 @@ window.onload = function(){
         zoom(e);
     })
 
-    init();
+    themeCheckbox.addEventListener("change", e =>{
+        isDark = e.target.checked;
+        applyTheme();
+    })
 
 }
 
 function onImageLoaded(data, dummy, doReset){
 
-    ready = true;
+    isImageLoaded = true;
 
     minScale = DEFAULT_SCALE;
     setScale(minScale);
@@ -181,9 +203,7 @@ function onImageLoaded(data, dummy, doReset){
     if(data){
         const angle = data.angle? data.angle : 1;
         angleIndex = angles.indexOf(angle);
-        mouseOnly = data.mode == "key" ? false : true;
-        mouseOnlyCheckbox.checked = mouseOnly;
-        document.title = `PicViewer - ${data.name} (${dummy.width} x ${dummy.height})`;
+        title.textContent = `PicViewer - ${data.name} (${dummy.width} x ${dummy.height})`;
         document.getElementById("counter").textContent = data.counter;
         document.getElementById("loader").style.display = "none";
     }
@@ -417,41 +437,36 @@ function createRect(base){
     }
 }
 
-function prepare(){
+function isPrepared(){
     if(loader.style.display == "block"){
         return false;
     }
 
-    loader.style.display = "block";
+    lock();
     return true;
 }
 
-function init(){
-    if(prepare()){
-        window.api.send("domready", null);
-    }
-}
-
 function dropFile(file){
-    if(prepare()){
+    if(isPrepared()){
         window.api.send("drop", {file:file.path});
     }
 }
 
 function startFetch(index){
-    if(prepare()){
+    if(isPrepared()){
         window.api.send("fetch", index);
     }
 }
 
 function deleteFile(){
-    if(prepare()){
+    if(isPrepared()){
         window.api.send("delete", null);
     }
 }
 
 function save(){
-    window.api.send("save", null);
+    const config = {isDark:isDark, mouseOnly:mouseOnly};
+    window.api.send("save", config);
 }
 
 function open(){
@@ -468,8 +483,44 @@ function restore(){
 
 function changeMode(e){
     mouseOnly = e.target.checked;
-    window.api.send("chgmode", {mouseOnly: mouseOnly});
 }
+
+function applyTheme(){
+    if(isDark == false){
+        viewport.classList.remove("dark");
+    }else{
+        viewport.classList.add("dark");
+    }
+}
+
+function minimize(){
+    window.api.send("minimize")
+}
+
+function maximize(){
+    window.api.send("maximize")
+}
+
+function close(){
+    window.api.send("close")
+}
+
+function lock(){
+    loader.style.display = "block";
+}
+
+function unlock(){
+    loader.style.display = "none";
+}
+
+window.api.receive("config", data => {
+    mouseOnly = data.mode == "mouse";
+    modeCheckbox.checked = mouseOnly;
+
+    isDark = data.theme == "dark";
+    themeCheckbox.checked = isDark;
+    applyTheme();
+})
 
 window.api.receive("afterfetch", data => {
     if(data){
@@ -481,7 +532,7 @@ window.api.receive("afterfetch", data => {
             onImageLoaded(data, dummy, true);
         };
     }else{
-        document.getElementById("loader").style.display = "none";
+        unlock();
     }
 
 });

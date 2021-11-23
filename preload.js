@@ -9,7 +9,9 @@ contextBridge.exposeInMainWorld(
       send: (channel, data) => {
           // whitelist channels
           let validChannels = [
-                "domready",
+                "minimize",
+                "maximize",
+                "close",
                 "drop",
                 "fetch",
                 "delete",
@@ -18,7 +20,6 @@ contextBridge.exposeInMainWorld(
                 "restore",
                 "open",
                 "rotate",
-                "chgmode",
             ];
           if (validChannels.includes(channel)) {
               ipcRenderer.send(channel, data);
@@ -26,7 +27,7 @@ contextBridge.exposeInMainWorld(
       },
 
       receive: (channel, func) => {
-          let validChannels = ["afterfetch", "onError"];
+          let validChannels = ["config", "afterfetch", "onError"];
           if (validChannels.includes(channel)) {
               // Deliberately strip event as it includes `sender`
               ipcRenderer.on(channel, (event, ...args) => func(...args));
