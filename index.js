@@ -151,6 +151,7 @@ window.onload = function(){
     img.addEventListener("mousedown", e => {
         moved = false;
         dragging = true;
+        viewport.classList.add("dragging");
         resetMousePosition(e);
     })
 
@@ -177,6 +178,8 @@ window.onload = function(){
                 }
             }
         }
+
+        viewport.classList.remove("dragging")
         moved = false;
         dragging = false;
     })

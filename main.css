@@ -17,6 +17,10 @@ body{
     height: 100%;
 }
 
+.dragging{
+    cursor: pointer;
+}
+
 .title-bar{
     height:30px;
     width: 100%;
@@ -105,6 +109,24 @@ body{
     height: 100%;
 }
 
+.file-area{
+    margin-left: 20px;
+}
+
+.btn-area{
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.option-area{
+    margin-right:100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .image-container{
     display: flex;
     width:100%;
@@ -185,12 +207,6 @@ body{
     margin-left: 200px;
 }
 
-#btnArea{
-    display:flex;
-    justify-content: center;
-    align-items: center;
-}
-
 #deleteBtn,
 #rotateLeft,
 #rotateRight{
@@ -222,10 +238,6 @@ body{
 .dark #rotateLeft:hover,
 .dark #rotateRight:hover{
     background-color: #6b676775;
-}
-
-.open-file{
-    margin-left: 20px;
 }
 
 #saveFile{
@@ -264,13 +276,6 @@ body{
 
 .btn:focus{
     outline: none;
-}
-
-.option{
-    margin-right:100px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
 input[type="checkbox"]{

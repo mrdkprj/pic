@@ -42,7 +42,7 @@ app.on("ready", async () => {
         frame: false
     });
 
-    mainWindow.once('ready-to-show', () => {
+    mainWindow.on('ready-to-show', () => {
         onReady();
     })
 
@@ -233,7 +233,7 @@ ipcMain.on("reveal", (event, args) => {
         return;
     }
 
-    proc.exec("explorer /e,/select,'" + targetfiles[currentIndex] + "'");
+    proc.exec("explorer /e,/select," + targetfiles[currentIndex]);
 
 });
 
