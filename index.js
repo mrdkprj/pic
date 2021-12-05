@@ -3,8 +3,8 @@ let imageArea;
 let loader;
 let title;
 let viewport;
-let modeCheckbox;
 let mouseOnly = false;
+let flip = false;
 let isDark = false;
 let themeCheckbox;
 let isImageLoaded = false;
@@ -37,7 +37,6 @@ window.onload = function(){
     img = document.getElementById("img");
     imageArea = document.getElementById("imageArea");
     loader = document.getElementById("loader");
-    modeCheckbox = document.getElementById("mouseOnly");
     themeCheckbox = document.getElementById("theme");
 
     window.addEventListener("resize", e => {
@@ -79,10 +78,6 @@ window.onload = function(){
             startFetch(BACKWARD);
         }
 
-    })
-
-    modeCheckbox.addEventListener("change", e => {
-        changeMode(e);
     })
 
     document.addEventListener("click", (e) =>{
@@ -127,11 +122,21 @@ window.onload = function(){
             restore();
         }
 
-        if(e.target.classList.contains("prev")){
+        if(e.target.id == "mode"){
+            mouseOnly = !mouseOnly;
+            changeMode();
+        }
+
+        if(e.target.id == "orientation"){
+            flip = !flip;
+            changeOrientation();
+        }
+
+        if(e.target.id == "previous"){
             startFetch(BACKWARD);
         }
 
-        if(e.target.classList.contains("next")){
+        if(e.target.id == "next"){
             startFetch(FORWARD);
         }
     })
@@ -151,7 +156,9 @@ window.onload = function(){
     img.addEventListener("mousedown", e => {
         moved = false;
         dragging = true;
-        viewport.classList.add("dragging");
+        if(scale != minScale){
+            viewport.classList.add("dragging");
+        }
         resetMousePosition(e);
     })
 
@@ -166,6 +173,7 @@ window.onload = function(){
     document.addEventListener("mouseup", e => {
 
         if(!moved && e.target.classList.contains("clickable")){
+
             if(mouseOnly){
 
                 e.preventDefault();
@@ -177,6 +185,7 @@ window.onload = function(){
                     startFetch(1);
                 }
             }
+
         }
 
         viewport.classList.remove("dragging")
@@ -468,7 +477,7 @@ function deleteFile(){
 }
 
 function save(){
-    const config = {isDark:isDark, mouseOnly:mouseOnly};
+    const config = {isDark:isDark, mouseOnly:mouseOnly, flip:flip};
     window.api.send("save", config);
 }
 
@@ -484,8 +493,25 @@ function restore(){
     window.api.send("restore", null);
 }
 
-function changeMode(e){
-    mouseOnly = e.target.checked;
+function changeMode(){
+    if(mouseOnly){
+        viewport.classList.add("mouse");
+    }else{
+        viewport.classList.remove("mouse");
+    }
+}
+
+async function changeOrientation(){
+    if(flip){
+        viewport.classList.add("flip");
+    }else{
+        viewport.classList.remove("flip");
+    }
+
+    if(isPrepared()){
+        window.api.send("chgConfigFlip", {flip:flip});
+    }
+
 }
 
 function applyTheme(){
@@ -505,7 +531,7 @@ function maximize(){
 }
 
 function close(){
-    window.api.send("close")
+    window.api.send("close");
 }
 
 function lock(){
@@ -518,7 +544,10 @@ function unlock(){
 
 window.api.receive("config", data => {
     mouseOnly = data.mode == "mouse";
-    modeCheckbox.checked = mouseOnly;
+    changeMode();
+
+    flip = data.flip;
+    changeOrientation();
 
     isDark = data.theme == "dark";
     themeCheckbox.checked = isDark;

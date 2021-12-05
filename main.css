@@ -103,10 +103,11 @@ body{
 
 .header{
     width:100%;
+    height: 100%;
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 100%;
 }
 
 .file-area{
@@ -117,14 +118,118 @@ body{
     display:flex;
     justify-content: center;
     align-items: center;
+    position: absolute;
     height: 100%;
+    left: 50%;
+    transform: translate(-50%, 0px);
 }
 
-.option-area{
-    margin-right:100px;
+.delete-btn-area,
+.rotate-btn-area{
     display: flex;
     justify-content: center;
     align-items: center;
+    height: 100%;
+    cursor: pointer;
+}
+
+.delete-btn-area:hover{
+    background-color: #00000012;
+}
+
+.dark .delete-btn-area:hover{
+    background-color: #6b676775;
+}
+
+.delete{
+    width: 20px;
+    height: 30px;
+    padding: 0 22px;
+    pointer-events: none;
+}
+
+.rotate-btn-area:hover{
+    background-color: #00000012;
+}
+
+.dark .rotate-btn-area:hover{
+    background-color: #6b676775;
+}
+
+.option-area{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+}
+
+.mode,
+.orientation{
+    display: flex;
+    align-items: center;
+}
+
+.mode-area,
+.orientation-area{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.mouse-btn,
+.keyboard-btn{
+    height: 30px;
+    padding: 0 10px;
+    pointer-events: none;
+}
+
+.orientation-btn{
+    height: 30px;
+    padding-left: 10px;
+    cursor: pointer;
+    pointer-events: none;
+}
+
+.mode-area:hover,
+.orientation-area:hover{
+    background-color: #00000012;
+}
+
+.dark .mode-area:hover,
+.dark .orientation-area:hover{
+    background-color: #6b676775;
+}
+
+.keyboard-btn{
+    display: block;
+}
+
+.mouse-btn{
+    display: none;
+}
+
+.mouse .mouse-btn{
+    display:block;
+}
+
+.mouse .keyboard-btn{
+    display: none;
+}
+
+.flip .orientation-area{
+    transform: rotate(180deg);
+}
+
+.direction{
+    padding-right: 10px;
+}
+
+.splitter{
+    height: 30px;
+    width: 1px;
+    background-color: #ccc;
+    margin: 0 10px 0 0;
 }
 
 .image-container{
@@ -170,11 +275,6 @@ body{
     background-color:#d0caca12;
 }
 
-.area-btn{
-    height:50px;
-    width:50px;
-}
-
 .image-area{
     width:100%;
     height:auto;
@@ -202,46 +302,16 @@ body{
     align-items: center;
 }
 
-#counter{
+.counter{
     font-size: 14px;
     margin-left: 200px;
 }
 
-#deleteBtn,
-#rotateLeft,
-#rotateRight{
+.theme-option-area{
+    margin-right:100px;
     display: flex;
     justify-content: center;
     align-items: center;
-}
-
-#deleteBtn:hover{
-    background-color: #00000012;
-}
-
-.dark #deleteBtn:hover{
-    background-color: #6b676775;
-}
-
-.delete{
-    width: 20px;
-    height: 30px;
-    padding: 0 22px;
-    pointer-events: none;
-}
-
-#rotateLeft:hover,
-#rotateRight:hover{
-    background-color: #00000012;
-}
-
-.dark #rotateLeft:hover,
-.dark #rotateRight:hover{
-    background-color: #6b676775;
-}
-
-#saveFile{
-    margin-right:15px;
 }
 
 .btn{
@@ -256,6 +326,10 @@ body{
 .dark .btn{
     background-color: transparent;
     color: #c3bebe;
+}
+
+.save-btn{
+    margin-right:15px;
 }
 
 .rotate-btn{
@@ -278,13 +352,13 @@ body{
     outline: none;
 }
 
-input[type="checkbox"]{
+.input-hidden{
     position:fixed;
     top:-100px;
     left:-100px;
 }
 
-.label{
+.toggle-label{
     font-family: Arial, Helvetica, sans-serif;
     font-size: 16px;
     margin-right: 10px;
@@ -303,7 +377,7 @@ input[type="checkbox"]{
     cursor: pointer;
 }
 
-input:checked + .toggle{
+.input-hiddent:checked + .toggle{
     background-color: #234eb9b0;
 }
 
@@ -322,7 +396,7 @@ input:checked + .toggle{
     cursor: pointer;
 }
 
-input:checked + .toggle::after{
+.input-hidden:checked + .toggle::after{
     left: 23px;
     background: #fff;
 }
@@ -340,7 +414,7 @@ input:checked + .toggle::after{
     cursor: pointer;
 }
 
-input:checked + .toggle-theme{
+.input-hidden:checked + .toggle-theme{
     background-color: #999b9e;
 }
 
@@ -359,7 +433,7 @@ input:checked + .toggle-theme{
     cursor: pointer;
 }
 
-input:checked + .toggle-theme::after{
+.input-hidden:checked + .toggle-theme::after{
     left: 23px;
     background: #ece6e6;
 }

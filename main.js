@@ -17,6 +17,8 @@ let currentIndex = 0;
 let currentDirectory;
 let directLaunch;
 let config;
+
+const orientations = {none:1, flip:3};
 const targetfiles = [];
 
 app.on("ready", async () => {
@@ -73,7 +75,7 @@ async function init(){
         config = JSON.parse(rawData);
 
     }catch(ex){
-        config =  {directory:null,file:null, mode:"key", angle:1, theme:"light"}
+        config =  {directory:null,file:null, mode:"key", flip:false, theme:"light"}
         await writeConfig()
     }
 
@@ -130,15 +132,26 @@ async function respond(filePath, angle){
 
     let orientation = angle;
     if(!angle){
+
         orientation = await (await sharp(filePath).metadata()).orientation;
+
+        if(config.flip && orientation != orientations.flip){
+            await rotate(orientations.flip);
+            orientation = orientations.flip;
+        }
+
+        if(!config.flip && orientation != orientations.none){
+            await rotate(orientations.none);
+            orientation = orientations.none;
+        }
+
     }
 
     const data = {
         name: path.basename(filePath),
         path:filePath,
         counter: (currentIndex + 1) + " / " + targetfiles.length,
-        mode:config.mode,
-        angle:orientation
+        angle:orientation,
     }
 
     mainWindow.webContents.send("afterfetch", data);
@@ -152,6 +165,19 @@ function sendError(ex){
 async function writeConfig(){
     try{
         await fs.writeFile(path.join(currentDirectory,"config.json"), JSON.stringify(config));
+    }catch(ex){
+        sendError(ex);
+    }
+}
+
+async function rotate(angle){
+    try{
+        const buffer = await sharp(targetfiles[currentIndex])
+                            .withMetadata({orientation: angle})
+                            .toBuffer();
+
+        await sharp(buffer).withMetadata().toFile(targetfiles[currentIndex]);
+
     }catch(ex){
         sendError(ex);
     }
@@ -265,14 +291,15 @@ ipcMain.on("open", async (event, args) => {
 
 ipcMain.on("save", async (event, args) => {
 
-    if(targetfiles.length <= 0){
-        return;
+    if(targetfiles.length > 0){
+        config.file = targetfiles[currentIndex];
     }
 
+    config.theme = args.isDark ? "dark" : "light";
+    config.mode = args.mouseOnly ? "mouse" : "key";
+    config.flip = args.flip;
+
     try{
-        config.file = targetfiles[currentIndex];
-        config.theme = args.isDark ? "dark" : "light";
-        config.mode = args.mouseOnly ? "mouse" : "key";
         await writeConfig();
     }catch(ex){
         return sendError(ex);
@@ -281,30 +308,23 @@ ipcMain.on("save", async (event, args) => {
 });
 
 ipcMain.on("restore", async (event, args) => {
-    mainWindow.webContents.send("config", config);
     loadImage(config.file);
 });
 
 ipcMain.on("rotate", async (event, args) => {
 
-    try{
-        const buffer = await sharp(targetfiles[currentIndex])
-                            .withMetadata({orientation: args.angle})
-                            .toBuffer();
+    await rotate(args.angle);
+    respond(targetfiles[currentIndex], args.angle);
 
-        await sharp(buffer).withMetadata().toFile(targetfiles[currentIndex]);
+});
 
-        respond(targetfiles[currentIndex], args.angle);
+ipcMain.on("chgConfigFlip", async (event, args) => {
 
-    }catch(ex){
-        sendError(ex);
+    config.flip = args.flip;
+
+    if(targetfiles.length > 0){
+        respond(targetfiles[currentIndex]);
+    }else{
+        respond();
     }
-});
-
-ipcMain.on("chgmode", (event, args) => {
-    config.mode = args.mouseOnly == true ? "mouse" : "key";
-});
-
-ipcMain.on("chgtheme", (event, args) => {
-    config.theme = args.dark == true ? "dark" : "light";
 });

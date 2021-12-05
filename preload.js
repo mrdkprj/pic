@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld(
                 "restore",
                 "open",
                 "rotate",
+                "chgConfigFlip"
             ];
           if (validChannels.includes(channel)) {
               ipcRenderer.send(channel, data);
