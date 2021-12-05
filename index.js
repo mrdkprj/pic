@@ -294,7 +294,6 @@ function afterZooom(e, scaleDirection){
 
 function calc(e){
 
-    // current cursor position on image
     const rect = img.getBoundingClientRect();
     let mouseX;
     let mouseY;
@@ -304,23 +303,19 @@ function calc(e){
     mouseX = e.pageX - left;
     mouseY = e.pageY - top;
 
-    // previous cursor position on image
     let prevOrigX = current.orgX*previousScale
     let prevOrigY = current.orgY*previousScale
-    // previous zooming frame translate
+
     let translateX = current.x;
     let translateY = current.y;
-    // set origin to current cursor position
+
     let newOrigX = mouseX/previousScale
     let newOrigY = mouseY/previousScale
 
-    // move zooming frame to current cursor position
     if ((Math.abs(mouseX-prevOrigX)>1 && Math.abs(mouseY-prevOrigY)>1)) {
         translateX = translateX + (mouseX-prevOrigX)*(1-1/previousScale);
         translateY = translateY + (mouseY-prevOrigY)*(1-1/previousScale);
-    }
-    // stabilize position by zooming on previous cursor position
-    else if(previousScale != 1 || (mouseX != prevOrigX && mouseY != prevOrigY)) {
+    }else if(previousScale != 1 || (mouseX != prevOrigX && mouseY != prevOrigY)) {
         newOrigX = prevOrigX/previousScale;
         newOrigY = prevOrigY/previousScale;
     }
@@ -465,8 +460,10 @@ function dropFile(file){
 }
 
 function startFetch(index){
-    if(isPrepared()){
-        window.api.send("fetch", index);
+    if(img.src){
+        if(isPrepared()){
+            window.api.send("fetch", index);
+        }
     }
 }
 

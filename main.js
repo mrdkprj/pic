@@ -140,11 +140,6 @@ async function respond(filePath, angle){
             orientation = orientations.flip;
         }
 
-        if(!config.flip && orientation != orientations.none){
-            await rotate(orientations.none);
-            orientation = orientations.none;
-        }
-
     }
 
     const data = {
@@ -322,7 +317,10 @@ ipcMain.on("chgConfigFlip", async (event, args) => {
 
     config.flip = args.flip;
 
+    const angle = config.flip ? orientations.flip : orientations.none;
+
     if(targetfiles.length > 0){
+        await rotate(angle)
         respond(targetfiles[currentIndex]);
     }else{
         respond();
