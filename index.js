@@ -312,7 +312,7 @@ function calc(e){
     let newOrigX = mouseX/previousScale
     let newOrigY = mouseY/previousScale
 
-    if ((Math.abs(mouseX-prevOrigX)>1 && Math.abs(mouseY-prevOrigY)>1)) {
+    if ((Math.abs(mouseX-prevOrigX)>1 || Math.abs(mouseY-prevOrigY)>1)) {
         translateX = translateX + (mouseX-prevOrigX)*(1-1/previousScale);
         translateY = translateY + (mouseY-prevOrigY)*(1-1/previousScale);
     }else if(previousScale != 1 || (mouseX != prevOrigX && mouseY != prevOrigY)) {
