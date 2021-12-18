@@ -227,6 +227,7 @@ body{
 
 .direction{
     padding-right: 10px;
+    pointer-events: none;
 }
 
 .splitter{
@@ -488,14 +489,12 @@ body{
     display:none;
     position:fixed;
     z-index:9999;
-    top:0;
-    left:0;
     width:100%;
     height:100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: rgb(204 204 204 / 30%);
+    background-color: transparent;
 }
 
 .lds-spinner {

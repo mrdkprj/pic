@@ -543,9 +543,6 @@ window.api.receive("config", data => {
     mouseOnly = data.mode == "mouse";
     changeMode();
 
-    flip = data.flip;
-    changeOrientation();
-
     isDark = data.theme == "dark";
     themeCheckbox.checked = isDark;
     applyTheme();
@@ -568,4 +565,5 @@ window.api.receive("afterfetch", data => {
 
 window.api.receive("onError", data => {
     alert(data);
+    unlock();
 })

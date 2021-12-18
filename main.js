@@ -17,7 +17,7 @@ let currentIndex = 0;
 let currentDirectory;
 let directLaunch;
 let config;
-
+let doflip = false;
 const orientations = {none:1, flip:3};
 const targetfiles = [];
 
@@ -75,7 +75,7 @@ async function init(){
         config = JSON.parse(rawData);
 
     }catch(ex){
-        config =  {directory:null,file:null, mode:"key", flip:false, theme:"light"}
+        config =  {directory:null,file:null, mode:"key", theme:"light"}
         await writeConfig()
     }
 
@@ -133,11 +133,15 @@ async function respond(filePath, angle){
     let orientation = angle;
     if(!angle){
 
-        orientation = await (await sharp(filePath).metadata()).orientation;
+        try{
+            orientation = await (await sharp(filePath).metadata()).orientation;
 
-        if(config.flip && orientation != orientations.flip){
-            await rotate(orientations.flip);
-            orientation = orientations.flip;
+            if(doflip && orientation != orientations.flip){
+                await rotate(orientations.flip);
+                orientation = orientations.flip;
+            }
+        }catch(ex){
+            return sendError(ex);
         }
 
     }
@@ -292,7 +296,6 @@ ipcMain.on("save", async (event, args) => {
 
     config.theme = args.isDark ? "dark" : "light";
     config.mode = args.mouseOnly ? "mouse" : "key";
-    config.flip = args.flip;
 
     try{
         await writeConfig();
@@ -315,9 +318,9 @@ ipcMain.on("rotate", async (event, args) => {
 
 ipcMain.on("chgConfigFlip", async (event, args) => {
 
-    config.flip = args.flip;
+    doflip = args.flip;
 
-    const angle = config.flip ? orientations.flip : orientations.none;
+    const angle = doflip ? orientations.flip : orientations.none;
 
     if(targetfiles.length > 0){
         await rotate(angle)
