@@ -3,6 +3,7 @@ let imageArea;
 let loader;
 let title;
 let viewport;
+let isSaved;
 let mouseOnly = false;
 let flip = false;
 let isDark = false;
@@ -47,13 +48,30 @@ window.onload = function(){
 
     document.addEventListener("keydown", (e) => {
 
-        if(e.ctrlKey && e.key == "q"){
-            rotate180();
-        }
+        if(e.ctrlKey){
 
-        if(e.ctrlKey && e.key == "a"){
-            e.preventDefault();
-            rotateRight();
+            if(e.key == "ArrowRight"){
+                rotateRight();
+                return;
+            }
+
+            if(e.key == "ArrowLeft"){
+                rotateLeft();
+                return;
+            }
+
+            if(e.key == "ArrowUp"){
+                angleIndex = 0;
+                rotate();
+                return;
+            }
+
+            if(e.key == "ArrowDown"){
+                angleIndex = 2;
+                rotate();
+                return;
+            }
+
         }
 
         if(e.ctrlKey && e.key == "s"){
@@ -215,6 +233,8 @@ function onImageLoaded(data, dummy, doReset){
     if(data){
         const angle = data.angle? data.angle : 1;
         angleIndex = angles.indexOf(angle);
+        isSaved = data.saved;
+        changeSaveStatus();
         title.textContent = `PicViewer - ${data.name} (${dummy.width} x ${dummy.height})`;
         document.getElementById("counter").textContent = data.counter;
         document.getElementById("loader").style.display = "none";
@@ -257,10 +277,10 @@ function zoom(e) {
     e.preventDefault();
 
     previousScale = scale;
-    scale += e.deltaY * -0.001;
+    scale += e.deltaY * -0.002;
 
     if(e.deltaY < 0){
-        scale = Math.min(Math.max(.125, scale), 4);
+        scale = Math.max(.125, scale);
         scaleDirection = 1;
     }else{
         scale = Math.max(Math.max(.125, scale), minScale);
@@ -476,6 +496,8 @@ function deleteFile(){
 function save(){
     const config = {isDark:isDark, mouseOnly:mouseOnly, flip:flip};
     window.api.send("save", config);
+    isSaved = true;
+    changeSaveStatus();
 }
 
 function open(){
@@ -488,6 +510,14 @@ function reveal(){
 
 function restore(){
     window.api.send("restore", null);
+}
+
+function changeSaveStatus(){
+    if(isSaved){
+        viewport.classList.add("saved");
+    }else{
+        viewport.classList.remove("saved");
+    }
 }
 
 function changeMode(){

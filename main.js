@@ -151,6 +151,7 @@ async function respond(filePath, angle){
         path:filePath,
         counter: (currentIndex + 1) + " / " + targetfiles.length,
         angle:orientation,
+        saved: filePath == config.file,
     }
 
     mainWindow.webContents.send("afterfetch", data);

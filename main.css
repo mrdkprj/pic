@@ -29,6 +29,7 @@ body{
     align-items: center;
     background-color: #fff;
     color: #000;
+    cursor: default;
 }
 
 .dark .title-bar{
@@ -41,6 +42,8 @@ body{
     display: flex;
     justify-content: left;
     align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .ico{
@@ -111,7 +114,55 @@ body{
 }
 
 .file-area{
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
     margin-left: 20px;
+    cursor: pointer;
+}
+
+.file-area svg{
+    width: 20px;
+    height: 30px;
+    padding: 0 12px;
+    pointer-events: none;
+}
+
+.save-btn-area{
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0 5px;
+}
+
+.save-btn{
+    display: block;
+}
+
+.saved-btn{
+    display: none;
+}
+
+.saved .save-btn{
+    display: none;
+}
+
+.saved .saved-btn{
+    display: block;
+}
+
+.operation{
+    border: 1px solid transparent;
+    border-radius: 8px;
+}
+
+.save-btn-area:hover,
+.operation:hover{
+    background-color: #00000012;
+}
+
+.dark .save-btn-area:hover,
+.dark .operation:hover{
+    background-color: #6b676775;
 }
 
 .btn-area{
@@ -183,12 +234,14 @@ body{
 
 .mouse-btn,
 .keyboard-btn{
+    width: 18px;
     height: 30px;
     padding: 0 10px;
     pointer-events: none;
 }
 
 .orientation-btn{
+    width: 18px;
     height: 30px;
     padding-left: 10px;
     cursor: pointer;
@@ -333,12 +386,9 @@ body{
     color: #c3bebe;
 }
 
-.save-btn{
-    margin-right:15px;
-}
-
 .rotate-btn{
     transform: rotate(180deg);
+    width: 20px;
     height:30px;
     padding: 0 20px;
     pointer-events: none;
