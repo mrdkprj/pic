@@ -114,12 +114,11 @@ async function onReady(){
 async function loadImage(fullPath){
 
     const targetFile = path.basename(fullPath);
-    config.directory = path.dirname(fullPath);
-    config.file = fullPath;
+    const directory = path.dirname(fullPath);
 
     targetfiles.length = 0;
 
-    const allDirents = await fs.readdir(config.directory, {withFileTypes: true});
+    const allDirents = await fs.readdir(directory, {withFileTypes: true});
 
     const fileNames = allDirents.filter(dirent => dirent.isFile()).map(({ name }) => name);
 
@@ -127,7 +126,7 @@ async function loadImage(fullPath){
         if(targetFile == file){
             currentIndex = index;
         }
-        targetfiles.push(config.directory + "\\" + file);
+        targetfiles.push(directory + "\\" + file);
     })
 
     respond(targetfiles[currentIndex]);
@@ -307,8 +306,7 @@ ipcMain.on("save", async (event, args) => {
 
     if(targetfiles.length > 0){
         config.file = targetfiles[currentIndex];
-
-        const filePath = path.dirname(config.file);
+        config.directory = path.dirname(config.file);
         config.history[path.dirname(config.file)] = path.basename(config.file);
     }
 
