@@ -3,6 +3,7 @@ let imageArea;
 let loader;
 let title;
 let viewport;
+let fileList;
 let isSaved;
 let mouseOnly = false;
 let flip = false;
@@ -39,10 +40,11 @@ window.onload = function(){
     imageArea = document.getElementById("imageArea");
     loader = document.getElementById("loader");
     themeCheckbox = document.getElementById("theme");
+    fileList = document.getElementById("fileList")
 
     window.addEventListener("resize", e => {
         if(isImageLoaded){
-            resetImage();
+            onImageLoaded();
         }
     })
 
@@ -126,6 +128,10 @@ window.onload = function(){
 
         if(e.target.id == "reveal"){
             reveal();
+        }
+
+        if(e.target.id == "fileListBtn"){
+            toggleFileList();
         }
 
         if(e.target.id == "openFile"){
@@ -222,7 +228,7 @@ window.onload = function(){
 
 }
 
-function onImageLoaded(data, dummy, doReset){
+function onImageLoaded(data, dummy){
 
     isImageLoaded = true;
 
@@ -315,13 +321,11 @@ function afterZooom(e, scaleDirection){
 function calc(e){
 
     const rect = img.getBoundingClientRect();
-    let mouseX;
-    let mouseY;
-    let left = rect.left
-    let top = rect.top
 
-    mouseX = e.pageX - left;
-    mouseY = e.pageY - top;
+    const left = rect.left
+    const top = rect.top
+    const mouseX = e.pageX - left;
+    const mouseY = e.pageY - top;
 
     let prevOrigX = current.orgX*previousScale
     let prevOrigY = current.orgY*previousScale
@@ -496,8 +500,6 @@ function deleteFile(){
 function save(){
     const config = {isDark:isDark, mouseOnly:mouseOnly, flip:flip};
     window.api.send("save", config);
-    isSaved = true;
-    changeSaveStatus();
 }
 
 function open(){
@@ -541,11 +543,39 @@ async function changeOrientation(){
 
 }
 
+function changeFileList(history){
+
+    fileList.innerHTML = null;
+    const fragment = document.createDocumentFragment();
+
+    Object.keys(history).forEach(key => {
+        const item = document.createElement("li");
+        item.textContent = key + "\\" + history[key];
+        item.addEventListener("dblclick", onFileListItemClicked);
+        fragment.appendChild(item);
+    });
+
+    fileList.appendChild(fragment)
+}
+
+function onFileListItemClicked(e){
+    window.api.send("restore", {target: e.target.textContent});
+}
+
 function applyTheme(){
     if(isDark == false){
         viewport.classList.remove("dark");
     }else{
         viewport.classList.add("dark");
+    }
+}
+
+function toggleFileList(){
+
+    if(viewport.classList.contains("file-list-open")){
+        viewport.classList.remove("file-list-open");
+    }else{
+        viewport.classList.add("file-list-open");
     }
 }
 
@@ -576,6 +606,8 @@ window.api.receive("config", data => {
     isDark = data.theme == "dark";
     themeCheckbox.checked = isDark;
     applyTheme();
+
+    changeFileList(data.history);
 })
 
 window.api.receive("afterfetch", data => {
@@ -585,12 +617,18 @@ window.api.receive("afterfetch", data => {
         const dummy = new Image();
         dummy.src = src;
         dummy.onload = function(){
-            onImageLoaded(data, dummy, true);
+            onImageLoaded(data, dummy);
         };
     }else{
         unlock();
     }
 
+});
+
+window.api.receive("afterSave", data => {
+    isSaved = true;
+    changeSaveStatus();
+    changeFileList(data.history);
 });
 
 window.api.receive("onError", data => {

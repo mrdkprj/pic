@@ -73,9 +73,8 @@ async function init(){
 
         const rawData = await fs.readFile(configFilePath, {encoding:"utf8"});
         config = JSON.parse(rawData);
-
     }catch(ex){
-        config =  {directory:null,file:null, mode:"key", theme:"light"}
+        config =  {directory:null,file:null, mode:"key", theme:"light", history:{}}
         await writeConfig()
     }
 
@@ -84,7 +83,7 @@ async function init(){
     targetfiles.length = 0;
 }
 
-function onReady(){
+async function onReady(){
 
     mainWindow.show();
 
@@ -92,8 +91,23 @@ function onReady(){
 
     if(directLaunch && targetfiles.length == 0){
         loadImage(process.argv[1]);
-    }else if(targetfiles.length > 0){
+        return;
+    }
+
+    if(targetfiles.length > 0){
         respond(targetfiles[currentIndex]);
+        return;
+    }
+
+    if(config.file){
+
+        try{
+            await fs.stat(config.file);
+            loadImage(config.file);
+        }catch(ex){
+
+        }
+
     }
 }
 
@@ -293,6 +307,9 @@ ipcMain.on("save", async (event, args) => {
 
     if(targetfiles.length > 0){
         config.file = targetfiles[currentIndex];
+
+        const filePath = path.dirname(config.file);
+        config.history[path.dirname(config.file)] = path.basename(config.file);
     }
 
     config.theme = args.isDark ? "dark" : "light";
@@ -300,6 +317,7 @@ ipcMain.on("save", async (event, args) => {
 
     try{
         await writeConfig();
+        mainWindow.webContents.send("afterSave", config);
     }catch(ex){
         return sendError(ex);
     }
@@ -307,7 +325,11 @@ ipcMain.on("save", async (event, args) => {
 });
 
 ipcMain.on("restore", async (event, args) => {
-    loadImage(config.file);
+    if(args){
+        loadImage(args.target);
+    }else{
+        loadImage(config.file);
+    }
 });
 
 ipcMain.on("rotate", async (event, args) => {

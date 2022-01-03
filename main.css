@@ -352,12 +352,103 @@ body{
     position: absolute;
 }
 
+.footer-menu{
+    height: 10%;
+    max-height: 40px;
+    user-select: none;
+    border-top: 1px solid rgb(100 121 143 / 12%);
+}
+
+.dark .footer-menu{
+    color: #c3bebe;
+    background-color: #272626;
+}
+
 .footer{
     height:100%;
     width:100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.file-list-area{
+    margin-left: 15px;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.file-list-area:hover{
+    background-color: #00000012;
+}
+
+.dark .file-list-area:hover{
+    background-color: #6b676775;
+}
+
+.file-list-btn{
+    width: 20px;
+    height: 30px;
+    padding: 0 12px;
+    pointer-events: none;
+}
+
+.file-list-container{
+    display: none;
+    position: absolute;
+    top: 0px;
+    width: 300px;
+    height: 100%;
+    z-index: 100;
+    box-shadow: 0 4px 10px 0 rgb(0 0 0 / 20%), 0 4px 20px 0 rgb(0 0 0 / 19%);
+    color: #000;
+    background-color: #fffbfb;
+    animation: animateleft 0.4s;
+}
+
+.dark .file-list-container{
+    color:#c3bebe;
+    background-color: #2c2a2a;
+}
+
+.file-list-open .file-list-container{
+    display: block;
+}
+
+@keyframes animateleft {
+    0% {
+        left: -300px;
+        opacity: 0;
+    }
+
+    100% {
+        left:0px;
+        opacity: 1;
+  }
+}
+
+.file-list{
+    list-style: none;
+    margin: 5px 0;
+    padding: 0;
+    font-size: 12px;
+}
+
+.file-list li{
+    word-break: break-all;
+    padding: 5px;
+    cursor: pointer;
+}
+
+.file-list li:hover{
+    background-color: #f1eeee;
+}
+
+.dark .file-list li:hover{
+    background-color: #3c3b3b;
 }
 
 .counter{
@@ -372,39 +463,12 @@ body{
     align-items: center;
 }
 
-.btn{
-    border: 1px solid #5475bb;
-    border-radius: 4px;
-    padding: 4px 12px;
-    background-color: transparent;
-    outline: none;
-    cursor: pointer;
-}
-
-.dark .btn{
-    background-color: transparent;
-    color: #c3bebe;
-}
-
 .rotate-btn{
     transform: rotate(180deg);
     width: 20px;
     height:30px;
     padding: 0 20px;
     pointer-events: none;
-}
-
-.btn:hover{
-    background-color: #dee5f5;
-}
-
-.dark .btn:hover{
-    background-color: #234eb9b0;
-    color: #fff;
-}
-
-.btn:focus{
-    outline: none;
 }
 
 .input-hidden{
