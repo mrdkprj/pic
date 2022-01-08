@@ -60,20 +60,17 @@ app.on("ready", async () => {
 
 async function init(){
 
-    try{
-        await fs.stat(currentDirectory);
-    }catch(ex){
-        await fs.mkdir(currentDirectory);
-    }
+    await exists(currentDirectory, true);
 
     const configFilePath = path.join(currentDirectory,"config.json");
 
-    try{
-        await fs.stat(configFilePath);
 
+    const fileExists = await exists(configFilePath, false);
+
+    if(fileExists){
         const rawData = await fs.readFile(configFilePath, {encoding:"utf8"});
         config = JSON.parse(rawData);
-    }catch(ex){
+    }else{
         config =  {directory:null,file:null, mode:"key", theme:"light", history:{}}
         await writeConfig()
     }
@@ -81,6 +78,23 @@ async function init(){
     currentIndex = 0;
 
     targetfiles.length = 0;
+}
+
+async function exists(target, createIfNotFound = false){
+
+    try{
+        await fs.stat(target);
+
+        return true;
+
+    }catch(ex){
+
+        if(createIfNotFound){
+            await fs.mkdir(target);
+        }
+
+        return false;
+    }
 }
 
 async function onReady(){
@@ -101,12 +115,8 @@ async function onReady(){
 
     if(config.file){
 
-        try{
-            await fs.stat(config.file);
-            loadImage(config.file);
-        }catch(ex){
-
-        }
+        await exists(config.file);
+        loadImage(config.file);
 
     }
 }
@@ -126,6 +136,22 @@ async function loadImage(fullPath){
         if(targetFile == file){
             currentIndex = index;
         }
+        targetfiles.push(directory + "\\" + file);
+    })
+
+    respond(targetfiles[currentIndex]);
+}
+
+async function loadImages(directory){
+
+    targetfiles.length = 0;
+    currentIndex = 0;
+
+    const allDirents = await fs.readdir(directory, {withFileTypes: true});
+
+    const fileNames = allDirents.filter(dirent => dirent.isFile()).map(({ name }) => name);
+
+    fileNames.sort(sortByName).forEach((file, index) => {
         targetfiles.push(directory + "\\" + file);
     })
 
@@ -194,6 +220,52 @@ async function rotate(angle){
     }catch(ex){
         sendError(ex);
     }
+}
+
+async function restoreFile(args){
+
+    const file = args.target ? args.target : config.file;
+
+    const fileExists = await exists(file);
+
+    if(fileExists){
+
+        loadImage(file);
+        return;
+    }
+
+    const targetDir = path.dirname(file);
+
+    const dirExists = await exists(targetDir);
+
+    if(dirExists){
+        loadImages(targetDir);
+        return;
+    }
+
+    reconstructHistory(targetDir);
+
+}
+
+function reconstructHistory(directory){
+
+    delete config.history[directory];
+
+    if(config.directory == directory){
+        config.directory = null;
+        config.file = null;
+
+        const historyDirectories = Object.keys(config.history);
+        if(historyDirectories.length > 0){
+            const newDirectory = historyDirectories[0];
+            config.directory = newDirectory;
+            config.file = config.history[newDirectory];
+        }
+    }
+
+
+    mainWindow.webContents.send("config", config);
+    sendError("File does not exist. File is removed from history.")
 }
 
 ipcMain.on("minimize", (event, args) => {
@@ -323,11 +395,7 @@ ipcMain.on("save", async (event, args) => {
 });
 
 ipcMain.on("restore", async (event, args) => {
-    if(args){
-        loadImage(args.target);
-    }else{
-        loadImage(config.file);
-    }
+    restoreFile(args);
 });
 
 ipcMain.on("rotate", async (event, args) => {
