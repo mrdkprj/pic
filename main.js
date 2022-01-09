@@ -30,8 +30,8 @@ app.on("ready", async () => {
     await init();
 
     mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 800,
+        width: config.size.width,
+        height: config.size.height,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -45,6 +45,9 @@ app.on("ready", async () => {
     });
 
     mainWindow.on('ready-to-show', () => {
+        if(config.size.isMaximized){
+            mainWindow.maximize();
+        }
         onReady();
     })
 
@@ -53,8 +56,6 @@ app.on("ready", async () => {
     });
 
     mainWindow.loadURL("file://" + __dirname + "/index.html");
-
-    mainWindow.maximize();
 
 });
 
@@ -70,8 +71,9 @@ async function init(){
     if(fileExists){
         const rawData = await fs.readFile(configFilePath, {encoding:"utf8"});
         config = JSON.parse(rawData);
+        config.size = {width:1200, height:800, isMaximized: false}
     }else{
-        config =  {directory:null,file:null, mode:"key", theme:"light", history:{}}
+        config =  {directory:null,file:null, mode:"key", theme:"light", history:{}, size:{width:1200, height:800, isMaximized: false}}
         await writeConfig()
     }
 
@@ -268,16 +270,25 @@ function reconstructHistory(directory){
     sendError("File does not exist. File is removed from history.")
 }
 
+function toggleMaximize(){
+
+    if(mainWindow.isMaximized()){
+        mainWindow.unmaximize();
+        config.isMaximized = false;
+    }else{
+        mainWindow.maximize();
+        config.isMaximized = true;
+    }
+
+    mainWindow.webContents.send("config", config);
+}
+
 ipcMain.on("minimize", (event, args) => {
     mainWindow.minimize();
 });
 
 ipcMain.on("maximize", (event, args) => {
-    if(mainWindow.isMaximized()){
-        mainWindow.unmaximize();
-    }else{
-        mainWindow.maximize();
-    }
+    toggleMaximize();
 });
 
 ipcMain.on("close", (event, args) => {
@@ -384,6 +395,10 @@ ipcMain.on("save", async (event, args) => {
 
     config.theme = args.isDark ? "dark" : "light";
     config.mode = args.mouseOnly ? "mouse" : "key";
+    config.size.isMaximized = mainWindow.isMaximized();
+    const bounds = mainWindow.getBounds();
+    config.size.width = bounds.width;
+    config.size.height = bounds.height;
 
     try{
         await writeConfig();

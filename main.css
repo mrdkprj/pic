@@ -5,9 +5,7 @@ html, body{
 
 body{
     margin:0;
-    font-family: Segoe WPC,Segoe UI,sans-serif;
-    font-family: Arial, Helvetica, sans-serif;
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-family: Segoe UI,sans-serif;
 }
 
 #viewport{
@@ -33,7 +31,7 @@ body{
 }
 
 .dark .title-bar{
-    background-color: #2b2a2af0;
+    background-color: #383737;
     color: #c3bebe;
 }
 
@@ -67,6 +65,14 @@ body{
     text-align: center;
     line-height: 30px;
     user-select: none;
+    position: relative;
+}
+
+.maximize{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
 }
 
 .minimize:hover,
@@ -77,6 +83,54 @@ body{
 .dark .minimize:hover,
 .dark .maximize:hover{
     background-color: #5f5b5b;
+}
+
+.maximize:hover .minbtn,
+.maximize:hover .maxBtn{
+    background-color: #00000012;
+}
+
+.dark .maximize:hover .minbtn,
+.dark .maximize:hover .maxbtn{
+    background-color: #5f5b5b;
+}
+
+.minbtn,
+.maxbtn{
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border: 1px solid #000;
+    background-color: #fff;
+    pointer-events: none;
+}
+
+.maxbtn::after{
+    content: "";
+    width: 7px;
+    height: 7px;
+    position: absolute;
+    top: -3px;
+    left: 1px;
+    z-index: -1;
+    border: 1px solid #000;
+}
+
+.dark .minbtn,
+.dark .maxbtn{
+    border: 1px solid #c3bebe;
+    background-color: #383737;
+}
+
+.dark .maxbtn::after{
+    content: "";
+    width: 7px;
+    height: 7px;
+    position: absolute;
+    top: -3px;
+    left: 1px;
+    z-index: -1;
+    border: 1px solid #c3bebe;
 }
 
 .close:hover{
@@ -440,6 +494,7 @@ body{
 .file-list li{
     word-break: break-all;
     padding: 5px;
+    margin-left: 5px;
     cursor: pointer;
 }
 

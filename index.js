@@ -1,7 +1,9 @@
+let titleBar;
+let title;
+let resizeBtn;
 let img;
 let imageArea;
 let loader;
-let title;
 let viewport;
 let fileList;
 let isSaved;
@@ -35,6 +37,8 @@ const FORWARD = 1;
 window.onload = function(){
 
     title = document.getElementById("title");
+    titleBar = document.getElementById("titleBar");
+    resizeBtn = document.getElementById("resizeBtn");
     viewport = document.getElementById("viewport");
     img = document.getElementById("img");
     imageArea = document.getElementById("imageArea");
@@ -522,6 +526,16 @@ function changeSaveStatus(){
     }
 }
 
+function changeMaximizeIcon(isMaximized){
+    if(isMaximized){
+        resizeBtn.classList.remove("minbtn");
+        resizeBtn.classList.add("maxbtn");
+    }else{
+        resizeBtn.classList.remove("maxbtn");
+        resizeBtn.classList.add("minbtn");
+    }
+}
+
 function changeMode(){
     if(mouseOnly){
         viewport.classList.add("mouse");
@@ -600,6 +614,9 @@ function unlock(){
 }
 
 window.api.receive("config", data => {
+
+    changeMaximizeIcon(data.isMaximized);
+
     mouseOnly = data.mode == "mouse";
     changeMode();
 
