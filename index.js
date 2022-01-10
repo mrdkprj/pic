@@ -1,4 +1,3 @@
-let titleBar;
 let title;
 let resizeBtn;
 let img;
@@ -6,30 +5,30 @@ let imageArea;
 let loader;
 let viewport;
 let fileList;
-let isSaved;
+
+let isMaximized = false;
+let isImageLoaded = false;
+let isSaved = false;
 let mouseOnly = false;
 let flip = false;
 let isDark = false;
 let themeCheckbox;
-let isImageLoaded = false;
-let dragging = false;
-let moved = false;
-let x;
-let y;
-let moveX = 0;
-let moveY = 0;
+let isZoomed = false;
+
+let isDragging = false;
+let isImageMoved = false;
+let mousePosition = {x:0, y:0};
+let imagePosition = {x:0, y:0};
 let containerRect = {};
 let imgBoundRect = {};
 let scale;
-let zoomed = false;
 let scaleDirection;
 let minScale;
 let previousScale;
-let padX = 0;
-let padY = 0;
+let imagePadding = {x:0, y:0};
 let current= {x:0, y:0, orgX:0, orgY:0}
-const angles = [1,6,3,8];
 let angleIndex = 0;
+const angles = [1,6,3,8];
 const DEFAULT_SCALE = 1;
 const BACKWARD = -1;
 const FORWARD = 1;
@@ -37,7 +36,6 @@ const FORWARD = 1;
 window.onload = function(){
 
     title = document.getElementById("title");
-    titleBar = document.getElementById("titleBar");
     resizeBtn = document.getElementById("resizeBtn");
     viewport = document.getElementById("viewport");
     img = document.getElementById("img");
@@ -182,17 +180,17 @@ window.onload = function(){
     });
 
     img.addEventListener("mousedown", e => {
-        moved = false;
-        dragging = true;
+        isImageMoved = false;
+        isDragging = true;
         if(scale != minScale){
-            viewport.classList.add("dragging");
+            viewport.classList.add("isDragging");
         }
         resetMousePosition(e);
     })
 
     document.addEventListener("mousemove", e => {
-        if(dragging){
-            moved = true;
+        if(isDragging){
+            isImageMoved = true;
             e.preventDefault();
             moveImage(e);
         }
@@ -200,7 +198,7 @@ window.onload = function(){
 
     document.addEventListener("mouseup", e => {
 
-        if(!moved && e.target.classList.contains("clickable")){
+        if(!isImageMoved && e.target.classList.contains("clickable")){
 
             if(mouseOnly){
 
@@ -216,9 +214,9 @@ window.onload = function(){
 
         }
 
-        viewport.classList.remove("dragging")
-        moved = false;
-        dragging = false;
+        viewport.classList.remove("isDragging")
+        isImageMoved = false;
+        isDragging = false;
     })
 
     imageArea.addEventListener("wheel", e => {
@@ -254,9 +252,9 @@ function onImageLoaded(data, dummy){
 }
 
 function resetPosition(){
-    zoomed = false;
-    moveY = 0;
-    moveX = 0;
+    isZoomed = false;
+    imagePosition.y = 0;
+    imagePosition.x = 0;
     current.x = 0;
     current.y = 0;
     current.orgX = 0;
@@ -271,8 +269,8 @@ function resetImage(){
 
     imgBoundRect = createRect(img.getBoundingClientRect());
 
-    padX = (containerRect.width - imgBoundRect.width) / 2;
-    padY = (containerRect.height - imgBoundRect.height) / 2;
+    imagePadding.x = (containerRect.width - imgBoundRect.width) / 2;
+    imagePadding.y = (containerRect.height - imgBoundRect.height) / 2;
 
     current.orgX = imgBoundRect.width / 2;
     current.orgY = imgBoundRect.height / 2;
@@ -309,7 +307,7 @@ function afterZooom(e, scaleDirection){
         return;
     }
 
-    zoomed = true;
+    isZoomed = true;
 
     calculateBound(scale);
 
@@ -363,8 +361,8 @@ function calc(e){
     current.orgX = newOrigX;
     current.orgY = newOrigY;
 
-    moveY = padY + (newOrigY - newOrigY*scale)+translateY ;
-    moveX = padX + (newOrigX - newOrigX*scale)+translateX;
+    imagePosition.y = imagePadding.y + (newOrigY - newOrigY*scale)+translateY ;
+    imagePosition.x = imagePadding.x + (newOrigX - newOrigX*scale)+translateX;
 
 }
 
@@ -372,18 +370,18 @@ function adjustCalc(){
 
     if(imgBoundRect.top == 0){
         current.y = 0;
-    } else if(moveY > 0){
-        current.y -= moveY;
-    } else if(moveY < imgBoundRect.top * -1){
-        current.y += Math.abs(moveY) - imgBoundRect.top;
+    } else if(imagePosition.y > 0){
+        current.y -= imagePosition.y;
+    } else if(imagePosition.y < imgBoundRect.top * -1){
+        current.y += Math.abs(imagePosition.y) - imgBoundRect.top;
     }
 
     if(imgBoundRect.left == 0 ){
         current.x = 0;
-    }else if(moveX > 0){
-        current.x -= moveX;
-    } else if(moveX < imgBoundRect.left * -1){
-        current.x += Math.abs(moveX) - imgBoundRect.left;
+    }else if(imagePosition.x > 0){
+        current.x -= imagePosition.x;
+    } else if(imagePosition.x < imgBoundRect.left * -1){
+        current.x += Math.abs(imagePosition.x) - imgBoundRect.left;
     }
 
 }
@@ -395,29 +393,29 @@ function calculateBound(applicableScale){
 }
 
 function resetMousePosition(e){
-    x = e.x;
-    y = e.y;
+    mousePosition.x = e.x;
+    mousePosition.y = e.y;
 }
 
 function moveImage(e){
 
-    const dx = e.x - x;
-    x = e.x;
+    const dx = e.x - mousePosition.x;
+    mousePosition.x = e.x;
 
-    const dy = e.y - y;
-    y = e.y;
+    const dy = e.y - mousePosition.y;
+    mousePosition.y = e.y;
 
-    if(moveY + dy > 0 || moveY + dy < imgBoundRect.top * -1){
+    if(imagePosition.y + dy > 0 || imagePosition.y + dy < imgBoundRect.top * -1){
 
     }else{
-        moveY += dy;
+        imagePosition.y += dy;
         current.y += dy
     }
 
-    if(moveX + dx > 0 || moveX + dx < imgBoundRect.left * -1){
+    if(imagePosition.x + dx > 0 || imagePosition.x + dx < imgBoundRect.left * -1){
 
     }else{
-        moveX += dx;
+        imagePosition.x += dx;
         current.x += dx
     }
 
@@ -518,6 +516,20 @@ function restore(){
     window.api.send("restore", null);
 }
 
+function applyConfig(data){
+    isMaximized = data.bounds.isMaximized;
+    changeMaximizeIcon();
+
+    mouseOnly = data.mode == "mouse";
+    changeMode();
+
+    isDark = data.theme == "dark";
+    themeCheckbox.checked = isDark;
+    applyTheme();
+
+    changeFileList(data.history);
+}
+
 function changeSaveStatus(){
     if(isSaved){
         viewport.classList.add("saved");
@@ -526,7 +538,7 @@ function changeSaveStatus(){
     }
 }
 
-function changeMaximizeIcon(isMaximized){
+function changeMaximizeIcon(){
     if(isMaximized){
         resizeBtn.classList.remove("minbtn");
         resizeBtn.classList.add("maxbtn");
@@ -614,17 +626,7 @@ function unlock(){
 }
 
 window.api.receive("config", data => {
-
-    changeMaximizeIcon(data.isMaximized);
-
-    mouseOnly = data.mode == "mouse";
-    changeMode();
-
-    isDark = data.theme == "dark";
-    themeCheckbox.checked = isDark;
-    applyTheme();
-
-    changeFileList(data.history);
+    applyConfig(data);
 })
 
 window.api.receive("afterfetch", data => {
@@ -647,6 +649,11 @@ window.api.receive("afterSave", data => {
     changeSaveStatus();
     changeFileList(data.history);
 });
+
+window.api.receive("afterToggleMaximize", data => {
+    isMaximized = data.isMaximized;
+    changeMaximizeIcon()
+})
 
 window.api.receive("onError", data => {
     alert(data);

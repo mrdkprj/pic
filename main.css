@@ -28,6 +28,7 @@ body{
     background-color: #fff;
     color: #000;
     cursor: default;
+    -webkit-app-region: drag;
 }
 
 .dark .title-bar{
@@ -66,6 +67,7 @@ body{
     line-height: 30px;
     user-select: none;
     position: relative;
+    -webkit-app-region: no-drag;
 }
 
 .maximize{
@@ -86,8 +88,8 @@ body{
 }
 
 .maximize:hover .minbtn,
-.maximize:hover .maxBtn{
-    background-color: #00000012;
+.maximize:hover .maxbtn{
+    background-color: #ededed;
 }
 
 .dark .maximize:hover .minbtn,

@@ -30,8 +30,10 @@ app.on("ready", async () => {
     await init();
 
     mainWindow = new BrowserWindow({
-        width: config.size.width,
-        height: config.size.height,
+        width: config.bounds.width,
+        height: config.bounds.height,
+        x:config.bounds.x,
+        y:config.bounds.y,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -45,7 +47,7 @@ app.on("ready", async () => {
     });
 
     mainWindow.on('ready-to-show', () => {
-        if(config.size.isMaximized){
+        if(config.bounds.isMaximized){
             mainWindow.maximize();
         }
         onReady();
@@ -65,15 +67,13 @@ async function init(){
 
     const configFilePath = path.join(currentDirectory,"config.json");
 
-
     const fileExists = await exists(configFilePath, false);
 
     if(fileExists){
         const rawData = await fs.readFile(configFilePath, {encoding:"utf8"});
         config = JSON.parse(rawData);
-        config.size = {width:1200, height:800, isMaximized: false}
     }else{
-        config =  {directory:null,file:null, mode:"key", theme:"light", history:{}, size:{width:1200, height:800, isMaximized: false}}
+        config =  {directory:null,file:null, mode:"key", theme:"light", history:{}, bounds:{width:1200, height:800, isMaximized: false, x:0, y:0}}
         await writeConfig()
     }
 
@@ -274,13 +274,13 @@ function toggleMaximize(){
 
     if(mainWindow.isMaximized()){
         mainWindow.unmaximize();
-        config.isMaximized = false;
+        config.bounds.isMaximized = false;
     }else{
         mainWindow.maximize();
-        config.isMaximized = true;
+        config.bounds.isMaximized = true;
     }
 
-    mainWindow.webContents.send("config", config);
+    mainWindow.webContents.send("afterToggleMaximize", {isMaximized: config.bounds.isMaximized});
 }
 
 ipcMain.on("minimize", (event, args) => {
@@ -395,10 +395,12 @@ ipcMain.on("save", async (event, args) => {
 
     config.theme = args.isDark ? "dark" : "light";
     config.mode = args.mouseOnly ? "mouse" : "key";
-    config.size.isMaximized = mainWindow.isMaximized();
+    config.bounds.isMaximized = mainWindow.isMaximized();
     const bounds = mainWindow.getBounds();
-    config.size.width = bounds.width;
-    config.size.height = bounds.height;
+    config.bounds.width = bounds.width;
+    config.bounds.height = bounds.height;
+    config.bounds.x = bounds.x;
+    config.bounds.y = bounds.y;
 
     try{
         await writeConfig();
@@ -433,3 +435,4 @@ ipcMain.on("chgConfigFlip", async (event, args) => {
         respond();
     }
 });
+
