@@ -265,9 +265,11 @@ function reconstructHistory(directory){
         }
     }
 
-
     mainWindow.webContents.send("config", config);
-    sendError("File does not exist. File is removed from history.")
+}
+
+function removeHistory(file){
+    reconstructHistory(path.dirname(file));
 }
 
 function toggleMaximize(){
@@ -435,4 +437,8 @@ ipcMain.on("chgConfigFlip", async (event, args) => {
         respond();
     }
 });
+
+ipcMain.on("removeHistory", (event, args) => {
+    removeHistory(args.file);
+})
 

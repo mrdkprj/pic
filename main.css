@@ -496,7 +496,6 @@ body{
 .file-list li{
     word-break: break-all;
     padding: 5px;
-    margin-left: 5px;
     cursor: pointer;
 }
 
@@ -506,6 +505,14 @@ body{
 
 .dark .file-list li:hover{
     background-color: #3c3b3b;
+}
+
+.remove-history-btn{
+    padding-right: 5px;
+}
+
+.remove-history-btn:hover{
+    font-weight: bold;
 }
 
 .counter{

@@ -576,8 +576,14 @@ function changeFileList(history){
 
     Object.keys(history).forEach(key => {
         const item = document.createElement("li");
-        item.textContent = key + "\\" + history[key];
-        item.addEventListener("dblclick", onFileListItemClicked);
+        const remIcon = document.createElement("span");
+        remIcon.innerHTML = "&times;";
+        remIcon.classList.add("remove-history-btn");
+        remIcon.addEventListener("click", removeHistory);
+        const text = document.createElement("span");
+        text.textContent = key + "\\" + history[key];
+        text.addEventListener("dblclick", onFileListItemClicked);
+        item.append(remIcon, text);
         fragment.appendChild(item);
     });
 
@@ -586,6 +592,12 @@ function changeFileList(history){
 
 function onFileListItemClicked(e){
     window.api.send("restore", {target: e.target.textContent});
+}
+
+function removeHistory(e){
+    if(confirm("Remove history?")){
+        window.api.send("removeHistory", {file: e.target.nextElementSibling.textContent});
+    }
 }
 
 function applyTheme(){
