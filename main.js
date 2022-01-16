@@ -226,7 +226,7 @@ async function rotate(angle){
 
 async function restoreFile(args){
 
-    const file = args.target ? args.target : config.file;
+    const file = args ? args.target : config.file;
 
     const fileExists = await exists(file);
 

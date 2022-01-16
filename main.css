@@ -508,11 +508,12 @@ body{
 }
 
 .remove-history-btn{
-    padding-right: 5px;
+    padding: 0px 5px;
 }
 
 .remove-history-btn:hover{
     font-weight: bold;
+    text-decoration: underline;
 }
 
 .counter{

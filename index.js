@@ -88,6 +88,10 @@ window.onload = function(){
             restore();
         }
 
+        if(e.key === "Escape"){
+            hideFileList();
+        }
+
         if(e.key === "Delete"){
             deleteFile();
         }
@@ -214,6 +218,7 @@ window.onload = function(){
 
         }
 
+        hideFileList();
         viewport.classList.remove("isDragging")
         isImageMoved = false;
         isDragging = false;
@@ -615,6 +620,10 @@ function toggleFileList(){
     }else{
         viewport.classList.add("file-list-open");
     }
+}
+
+function hideFileList(){
+    viewport.classList.remove("file-list-open");
 }
 
 function minimize(){
