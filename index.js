@@ -8,15 +8,17 @@ let fileList;
 
 let isMaximized = false;
 let isImageLoaded = false;
+let isFileListOpen = false;
 let isSaved = false;
 let mouseOnly = false;
 let flip = false;
 let isDark = false;
 let themeCheckbox;
-let isZoomed = false;
 
+let isZoomed = false;
 let isDragging = false;
 let isImageMoved = false;
+
 let mousePosition = {x:0, y:0};
 let imagePosition = {x:0, y:0};
 let containerRect = {};
@@ -86,6 +88,12 @@ window.onload = function(){
         if(e.ctrlKey && e.key == "z"){
             e.preventDefault();
             restore();
+        }
+
+        if(e.ctrlKey && e.key == "t"){
+            e.preventDefault();
+            isDark = !isDark;
+            applyTheme();
         }
 
         if(e.key === "Escape"){
@@ -169,6 +177,7 @@ window.onload = function(){
         if(e.target.id == "next"){
             startFetch(FORWARD);
         }
+
     })
 
     document.getElementById("imageContainer").addEventListener("dragover", (e) => {
@@ -186,9 +195,15 @@ window.onload = function(){
     img.addEventListener("mousedown", e => {
         isImageMoved = false;
         isDragging = true;
+
         if(scale != minScale){
             viewport.classList.add("isDragging");
         }
+
+        if(isFileListOpen){
+            hideFileList();
+        }
+
         resetMousePosition(e);
     })
 
@@ -218,10 +233,15 @@ window.onload = function(){
 
         }
 
-        hideFileList();
         viewport.classList.remove("isDragging")
         isImageMoved = false;
         isDragging = false;
+    })
+
+    imageArea.addEventListener("mousedown", e => {
+        if(isFileListOpen){
+            hideFileList();
+        }
     })
 
     imageArea.addEventListener("wheel", e => {
@@ -480,6 +500,10 @@ function isPrepared(){
         return false;
     }
 
+    if(isFileListOpen){
+        hideFileList();
+    }
+
     lock();
     return true;
 }
@@ -614,16 +638,18 @@ function applyTheme(){
 }
 
 function toggleFileList(){
-
-    if(viewport.classList.contains("file-list-open")){
+    if(isFileListOpen){
         viewport.classList.remove("file-list-open");
+        isFileListOpen = false;
     }else{
         viewport.classList.add("file-list-open");
+        isFileListOpen = true;
     }
 }
 
 function hideFileList(){
     viewport.classList.remove("file-list-open");
+    isFileListOpen = false;
 }
 
 function minimize(){
