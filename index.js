@@ -197,7 +197,7 @@ window.onload = function(){
         isDragging = true;
 
         if(scale != minScale){
-            viewport.classList.add("isDragging");
+            viewport.classList.add("dragging");
         }
 
         if(isFileListOpen){
@@ -233,7 +233,7 @@ window.onload = function(){
 
         }
 
-        viewport.classList.remove("isDragging")
+        viewport.classList.remove("dragging")
         isImageMoved = false;
         isDragging = false;
     })
