@@ -1,3 +1,4 @@
+let currentDirectory;
 let title;
 let resizeBtn;
 let img;
@@ -264,6 +265,7 @@ function onImageLoaded(data, dummy){
     previousScale = scale;
 
     if(data){
+        currentDirectory = data.dir;
         const angle = data.angle? data.angle : 1;
         angleIndex = angles.indexOf(angle);
         isSaved = data.saved;
@@ -542,7 +544,7 @@ function reveal(){
 }
 
 function restore(){
-    window.api.send("restore", null);
+    window.api.send("restore", {dir:currentDirectory});
 }
 
 function applyConfig(data){
@@ -620,7 +622,7 @@ function changeFileList(history){
 }
 
 function onFileListItemClicked(e){
-    window.api.send("restore", {target: e.target.textContent});
+    window.api.send("restore", {file: e.target.textContent});
 }
 
 function removeHistory(e){
@@ -661,7 +663,8 @@ function maximize(){
 }
 
 function close(){
-    window.api.send("close");
+    const config = {isDark:isDark, mouseOnly:mouseOnly, flip:flip};
+    window.api.send("close", config);
 }
 
 function lock(){
@@ -678,7 +681,7 @@ window.api.receive("config", data => {
 
 window.api.receive("afterfetch", data => {
     if(data){
-        const src = data.path + "?" + new Date().getTime();
+        const src = data.fullpath + "?" + new Date().getTime();
         img.src = src
         const dummy = new Image();
         dummy.src = src;

@@ -46,7 +46,7 @@ app.on("ready", async () => {
         frame: false
     });
 
-    mainWindow.on('ready-to-show', () => {
+    mainWindow.on("ready-to-show", () => {
         if(config.bounds.isMaximized){
             mainWindow.maximize();
         }
@@ -175,7 +175,7 @@ async function respond(filePath, angle){
     if(!angle){
 
         try{
-            orientation = await (await sharp(filePath).metadata()).orientation;
+            orientation = (await sharp(filePath).metadata()).orientation;
 
             if(doflip && orientation != orientations.flip){
                 await rotate(orientations.flip);
@@ -187,12 +187,16 @@ async function respond(filePath, angle){
 
     }
 
+    const fileName = path.basename(filePath);
+    const directory = path.dirname(filePath);
+
     const data = {
-        name: path.basename(filePath),
-        path:filePath,
+        name: fileName,
+        dir:  directory,
+        fullpath:filePath,
         counter: (currentIndex + 1) + " / " + targetfiles.length,
         angle:orientation,
-        saved: filePath == config.file,
+        saved: config.history[directory] && config.history[directory] ==fileName,
     }
 
     mainWindow.webContents.send("afterfetch", data);
@@ -226,7 +230,15 @@ async function rotate(angle){
 
 async function restoreFile(args){
 
-    const file = args ? args.target : config.file;
+    let file = args.file;
+
+    if(args.dir && config.history[args.dir]){
+        file = path.join(args.dir, config.history[args.dir]);
+    }
+
+    if(!file){
+        return respond();
+    }
 
     const fileExists = await exists(file);
 
@@ -285,6 +297,39 @@ function toggleMaximize(){
     mainWindow.webContents.send("afterToggleMaximize", {isMaximized: config.bounds.isMaximized});
 }
 
+async function save(args, saveOnly = false){
+    if(targetfiles.length > 0){
+        config.file = targetfiles[currentIndex];
+        config.directory = path.dirname(config.file);
+        config.history[path.dirname(config.file)] = path.basename(config.file);
+    }
+
+    config.theme = args.isDark ? "dark" : "light";
+    config.mode = args.mouseOnly ? "mouse" : "key";
+    config.bounds.isMaximized = mainWindow.isMaximized();
+    const bounds = mainWindow.getBounds();
+    config.bounds.width = bounds.width;
+    config.bounds.height = bounds.height;
+    config.bounds.x = bounds.x;
+    config.bounds.y = bounds.y;
+
+    try{
+        await writeConfig();
+
+        if(saveOnly) return;
+
+        mainWindow.webContents.send("afterSave", config);
+
+    }catch(ex){
+        return sendError(ex);
+    }
+}
+
+async function closeWindow(args){
+    await save(args, true);
+    mainWindow.close();
+}
+
 ipcMain.on("minimize", (event, args) => {
     mainWindow.minimize();
 });
@@ -294,7 +339,7 @@ ipcMain.on("maximize", (event, args) => {
 });
 
 ipcMain.on("close", (event, args) => {
-    mainWindow.close();
+    closeWindow(args);
 });
 
 ipcMain.on("drop", (event, args) => {
@@ -389,27 +434,7 @@ ipcMain.on("open", async (event, args) => {
 
 ipcMain.on("save", async (event, args) => {
 
-    if(targetfiles.length > 0){
-        config.file = targetfiles[currentIndex];
-        config.directory = path.dirname(config.file);
-        config.history[path.dirname(config.file)] = path.basename(config.file);
-    }
-
-    config.theme = args.isDark ? "dark" : "light";
-    config.mode = args.mouseOnly ? "mouse" : "key";
-    config.bounds.isMaximized = mainWindow.isMaximized();
-    const bounds = mainWindow.getBounds();
-    config.bounds.width = bounds.width;
-    config.bounds.height = bounds.height;
-    config.bounds.x = bounds.x;
-    config.bounds.y = bounds.y;
-
-    try{
-        await writeConfig();
-        mainWindow.webContents.send("afterSave", config);
-    }catch(ex){
-        return sendError(ex);
-    }
+    save(args);
 
 });
 
