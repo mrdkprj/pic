@@ -659,6 +659,12 @@ body{
     -webkit-transform: rotate(135deg);
 }
 
+.full .title-bar,
+.full .menu,
+.full .footer-menu{
+    display: none;
+}
+
 /*----------------------------*/
 #loader{
     display:none;

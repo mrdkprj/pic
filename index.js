@@ -19,6 +19,7 @@ let themeCheckbox;
 let isZoomed = false;
 let isDragging = false;
 let isImageMoved = false;
+let isFullScreen = false;
 
 let mousePosition = {x:0, y:0};
 let imagePosition = {x:0, y:0};
@@ -47,152 +48,6 @@ window.onload = function(){
     themeCheckbox = document.getElementById("theme");
     fileList = document.getElementById("fileList")
 
-    window.addEventListener("resize", e => {
-        if(isImageLoaded){
-            onImageLoaded();
-        }
-    })
-
-    document.addEventListener("keydown", (e) => {
-
-        if(e.ctrlKey){
-
-            if(e.key == "ArrowRight"){
-                rotateRight();
-                return;
-            }
-
-            if(e.key == "ArrowLeft"){
-                rotateLeft();
-                return;
-            }
-
-            if(e.key == "ArrowUp"){
-                angleIndex = 0;
-                rotate();
-                return;
-            }
-
-            if(e.key == "ArrowDown"){
-                angleIndex = 2;
-                rotate();
-                return;
-            }
-
-        }
-
-        if(e.ctrlKey && e.key == "s"){
-            e.preventDefault();
-            save();
-        }
-
-        if(e.ctrlKey && e.key == "z"){
-            e.preventDefault();
-            restore();
-        }
-
-        if(e.ctrlKey && e.key == "t"){
-            e.preventDefault();
-            isDark = !isDark;
-            applyTheme();
-        }
-
-        if(e.key === "Escape"){
-            hideFileList();
-        }
-
-        if(e.key === "Delete"){
-            deleteFile();
-        }
-
-        if(e.key === "ArrowRight"){
-            startFetch(FORWARD);
-        }
-
-        if(e.key === "ArrowLeft"){
-            startFetch(BACKWARD);
-        }
-
-    })
-
-    document.addEventListener("click", (e) =>{
-
-        if(e.target.id == "minimize"){
-            minimize();
-        }
-
-        if(e.target.id == "maximize"){
-            maximize();
-        }
-
-        if(e.target.id == "close"){
-            close();
-        }
-
-        if(e.target.id == "deleteBtn"){
-            deleteFile();
-        }
-
-        if(e.target.id == "rotateLeft"){
-            rotateLeft();
-        }
-
-        if(e.target.id == "rotateRight"){
-            rotateRight();
-        }
-
-        if(e.target.id == "reveal"){
-            reveal();
-        }
-
-        if(e.target.id == "fileListBtn"){
-            toggleFileList();
-        }
-
-        if(e.target.id == "openFile"){
-            open();
-        }
-
-        if(e.target.id == "saveFile"){
-            save();
-        }
-
-        if(e.target.id == "restoreFile"){
-            restore();
-        }
-
-        if(e.target.id == "mode"){
-            mouseOnly = !mouseOnly;
-            changeMode();
-        }
-
-        if(e.target.id == "orientation"){
-            flip = !flip;
-            changeOrientation();
-        }
-
-        if(e.target.id == "previous"){
-            startFetch(BACKWARD);
-        }
-
-        if(e.target.id == "next"){
-            startFetch(FORWARD);
-        }
-
-    })
-
-    document.getElementById("imageContainer").addEventListener("dragover", (e) => {
-        e.preventDefault();
-    })
-
-    document.getElementById("imageContainer").addEventListener("drop", (e) =>{
-
-        e.preventDefault();
-        if(e.dataTransfer.items[0].kind === "file" && e.dataTransfer.items[0].type.includes("image")){
-            dropFile(e.dataTransfer.items[0].getAsFile());
-        }
-    });
-
     img.addEventListener("mousedown", e => {
         isImageMoved = false;
         isDragging = true;
@@ -206,37 +61,6 @@ window.onload = function(){
         }
 
         resetMousePosition(e);
-    })
-
-    document.addEventListener("mousemove", e => {
-        if(isDragging){
-            isImageMoved = true;
-            e.preventDefault();
-            moveImage(e);
-        }
-    })
-
-    document.addEventListener("mouseup", e => {
-
-        if(!isImageMoved && e.target.classList.contains("clickable")){
-
-            if(mouseOnly){
-
-                e.preventDefault();
-                if(e.button == 0){
-                    startFetch(-1);
-                }
-
-                if(e.button == 2){
-                    startFetch(1);
-                }
-            }
-
-        }
-
-        viewport.classList.remove("dragging")
-        isImageMoved = false;
-        isDragging = false;
     })
 
     imageArea.addEventListener("mousedown", e => {
@@ -254,7 +78,188 @@ window.onload = function(){
         applyTheme();
     })
 
+    document.getElementById("imageContainer").addEventListener("dragover", (e) => {
+        e.preventDefault();
+    })
+
+    document.getElementById("imageContainer").addEventListener("drop", (e) =>{
+
+        e.preventDefault();
+        if(e.dataTransfer.items[0].kind === "file" && e.dataTransfer.items[0].type.includes("image")){
+            dropFile(e.dataTransfer.items[0].getAsFile());
+        }
+    });
+
 }
+
+window.addEventListener("resize", e => {
+    if(isImageLoaded){
+        onImageLoaded();
+    }
+})
+
+document.addEventListener("keydown", (e) => {
+
+    if(e.ctrlKey){
+
+        if(e.key == "ArrowRight"){
+            rotateRight();
+            return;
+        }
+
+        if(e.key == "ArrowLeft"){
+            rotateLeft();
+            return;
+        }
+
+        if(e.key == "ArrowUp"){
+            angleIndex = 0;
+            rotate();
+            return;
+        }
+
+        if(e.key == "ArrowDown"){
+            angleIndex = 2;
+            rotate();
+            return;
+        }
+
+    }
+
+    if(e.key == "F1" || e.key == "Escape"){
+        toggleFullScreen();
+    }
+
+    if(e.ctrlKey && e.key == "s"){
+        e.preventDefault();
+        save();
+    }
+
+    if(e.ctrlKey && e.key == "z"){
+        e.preventDefault();
+        restore();
+    }
+
+    if(e.ctrlKey && e.key == "t"){
+        e.preventDefault();
+        isDark = !isDark;
+        applyTheme();
+    }
+
+    if(e.key === "Escape"){
+        hideFileList();
+    }
+
+    if(e.key === "Delete"){
+        deleteFile();
+    }
+
+    if(e.key === "ArrowRight"){
+        startFetch(FORWARD);
+    }
+
+    if(e.key === "ArrowLeft"){
+        startFetch(BACKWARD);
+    }
+
+})
+
+document.addEventListener("click", (e) =>{
+
+    if(e.target.id == "minimize"){
+        minimize();
+    }
+
+    if(e.target.id == "maximize"){
+        maximize();
+    }
+
+    if(e.target.id == "close"){
+        close();
+    }
+
+    if(e.target.id == "deleteBtn"){
+        deleteFile();
+    }
+
+    if(e.target.id == "rotateLeft"){
+        rotateLeft();
+    }
+
+    if(e.target.id == "rotateRight"){
+        rotateRight();
+    }
+
+    if(e.target.id == "reveal"){
+        reveal();
+    }
+
+    if(e.target.id == "fileListBtn"){
+        toggleFileList();
+    }
+
+    if(e.target.id == "openFile"){
+        open();
+    }
+
+    if(e.target.id == "saveFile"){
+        save();
+    }
+
+    if(e.target.id == "restoreFile"){
+        restore();
+    }
+
+    if(e.target.id == "mode"){
+        mouseOnly = !mouseOnly;
+        changeMode();
+    }
+
+    if(e.target.id == "orientation"){
+        flip = !flip;
+        changeOrientation();
+    }
+
+    if(e.target.id == "previous"){
+        startFetch(BACKWARD);
+    }
+
+    if(e.target.id == "next"){
+        startFetch(FORWARD);
+    }
+
+})
+
+document.addEventListener("mousemove", e => {
+    if(isDragging){
+        isImageMoved = true;
+        e.preventDefault();
+        moveImage(e);
+    }
+})
+
+document.addEventListener("mouseup", e => {
+
+    if(!isImageMoved && e.target.classList.contains("clickable")){
+
+        if(mouseOnly){
+
+            e.preventDefault();
+            if(e.button == 0){
+                startFetch(-1);
+            }
+
+            if(e.button == 2){
+                startFetch(1);
+            }
+        }
+
+    }
+
+    viewport.classList.remove("dragging")
+    isImageMoved = false;
+    isDragging = false;
+})
 
 function onImageLoaded(data, dummy){
 
@@ -660,6 +665,16 @@ function minimize(){
 
 function maximize(){
     window.api.send("maximize")
+}
+
+function toggleFullScreen(){
+    if(isFullScreen){
+        viewport.classList.remove("full")
+        isFullScreen = false
+    }else{
+        viewport.classList.add("full")
+        isFullScreen = true
+    }
 }
 
 function close(){

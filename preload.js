@@ -21,7 +21,8 @@ contextBridge.exposeInMainWorld(
                 "open",
                 "rotate",
                 "chgConfigFlip",
-                "removeHistory"
+                "removeHistory",
+                "toggle-fullscreen"
             ];
           if (validChannels.includes(channel)) {
               ipcRenderer.send(channel, data);

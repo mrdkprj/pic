@@ -467,3 +467,10 @@ ipcMain.on("removeHistory", (event, args) => {
     removeHistory(args.file);
 })
 
+ipcMain.on("toggle-fullscreen", (e, data) => {
+    if(mainWindow.isFullScreen()){
+        mainWindow.setFullScreen(false)
+    }else{
+        mainWindow.setFullScreen(true)
+    }
+})
