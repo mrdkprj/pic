@@ -132,7 +132,7 @@ async function loadImage(fullPath){
 
     const allDirents = await fs.readdir(directory, {withFileTypes: true});
 
-    const fileNames = allDirents.filter(dirent => dirent.isFile()).map(({ name }) => name);
+    const fileNames = allDirents.filter(dirent => isImageFile(dirent)).map(({ name }) => name);
 
     fileNames.sort(sortByName).forEach((file, index) => {
         if(targetFile == file){
@@ -151,13 +151,29 @@ async function loadImages(directory){
 
     const allDirents = await fs.readdir(directory, {withFileTypes: true});
 
-    const fileNames = allDirents.filter(dirent => dirent.isFile()).map(({ name }) => name);
+    const fileNames = allDirents.filter(dirent => isImageFile(dirent)).map(({ name }) => name);
 
     fileNames.sort(sortByName).forEach((file, index) => {
         targetfiles.push(directory + "\\" + file);
     })
 
     respond(targetfiles[currentIndex]);
+}
+
+const extList = [
+    ".jpeg",
+    ".jpg",
+    ".png",
+    ".gif",
+]
+
+function isImageFile(dirent){
+
+    if(!dirent.isFile()) return false;
+
+    if(!extList.includes(path.extname(dirent.name))) return false;
+
+    return true;
 }
 
 function sortByName(a, b){
