@@ -171,7 +171,7 @@ function isImageFile(dirent){
 
     if(!dirent.isFile()) return false;
 
-    if(!extList.includes(path.extname(dirent.name))) return false;
+    if(!extList.includes(path.extname(dirent.name).toLowerCase())) return false;
 
     return true;
 }
@@ -314,7 +314,13 @@ function toggleMaximize(){
 }
 
 async function save(args, saveOnly = false){
+
     if(targetfiles.length > 0){
+
+        if(saveOnly && !config.history[path.dirname(targetfiles[currentIndex])]){
+            return;
+        }
+
         config.file = targetfiles[currentIndex];
         config.directory = path.dirname(config.file);
         config.history[path.dirname(config.file)] = path.basename(config.file);
