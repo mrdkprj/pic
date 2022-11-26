@@ -208,7 +208,7 @@ async function respond(filePath, angle){
 
     }
 
-    const targetFilePath = fileExists ? filePath : path.join(__dirname, "resources", "notfound.svg");
+    const targetFilePath = fileExists ? filePath : NOT_FOUND;
 
     const fileName = path.basename(filePath);
     const directory = path.dirname(filePath);
