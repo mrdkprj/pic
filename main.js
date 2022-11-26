@@ -2,8 +2,9 @@ const {
     app,
     BrowserWindow,
     ipcMain,
-    dialog
+    dialog,
 } = require("electron");
+
 const path = require("path");
 const trash = require("trash");
 const sharp = require("sharp");
@@ -18,8 +19,17 @@ let currentDirectory;
 let directLaunch;
 let config;
 let doflip = false;
-const orientations = {none:1, flip:3};
 const targetfiles = [];
+const NOT_FOUND = path.join(__dirname, "resources", "notfound.svg");
+const orientations = {none:1, flip:3};
+const EXTENSIONS = [
+    ".jpeg",
+    ".jpg",
+    ".png",
+    ".gif",
+    ".svg"
+]
+
 
 app.on("ready", async () => {
 
@@ -160,18 +170,11 @@ async function loadImages(directory){
     respond(targetfiles[currentIndex]);
 }
 
-const extList = [
-    ".jpeg",
-    ".jpg",
-    ".png",
-    ".gif",
-]
-
 function isImageFile(dirent){
 
     if(!dirent.isFile()) return false;
 
-    if(!extList.includes(path.extname(dirent.name).toLowerCase())) return false;
+    if(!EXTENSIONS.includes(path.extname(dirent.name).toLowerCase())) return false;
 
     return true;
 }
@@ -187,8 +190,10 @@ async function respond(filePath, angle){
         return;
     }
 
+    const fileExists = await exists(filePath);
+
     let orientation = angle;
-    if(!angle){
+    if(fileExists && !angle){
 
         try{
             orientation = (await sharp(filePath).metadata()).orientation;
@@ -203,13 +208,15 @@ async function respond(filePath, angle){
 
     }
 
+    const targetFilePath = fileExists ? filePath : path.join(__dirname, "resources", "notfound.svg");
+
     const fileName = path.basename(filePath);
     const directory = path.dirname(filePath);
 
     const data = {
         name: fileName,
         dir:  directory,
-        fullpath:filePath,
+        fullpath:targetFilePath,
         counter: (currentIndex + 1) + " / " + targetfiles.length,
         angle:orientation,
         saved: config.history[directory] && config.history[directory] ==fileName,
@@ -371,23 +378,25 @@ ipcMain.on("drop", (event, args) => {
 ipcMain.on("fetch", (event, args) => {
 
     if(targetfiles.length <= 0){
-        respond();
-        return;
+        return respond();
+    }
+
+    if(args == 1 && targetfiles.length - 1 <= currentIndex){
+        return respond();
+    }
+
+    if(args == -1 && currentIndex <= 0){
+        return respond();
     }
 
     if(args == 0){
         currentIndex = 0;
-    }
-
-    if(args == 1 && targetfiles.length - 1 > currentIndex){
-        currentIndex++;
-    }
-
-    if(args == -1 && currentIndex > 0){
-        currentIndex--;
+    }else{
+        currentIndex += args;
     }
 
     respond(targetfiles[currentIndex]);
+
 });
 
 ipcMain.on("delete", async (event, args) => {
