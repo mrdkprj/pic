@@ -408,7 +408,7 @@ ipcMain.on("delete", async (event, args) => {
 
     try{
 
-        await shell.trashItem(targetfiles[currentIndex]);
+        await shell.trashItem(targetfiles[currentIndex])
 
         targetfiles.splice(currentIndex, 1);
 
