@@ -323,12 +323,6 @@ function saveHistory(closing:boolean){
 
 }
 
-const closeWindow = async (args:Pic.SaveRequest) => {
-    saveHistory(true);
-    await saveState(args, true);
-    mainWindow.close();
-}
-
 const toggleMaximize = () => {
     if(mainWindow.isMaximized()){
         mainWindow.unmaximize();
@@ -337,20 +331,25 @@ const toggleMaximize = () => {
     }
 }
 
-const onMinimize = () => {
+const onMinimize:handler<Pic.Request> = () => {
     config.data.isMaximized = false;
     respond<Pic.Config>("after-toggle-maximize", config.data)
 }
 
-const onMaximize = () => {
+const onMaximize:handler<Pic.Request> = () => {
     config.data.isMaximized = true;
     respond<Pic.Config>("after-toggle-maximize", config.data)
 }
 
-const onClose = async (_event:IpcMainEvent, data:Pic.SaveRequest) => await closeWindow(data);
-const onDropFile = async (_event:IpcMainEvent, data:Pic.DropRequest) => await loadImage(data.fullPath)
+const onClose:handler<Pic.SaveRequest> = async (_event:IpcMainEvent, data:Pic.SaveRequest) => {
+    saveHistory(true);
+    await saveState(data, true);
+    mainWindow.close();
+}
 
-const onFetchImage = (_event:IpcMainEvent, data:Pic.FetchRequest) => {
+const onDropFile:handler<Pic.DropRequest> = async (_event:IpcMainEvent, data:Pic.DropRequest) => await loadImage(data.fullPath)
+
+const onFetchImage:handler<Pic.FetchRequest> = (_event:IpcMainEvent, data:any) => {
 
     if(targetfiles.length <= 0){
         return sendImageData(targetfiles[currentIndex]);
@@ -374,7 +373,7 @@ const onFetchImage = (_event:IpcMainEvent, data:Pic.FetchRequest) => {
 
 }
 
-const onDelete = async () => {
+const onDelete:handler<Pic.Request> = async () => {
 
     if(targetfiles.length <= 0){
         sendImageData(targetfiles[currentIndex]);
@@ -402,7 +401,7 @@ const onDelete = async () => {
     }
 }
 
-const onReveal = async () => {
+const onReveal:handler<Pic.Request> = async () => {
 
     if(targetfiles.length <= 0){
         return;
@@ -412,7 +411,7 @@ const onReveal = async () => {
 
 }
 
-const onOpen = async () => {
+const onOpen:handler<Pic.Request> = async () => {
 
     if(!mainWindow) return;
 
@@ -440,21 +439,21 @@ const onOpen = async () => {
 
 }
 
-const onSave = async (_event:IpcMainEvent, data:Pic.SaveRequest) => {
+const onSave:handler<Pic.SaveRequest> = async (_event:IpcMainEvent, data:Pic.SaveRequest) => {
     saveHistory(false)
     saveState(data, false)
 }
 
-const onRestore = async (_event:IpcMainEvent, data:Pic.RestoreRequest) => restoreFile(data)
+const onRestore:handler<Pic.RestoreRequest> = async (_event:IpcMainEvent, data:Pic.RestoreRequest) => restoreFile(data)
 
-const onRotate = async (_event:IpcMainEvent, data:Pic.RotateRequest) => {
+const onRotate:handler<Pic.RotateRequest> = async (_event:IpcMainEvent, data:Pic.RotateRequest) => {
 
     await rotate(data.orientation);
     sendImageData(targetfiles[currentIndex], data.orientation);
 
 }
 
-const onChangeFlip = async (_event:IpcMainEvent, data:Pic.FlipRequest) => {
+const onChangeFlip:handler<Pic.FlipRequest> = async (_event:IpcMainEvent, data:Pic.FlipRequest) => {
 
     doflip = data.flip;
 
@@ -466,9 +465,10 @@ const onChangeFlip = async (_event:IpcMainEvent, data:Pic.FlipRequest) => {
     }
 }
 
-const onRemoveHistory = async (_event:IpcMainEvent, data:Pic.RemoveHistoryRequest) => removeHistory(data.fullPath)
+const onRemoveHistory:handler<Pic.RemoveHistoryRequest> = async (_event:IpcMainEvent, data:Pic.RemoveHistoryRequest) => removeHistory(data.fullPath)
 
-const onToggleFullscreen = async () => {
+const onToggleFullscreen:handler<Pic.Request> = async () => {
+
     if(mainWindow.isFullScreen()){
         mainWindow.setFullScreen(false)
     }else{

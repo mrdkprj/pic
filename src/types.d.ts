@@ -12,8 +12,10 @@ declare global {
 
     interface IpcMainHandler {
         channel: MainChannel;
-        handle: (event: IpcMainEvent, data?:Pic.Args) => (void | Promise<void>)
+        handle: handler;
     }
+
+    type handler<T extends Pic.Args> = (event: IpcMainEvent, data:T) => (void | Promise<void>)
 
     interface Api {
         send: <T extends Pic.Args>(channel: MainChannel, data?:T) => void;
@@ -102,7 +104,11 @@ declare global {
             message:string;
         }
 
-        type Args = FetchRequest | FetchResult | RestoreRequest | SaveRequest | SaveResult | RotateRequest | DropRequest | FlipRequest | RemoveHistoryRequest | RemoveHistoryResult | Config | ErrorArgs
+        type Request = {
+            data:string;
+        }
+
+        type Args = FetchRequest | FetchResult | RestoreRequest | SaveRequest | SaveResult | RotateRequest | DropRequest | FlipRequest | RemoveHistoryRequest | RemoveHistoryResult | Config | ErrorArgs | Request
 
     }
 

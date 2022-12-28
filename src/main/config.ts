@@ -65,6 +65,7 @@ export default class Config{
     async save(){
         await fs.writeFile(this._file, JSON.stringify(this.data));
     }
+
 }
 
 

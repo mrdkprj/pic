@@ -702,6 +702,8 @@ function toggleFullScreen(){
         Dom.viewport?.classList.add("full")
         State.isFullScreen = true
     }
+
+    window.api.send("toggle-fullscreen")
 }
 
 function close(){
