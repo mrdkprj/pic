@@ -25,3 +25,9 @@ out/
 
 #v1.0.0
 .v1.0.0/
+
+#temp
+temp/
+
+# Electron-builder
+dist/

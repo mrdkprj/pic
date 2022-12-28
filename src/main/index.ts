@@ -3,9 +3,9 @@ import path from "path";
 import sharp from "sharp";
 import fs from "fs/promises"
 import proc from "child_process";
-import { Dirent } from "fs";
 import url from "url"
-import * as constants from "./constants"
+import Config from "./config";
+import Util from "./util";
 
 sharp.cache(false);
 
@@ -14,36 +14,42 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 const targetfiles:Pic.ImageFile[] = [];
+const util = new Util();
+const config = new Config(app.getPath("userData"));
+const STATIC = path.join(__dirname, "..", "static")
+const NOT_FOUND:Pic.ImageFile = {
+    fullPath:path.join(STATIC, "img", "notfound.svg"),
+    directory:"",
+    fileName:"",
+    angle:0
+}
+const ORIENTATIONS = {none:1, flip:3};
 
 let mainWindow : Electron.CrossProcessExports.BrowserWindow | null;
 let currentIndex = 0;
-let currentDirectory = "";
 let directLaunch = false;
-let config:Pic.Config;
 let doflip = false;
 
 app.on("ready", async () => {
 
     directLaunch = process.argv.length > 1 && process.argv[1] != ".";
 
-    currentDirectory = path.join(app.getPath("userData"), "temp");
-
     await init();
 
     protocol.registerFileProtocol("app", (request, callback) => {
 
         const filePath = url.fileURLToPath(
-            'file://' + request.url.slice("app://".length),
+            "file://" + request.url.slice("app://".length),
         );
 
         callback(filePath);
     });
 
     mainWindow = new BrowserWindow({
-        width: config.bounds.width,
-        height: config.bounds.height,
-        x:config.bounds.x,
-        y:config.bounds.y,
+        width: config.data.bounds.width,
+        height: config.data.bounds.height,
+        x:config.data.bounds.x,
+        y:config.data.bounds.y,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -51,12 +57,12 @@ app.on("ready", async () => {
         },
         autoHideMenuBar: true,
         show: false,
-        icon: path.join(constants.STATIC, "img", "icon.ico"),
+        icon: path.join(STATIC, "img", "icon.ico"),
         frame: false
     });
 
     mainWindow.on("ready-to-show", () => {
-        if(config.isMaximized){
+        if(config.data.isMaximized){
             mainWindow.maximize();
         }
 
@@ -77,23 +83,7 @@ app.on("ready", async () => {
 
 async function init(){
 
-    await exists(currentDirectory, true);
-
-    const configFilePath = path.join(currentDirectory, constants.CONFIG_FILE_NAME);
-
-    const fileExists = await exists(configFilePath, false);
-
-    if(fileExists){
-
-        const rawData = await fs.readFile(configFilePath, {encoding:"utf8"});
-        config = createConfig(JSON.parse(rawData))
-
-    }else{
-
-        config = constants.DEFAULT_CONFIG
-        await writeConfig()
-
-    }
+    await config.init();
 
     currentIndex = 0;
 
@@ -101,24 +91,6 @@ async function init(){
 
     registerIpcChannels();
 
-}
-
-function createConfig(rawConfig:any):Pic.Config{
-
-    Object.keys(rawConfig).forEach(key => {
-        if(!(key as keyof Pic.Config in constants.DEFAULT_CONFIG)){
-            delete rawConfig[key]
-        }
-    })
-
-    Object.keys(constants.DEFAULT_CONFIG).forEach(key => {
-        if(!(key in rawConfig)){
-            console.log(key)
-            rawConfig[key] = constants.DEFAULT_CONFIG[key as keyof Pic.Config];
-        }
-    })
-
-    return rawConfig;
 }
 
 function registerIpcChannels(){
@@ -147,28 +119,11 @@ const respond = <T extends Pic.Args>(channel:RendererChannel, data:T) => {
     mainWindow.webContents.send(channel, data);
 }
 
-async function exists(target:string, createIfNotFound = false){
-
-    try{
-        await fs.stat(target);
-
-        return true;
-
-    }catch(ex){
-
-        if(createIfNotFound){
-            await fs.mkdir(target);
-        }
-
-        return false;
-    }
-}
-
 async function onReady(){
 
     mainWindow.show();
 
-    respond<Pic.Config>("config-loaded", config)
+    respond<Pic.Config>("config-loaded", config.data)
 
     if(directLaunch && targetfiles.length == 0){
         loadImage(process.argv[1]);
@@ -180,21 +135,14 @@ async function onReady(){
         return;
     }
 
-    if(config.fullPath){
-        await exists(config.fullPath);
-        loadImage(config.fullPath);
+    if(config.data.fullPath){
+
+        const fileExists = await util.exists(config.data.fullPath);
+
+        if(fileExists){
+            loadImage(config.data.fullPath);
+        }
     }
-}
-
-function getImageFile(filePath:string, angle = 0){
-
-    return {
-        fullPath:filePath,
-        directory:path.dirname(filePath),
-        fileName:path.basename(filePath),
-        angle:angle,
-    }
-
 }
 
 async function loadImage(fullPath:string){
@@ -206,13 +154,13 @@ async function loadImage(fullPath:string){
 
     const allDirents = await fs.readdir(directory, {withFileTypes: true});
 
-    const fileNames = allDirents.filter(dirent => isImageFile(dirent)).map(({ name }) => name);
+    const fileNames = allDirents.filter(dirent => util.isImageFile(dirent)).map(({ name }) => name);
 
-    fileNames.sort(sortByName).forEach((file, index) => {
+    fileNames.sort(util.sortByName).forEach((file, index) => {
         if(targetFile == file){
             currentIndex = index;
         }
-        targetfiles.push(getImageFile(path.join(directory, file)));
+        targetfiles.push(util.getImageFile(path.join(directory, file)));
     })
 
     sendImageData(targetfiles[currentIndex]);
@@ -225,51 +173,38 @@ async function loadImages(directory:string){
 
     const allDirents = await fs.readdir(directory, {withFileTypes: true});
 
-    const fileNames = allDirents.filter(dirent => isImageFile(dirent)).map(({ name }) => name);
+    const fileNames = allDirents.filter(dirent => util.isImageFile(dirent)).map(({ name }) => name);
 
-    fileNames.sort(sortByName).forEach(file => {
-        targetfiles.push(getImageFile(path.join(directory, file)));
+    fileNames.sort(util.sortByName).forEach(file => {
+        targetfiles.push(util.getImageFile(path.join(directory, file)));
     })
 
     sendImageData(targetfiles[currentIndex]);
 }
 
-function isImageFile(dirent:Dirent){
-
-    if(!dirent.isFile()) return false;
-
-    if(!constants.EXTENSIONS.includes(path.extname(dirent.name).toLowerCase())) return false;
-
-    return true;
-}
-
-function sortByName(a:string, b:string){
-    return a.replace(path.extname(a), "").localeCompare(b.replace(path.extname(b), ""))
-}
-
 async function sendImageData(imageFile:Pic.ImageFile, angle?:number){
 
-    const fileExists = await exists(imageFile.fullPath);
+    const fileExists = await util.exists(imageFile.fullPath);
 
     if(fileExists && !angle){
 
         imageFile.angle = (await sharp(imageFile.fullPath).metadata()).orientation;
 
-        if(doflip && imageFile.angle != constants.ORIENTATIONS.flip){
-            await rotate(constants.ORIENTATIONS.flip);
-            imageFile.angle = constants.ORIENTATIONS.flip;
+        if(doflip && imageFile.angle != ORIENTATIONS.flip){
+            await rotate(ORIENTATIONS.flip);
+            imageFile.angle = ORIENTATIONS.flip;
         }
 
     }
 
-    constants.NOT_FOUND.directory = imageFile.directory;
-    constants.NOT_FOUND.fileName = imageFile.fileName;
-    const targetImageFile = fileExists ? imageFile : constants.NOT_FOUND;
+    NOT_FOUND.directory = imageFile.directory;
+    NOT_FOUND.fileName = imageFile.fileName;
+    const targetImageFile = fileExists ? imageFile : NOT_FOUND;
 
     const data :Pic.FetchResult = {
         image:targetImageFile,
         counter: (currentIndex + 1) + " / " + targetfiles.length,
-        saved: config.history[targetImageFile.directory] && config.history[targetImageFile.directory] == targetImageFile.fileName,
+        saved: config.data.history[targetImageFile.directory] && config.data.history[targetImageFile.directory] == targetImageFile.fileName,
     }
 
     respond<Pic.FetchResult>("after-fetch", data);
@@ -278,14 +213,6 @@ async function sendImageData(imageFile:Pic.ImageFile, angle?:number){
 
 function sendError(ex:Error){
     respond<Pic.ErrorArgs>("error", {message:ex.message});
-}
-
-async function writeConfig(){
-    try{
-        await fs.writeFile(path.join(currentDirectory, constants.CONFIG_FILE_NAME), JSON.stringify(config));
-    }catch(ex:any){
-        sendError(ex);
-    }
 }
 
 async function rotate(angle:number){
@@ -305,20 +232,19 @@ async function rotate(angle:number){
 
 }
 
-
 async function restoreFile(data:Pic.RestoreRequest){
 
     let file = data.fullPath;
 
-    if(data.directory && config.history[data.directory]){
-        file = path.join(data.directory, config.history[data.directory]);
+    if(data.directory && config.data.history[data.directory]){
+        file = path.join(data.directory, config.data.history[data.directory]);
     }
 
     if(!file){
         return sendImageData(targetfiles[currentIndex]);
     }
 
-    const fileExists = await exists(file);
+    const fileExists = await util.exists(file);
 
     if(fileExists){
 
@@ -328,7 +254,7 @@ async function restoreFile(data:Pic.RestoreRequest){
 
     const targetDir = path.dirname(file);
 
-    const dirExists = await exists(targetDir);
+    const dirExists = await util.exists(targetDir);
 
     if(dirExists){
         loadImages(targetDir);
@@ -341,17 +267,17 @@ async function restoreFile(data:Pic.RestoreRequest){
 
 function reconstructHistory(directory:string){
 
-    delete config.history[directory];
+    delete config.data.history[directory];
 
-    if(config.directory == directory){
-        config.directory = "";
-        config.fullPath = "";
+    if(config.data.directory == directory){
+        config.data.directory = "";
+        config.data.fullPath = "";
 
-        const historyDirectories = Object.keys(config.history);
+        const historyDirectories = Object.keys(config.data.history);
         if(historyDirectories.length > 0){
             const newDirectory = historyDirectories[0];
-            config.directory = newDirectory;
-            config.fullPath = config.history[newDirectory];
+            config.data.directory = newDirectory;
+            config.data.fullPath = config.data.history[newDirectory];
         }
     }
 
@@ -359,22 +285,22 @@ function reconstructHistory(directory:string){
 
 function removeHistory(file:string){
     reconstructHistory(path.dirname(file));
-    respond<Pic.RemoveHistoryResult>("after-remove-history", {history:config.history});
+    respond<Pic.RemoveHistoryResult>("after-remove-history", {history:config.data.history});
 }
 
 async function saveState(data:Pic.SaveRequest, closing:boolean){
 
-    config.theme = data.isDark ? "dark" : "light";
-    config.mode = data.mouseOnly ? "mouse" : "key";
-    config.isMaximized = mainWindow.isMaximized();
+    config.data.theme = data.isDark ? "dark" : "light";
+    config.data.mode = data.mouseOnly ? "mouse" : "key";
+    config.data.isMaximized = mainWindow.isMaximized();
     const bounds = mainWindow.getBounds();
-    config.bounds.width = bounds.width;
-    config.bounds.height = bounds.height;
-    config.bounds.x = bounds.x;
-    config.bounds.y = bounds.y;
+    config.data.bounds.width = bounds.width;
+    config.data.bounds.height = bounds.height;
+    config.data.bounds.x = bounds.x;
+    config.data.bounds.y = bounds.y;
 
     try{
-        await writeConfig();
+        await config.save();
 
         if(closing) return;
 
@@ -389,11 +315,11 @@ function saveHistory(closing:boolean){
 
     if(targetfiles.length <= 0) return;
 
-    if(closing && !config.history[targetfiles[currentIndex].directory]) return;
+    if(closing && !config.data.history[targetfiles[currentIndex].directory]) return;
 
-    config.fullPath = targetfiles[currentIndex].fullPath;
-    config.directory = path.dirname(config.fullPath);
-    config.history[path.dirname(config.fullPath)] = path.basename(config.fullPath);
+    config.data.fullPath = targetfiles[currentIndex].fullPath;
+    config.data.directory = path.dirname(config.data.fullPath);
+    config.data.history[path.dirname(config.data.fullPath)] = path.basename(config.data.fullPath);
 
 }
 
@@ -412,13 +338,13 @@ const toggleMaximize = () => {
 }
 
 const onMinimize = () => {
-    config.isMaximized = false;
-    respond<Pic.Config>("after-toggle-maximize", config)
+    config.data.isMaximized = false;
+    respond<Pic.Config>("after-toggle-maximize", config.data)
 }
 
 const onMaximize = () => {
-    config.isMaximized = true;
-    respond<Pic.Config>("after-toggle-maximize", config)
+    config.data.isMaximized = true;
+    respond<Pic.Config>("after-toggle-maximize", config.data)
 }
 
 const onClose = async (_event:IpcMainEvent, data:Pic.SaveRequest) => await closeWindow(data);
@@ -493,7 +419,7 @@ const onOpen = async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
         properties: ["openFile"],
         title: "Select image",
-        defaultPath: config.directory ? config.directory :".",
+        defaultPath: config.data.directory ? config.data.directory :".",
         filters: [
             {name: "Image file", extensions: ["jpeg","jpg","png","ico","gif"]}
         ]
@@ -501,10 +427,10 @@ const onOpen = async () => {
 
     if(result.filePaths.length == 1){
         const file = result.filePaths[0];
-        config.directory = path.dirname(file);
+        config.data.directory = path.dirname(file);
 
         try{
-            await writeConfig();
+            await config.save();
         }catch(ex:any){
             return sendError(ex);
         }
@@ -532,7 +458,7 @@ const onChangeFlip = async (_event:IpcMainEvent, data:Pic.FlipRequest) => {
 
     doflip = data.flip;
 
-    const angle = doflip ? constants.ORIENTATIONS.flip : constants.ORIENTATIONS.none;
+    const angle = doflip ? ORIENTATIONS.flip : ORIENTATIONS.none;
 
     if(targetfiles.length > 0){
         await rotate(angle)

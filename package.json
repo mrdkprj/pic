@@ -1,15 +1,16 @@
 {
-  "name": "picture",
-  "productName": "Picture",
+  "name": "picviewer",
+  "productName": "PicViewer",
   "version": "1.0.0",
-  "description": "description",
+  "description": "PicViewer",
   "main": ".webpack/main",
   "scripts": {
-    "start": "set NODE_ENV=dev&& electron-forge start",
+    "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "build": "electron-forge package && ts-node build.ts"
   },
   "keywords": [],
   "author": {
@@ -18,19 +19,13 @@
   "license": "MIT",
   "devDependencies": {
     "@electron-forge/cli": "^6.0.4",
-    "@electron-forge/maker-deb": "^6.0.4",
-    "@electron-forge/maker-rpm": "^6.0.4",
-    "@electron-forge/maker-squirrel": "^6.0.4",
-    "@electron-forge/maker-zip": "^6.0.4",
     "@electron-forge/plugin-webpack": "^6.0.4",
     "@types/sharp": "^0.31.0",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "@typescript-eslint/parser": "^5.0.0",
-    "@vercel/webpack-asset-relocator-loader": "1.7.3",
     "copy-webpack-plugin": "^11.0.0",
-    "dependency-tree": "^8.1.2",
     "electron": "20.0",
-    "electron-squirrel-startup": "^1.0.0",
+    "electron-builder": "^23.6.0",
     "eslint": "^8.0.1",
     "eslint-plugin-import": "^2.25.0",
     "fork-ts-checker-webpack-plugin": "^7.2.13",

@@ -1,14 +1,11 @@
-import type { ForgeConfig } from '@electron-forge/shared-types';
-import { MakerSquirrel } from '@electron-forge/maker-squirrel';
-import { MakerZIP } from '@electron-forge/maker-zip';
-import { MakerDeb } from '@electron-forge/maker-deb';
-import { MakerRpm } from '@electron-forge/maker-rpm';
-import { WebpackPlugin } from '@electron-forge/plugin-webpack';
-import { mainConfig } from './webpack.main.config';
-import { rendererConfig } from './webpack.renderer.config';
+import type { ForgeConfig } from "@electron-forge/shared-types";
+import { WebpackPlugin } from "@electron-forge/plugin-webpack";
+import { mainConfig } from "./webpack.main.config";
+import { rendererConfig } from "./webpack.renderer.config";
+import fs from "fs/promises"
+import path from "path"
 
 const config: ForgeConfig = {
-  makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],
   plugins: [
       new WebpackPlugin({
         mainConfig,
@@ -16,17 +13,23 @@ const config: ForgeConfig = {
           config: rendererConfig,
           entryPoints: [
             {
-              html: './src/renderer/main.html',
-              js: './src/renderer/main.ts',
-              name: 'main_window',
+              html: "./src/renderer/main.html",
+              js: "./src/renderer/main.ts",
+              name: "main_window",
               preload: {
-                js: './src/renderer/preload.ts',
+                js: "./src/renderer/preload.ts",
               },
             },
           ],
         },
       }),
-  ]
+  ],
+  hooks: {
+    postPackage: async (_forgeConfig: any, packageResult: any) => {
+        // remove out folder produced by Electron Forge
+        fs.rm(path.join(packageResult.outputPaths[0], ".."), {recursive:true})
+    }
+  }
 };
 
 export default config;
