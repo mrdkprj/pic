@@ -51,6 +51,10 @@ body{
     margin: 0 5px;
 }
 
+.category{
+    margin-left: 10px;
+}
+
 .window-area{
     display: flex;
     justify-content: space-between;

@@ -26,6 +26,7 @@ const NOT_FOUND:Pic.ImageFile = {
 const ORIENTATIONS = {none:1, flip:3};
 
 let mainWindow : Electron.CrossProcessExports.BrowserWindow | null;
+let fileWindow : Electron.CrossProcessExports.BrowserWindow | null;
 let currentIndex = 0;
 let directLaunch = false;
 let doflip = false;
@@ -71,13 +72,29 @@ app.on("ready", async () => {
 
     mainWindow.on("maximize", onMaximize)
 
-    mainWindow.on("unmaximize", onMinimize);
+    mainWindow.on("unmaximize", onUnmaximize);
 
     mainWindow.on("closed", () => {
         mainWindow = null;
     });
 
     mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+
+    fileWindow = new BrowserWindow({
+        parent:mainWindow,
+        modal:true,
+        autoHideMenuBar: true,
+        show: false,
+        frame: false,
+        center:true,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload:FILE_WINDOW_PRELOAD_WEBPACK_ENTRY
+        },
+    });
+
+    fileWindow.loadURL(FILE_WINDOW_WEBPACK_ENTRY)
 
 });
 
@@ -96,8 +113,8 @@ async function init(){
 function registerIpcChannels(){
 
     const handlers:IpcMainHandler[] = [
-        {channel:"minimize", handle:toggleMaximize},
-        {channel:"maximize", handle:toggleMaximize},
+        {channel:"minimize", handle:minimize},
+        {channel:"toggle-maximize", handle:toggleMaximize},
         {channel:"close", handle:onClose},
         {channel:"drop-file", handle:onDropFile},
         {channel:"fetch-image", handle:onFetchImage},
@@ -109,7 +126,9 @@ function registerIpcChannels(){
         {channel:"rotate", handle:onRotate},
         {channel:"change-flip", handle:onChangeFlip},
         {channel:"remove-history", handle:onRemoveHistory},
-        {channel:"toggle-fullscreen", handle:onToggleFullscreen}
+        {channel:"toggle-fullscreen", handle:onToggleFullscreen},
+        {channel:"set-category", handle:onSetCategory},
+        {channel:"open-file-dialog", handle:onOpenFileDialog},
     ]
 
     handlers.forEach(handler => ipcMain.on(handler.channel, (event, request) => handler.handle(event, request)));
@@ -304,7 +323,7 @@ async function saveState(data:Pic.SaveRequest, closing:boolean){
 
         if(closing) return;
 
-        respond<Pic.SaveResult>("after-save", {success:true});
+        respond<Pic.SaveResult>("after-save", {success:true, history:config.data.history});
 
     }catch(ex:any){
         return sendError(ex);
@@ -331,7 +350,11 @@ const toggleMaximize = () => {
     }
 }
 
-const onMinimize:handler<Pic.Request> = () => {
+const minimize = () => {
+    mainWindow.minimize();
+}
+
+const onUnmaximize:handler<Pic.Request> = () => {
     config.data.isMaximized = false;
     respond<Pic.Config>("after-toggle-maximize", config.data)
 }
@@ -475,3 +498,13 @@ const onToggleFullscreen:handler<Pic.Request> = async () => {
         mainWindow.setFullScreen(true)
     }
 }
+
+const onSetCategory:handler<Pic.CategoryArgs> = (_event:IpcMainEvent, data:Pic.CategoryArgs) => {
+    if(data.category){
+        targetfiles[currentIndex].category = data.category;
+    }else{
+        targetfiles[currentIndex].category = null;
+    }
+}
+
+const onOpenFileDialog:handler<any> = () => fileWindow.show()

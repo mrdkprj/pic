@@ -29,6 +29,7 @@ const Dom = {
     fileList:null as HTMLElement | null,
     themeCheckbox:null as HTMLInputElement | null,
     counter:null as HTMLElement | null,
+    category:null as HTMLElement | null,
 }
 
 let currentDirectory = "";
@@ -50,13 +51,14 @@ window.onload = function(){
     Dom.themeCheckbox = (document.getElementById("theme") as HTMLInputElement);
     Dom.fileList = document.getElementById("fileList")
     Dom.counter = document.getElementById("counter");
+    Dom.category = document.getElementById("category");
 
-    Dom.img?.addEventListener("mousedown", e => {
+    Dom.img.addEventListener("mousedown", e => {
         State.isImageMoved = false;
         State.isDragging = true;
 
         if(scale != MIN_SCALE){
-            Dom.viewport?.classList.add("dragging");
+            Dom.viewport.classList.add("dragging");
         }
 
         if(State.isFileListOpen){
@@ -66,26 +68,26 @@ window.onload = function(){
         resetMousePosition(e);
     })
 
-    Dom.imageArea?.addEventListener("mousedown", () => {
+    Dom.imageArea.addEventListener("mousedown", () => {
         if(State.isFileListOpen){
             hideFileList();
         }
     })
 
-    Dom.imageArea?.addEventListener("wheel", e => {
+    Dom.imageArea.addEventListener("wheel", e => {
         zoom(e);
     })
 
-    Dom.themeCheckbox?.addEventListener("change", e =>{
-        State.isDark = (<HTMLInputElement>e.target)?.checked;
+    Dom.themeCheckbox.addEventListener("change", e =>{
+        State.isDark = (<HTMLInputElement>e.target).checked;
         applyTheme();
     })
 
-    document.getElementById("imageContainer")?.addEventListener("dragover", (e) => {
+    document.getElementById("imageContainer").addEventListener("dragover", (e) => {
         e.preventDefault();
     })
 
-    document.getElementById("imageContainer")?.addEventListener("drop", (e) =>{
+    document.getElementById("imageContainer").addEventListener("drop", (e) =>{
 
         e.preventDefault();
 
@@ -168,6 +170,14 @@ document.addEventListener("keydown", (e) => {
         startFetch(BACKWARD);
     }
 
+    if(isFinite(Number(e.key))){
+        window.api.send<Pic.CategoryArgs>("set-category", {category:Number(e.key)})
+        setCategory(Number(e.key));
+    }
+
+    if(e.key === "F12"){
+        openFileDialog();
+    }
 })
 
 document.addEventListener("click", (e) =>{
@@ -179,7 +189,7 @@ document.addEventListener("click", (e) =>{
     }
 
     if(e.target.id == "maximize"){
-        maximize();
+        toggleMaximize();
     }
 
     if(e.target.id == "close"){
@@ -266,7 +276,7 @@ document.addEventListener("mouseup", e => {
 
     }
 
-    Dom.viewport?.classList.remove("dragging")
+    Dom.viewport.classList.remove("dragging")
     State.isImageMoved = false;
     State.isDragging = false;
 })
@@ -290,9 +300,10 @@ function onImageLoaded(data:Pic.FetchResult, dummy:HTMLImageElement){
         angleIndex = ORIENTATIONS.indexOf(angle);
         State.isSaved = data.saved;
         changeSaveStatus();
-        if(Dom.title) Dom.title.textContent = `Picture - ${data.image.fileName} (${dummy.width} x ${dummy.height})`;
-        if(Dom.counter) Dom.counter.textContent = data.counter;
-        if(Dom.loader) Dom.loader.style.display = "none";
+        Dom.title.textContent = `Picture - ${data.image.fileName} (${dummy.width} x ${dummy.height})`;
+        Dom.counter.textContent = data.counter;
+        Dom.loader.style.display = "none";
+        setCategory(data.image.category)
     }
 
     resetImage();
@@ -317,11 +328,11 @@ type Rect = {
 
 function resetImage(){
 
-    containerRect = createRect(Dom.imageArea?.getBoundingClientRect());
+    containerRect = createRect(Dom.imageArea.getBoundingClientRect());
 
     resetPosition();
 
-    imgBoundRect = createRect(Dom.img?.getBoundingClientRect());
+    imgBoundRect = createRect(Dom.img.getBoundingClientRect());
 
     ImagePadding.x = (containerRect.width - imgBoundRect.width) / 2;
     ImagePadding.y = (containerRect.height - imgBoundRect.height) / 2;
@@ -526,7 +537,7 @@ function createRect(base:DOMRect | undefined){
 
 function isPrepared(){
 
-    if(Dom.loader?.style.display == "block"){
+    if(Dom.loader.style.display == "block"){
         return false;
     }
 
@@ -545,7 +556,7 @@ function dropFile(file:File | null){
 }
 
 function startFetch(index:number){
-    if(Dom.img?.src){
+    if(Dom.img.src){
         if(isPrepared()){
             window.api.send<Pic.FetchRequest>("fetch-image", {index});
         }
@@ -592,35 +603,35 @@ function applyConfig(data:Pic.Config){
 
 function changeSaveStatus(){
     if(State.isSaved){
-        Dom.viewport?.classList.add("saved");
+        Dom.viewport.classList.add("saved");
     }else{
-        Dom.viewport?.classList.remove("saved");
+        Dom.viewport.classList.remove("saved");
     }
 }
 
 function changeMaximizeIcon(){
     if(State.isMaximized){
-        Dom.resizeBtn?.classList.remove("minbtn");
-        Dom.resizeBtn?.classList.add("maxbtn");
+        Dom.resizeBtn.classList.remove("minbtn");
+        Dom.resizeBtn.classList.add("maxbtn");
     }else{
-        Dom.resizeBtn?.classList.remove("maxbtn");
-        Dom.resizeBtn?.classList.add("minbtn");
+        Dom.resizeBtn.classList.remove("maxbtn");
+        Dom.resizeBtn.classList.add("minbtn");
     }
 }
 
 function changeMode(){
     if(State.mouseOnly){
-        Dom.viewport?.classList.add("mouse");
+        Dom.viewport.classList.add("mouse");
     }else{
-        Dom.viewport?.classList.remove("mouse");
+        Dom.viewport.classList.remove("mouse");
     }
 }
 
 async function changeOrientation(){
     if(State.doFlip){
-        Dom.viewport?.classList.add("flip");
+        Dom.viewport.classList.add("flip");
     }else{
-        Dom.viewport?.classList.remove("flip");
+        Dom.viewport.classList.remove("flip");
     }
 
     if(isPrepared()){
@@ -654,35 +665,35 @@ function changeFileList(history:{[key:string]:string}){
 }
 
 function onFileListItemClicked(e:MouseEvent){
-    window.api.send<Pic.RestoreRequest>("restore", {directory:currentDirectory, fullPath: (e.target as HTMLElement)?.textContent});
+    window.api.send<Pic.RestoreRequest>("restore", {directory:currentDirectory, fullPath: (e.target as HTMLElement).textContent});
 }
 
 function removeHistory(e:MouseEvent){
     if(confirm("Remove history?")){
-        window.api.send<Pic.RemoveHistoryRequest>("remove-history", {fullPath: (e.target as HTMLElement)?.nextElementSibling?.textContent});
+        window.api.send<Pic.RemoveHistoryRequest>("remove-history", {fullPath: (e.target as HTMLElement).nextElementSibling.textContent});
     }
 }
 
 function applyTheme(){
     if(State.isDark == false){
-        Dom.viewport?.classList.remove("dark");
+        Dom.viewport.classList.remove("dark");
     }else{
-        Dom.viewport?.classList.add("dark");
+        Dom.viewport.classList.add("dark");
     }
 }
 
 function toggleFileList(){
     if(State.isFileListOpen){
-        Dom.viewport?.classList.remove("file-list-open");
+        Dom.viewport.classList.remove("file-list-open");
         State.isFileListOpen = false;
     }else{
-        Dom.viewport?.classList.add("file-list-open");
+        Dom.viewport.classList.add("file-list-open");
         State.isFileListOpen = true;
     }
 }
 
 function hideFileList(){
-    Dom.viewport?.classList.remove("file-list-open");
+    Dom.viewport.classList.remove("file-list-open");
     State.isFileListOpen = false;
 }
 
@@ -690,16 +701,16 @@ function minimize(){
     window.api.send("minimize")
 }
 
-function maximize(){
-    window.api.send("maximize")
+function toggleMaximize(){
+    window.api.send("toggle-maximize")
 }
 
 function toggleFullScreen(){
     if(State.isFullScreen){
-        Dom.viewport?.classList.remove("full")
+        Dom.viewport.classList.remove("full")
         State.isFullScreen = false
     }else{
-        Dom.viewport?.classList.add("full")
+        Dom.viewport.classList.add("full")
         State.isFullScreen = true
     }
 
@@ -719,6 +730,19 @@ function lock(){
 function unlock(){
     if(!Dom.loader) return
     Dom.loader.style.display = "none";
+}
+
+function setCategory(category:number){
+
+    if(category){
+        Dom.category.textContent = `- [ @${category} ]`;
+    }else{
+        Dom.category.textContent = ""
+    }
+}
+
+function openFileDialog(){
+    window.api.send("open-file-dialog")
 }
 
 window.api.receive<Pic.Config>("config-loaded", data => {
@@ -744,6 +768,7 @@ window.api.receive<Pic.FetchResult>("after-fetch", data => {
 window.api.receive<Pic.SaveResult>("after-save", data => {
     State.isSaved = data.success;
     changeSaveStatus();
+    changeFileList(data.history)
 });
 
 window.api.receive<Pic.RemoveHistoryResult>("after-remove-history", data => {
@@ -751,6 +776,7 @@ window.api.receive<Pic.RemoveHistoryResult>("after-remove-history", data => {
 })
 
 window.api.receive<Pic.Config>("after-toggle-maximize", data => {
+    console.log(data)
     State.isMaximized = data.isMaximized;
     changeMaximizeIcon()
 })
@@ -759,3 +785,5 @@ window.api.receive<Pic.ErrorArgs>("error", data => {
     alert(data.message);
     unlock();
 })
+
+export {}

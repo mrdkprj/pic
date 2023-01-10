@@ -1,13 +1,13 @@
-import {IpcMainEvent} from "electron";
+import { IpcMainEvent } from "electron";
 
 declare global {
     interface Window {
         api: Api;
     }
 
-    type MainChannel = "minimize" | "maximize" | "close" | "drop-file" | "fetch-image" | "delete" |
+    type MainChannel = "minimize" | "toggle-maximize" | "close" | "drop-file" | "fetch-image" | "delete" |
                         "reveal" | "save" | "restore" | "open" | "rotate" | "change-flip" | "remove-history" |
-                        "toggle-fullscreen";
+                        "toggle-fullscreen" | "set-category" | "open-file-dialog";
     type RendererChannel = "config-loaded" | "after-fetch" | "after-remove-history" | "after-save" | "after-toggle-maximize" | "error";
 
     interface IpcMainHandler {
@@ -24,6 +24,9 @@ declare global {
 
     const MAIN_WINDOW_WEBPACK_ENTRY: string;
     const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
+    const FILE_WINDOW_WEBPACK_ENTRY: string;
+    const FILE_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
+
 
     namespace Pic {
 
@@ -52,6 +55,7 @@ declare global {
             directory:string;
             fileName:string;
             angle:number;
+            category?:number;
         }
 
         type FetchRequest = {
@@ -78,6 +82,7 @@ declare global {
 
         type SaveResult = {
             success:boolean;
+            history:{[key: string]: string};
         }
 
         type RotateRequest = {
@@ -100,6 +105,10 @@ declare global {
             history:{[key: string]: string};
         }
 
+        type CategoryArgs = {
+            category:number;
+        }
+
         type ErrorArgs = {
             message:string;
         }
@@ -108,7 +117,9 @@ declare global {
             data:string;
         }
 
-        type Args = FetchRequest | FetchResult | RestoreRequest | SaveRequest | SaveResult | RotateRequest | DropRequest | FlipRequest | RemoveHistoryRequest | RemoveHistoryResult | Config | ErrorArgs | Request
+        type Args = FetchRequest | FetchResult | RestoreRequest | SaveRequest | SaveResult |
+                    RotateRequest | DropRequest | FlipRequest | RemoveHistoryRequest | RemoveHistoryResult |
+                    CategoryArgs | Config | ErrorArgs | Request
 
     }
 
