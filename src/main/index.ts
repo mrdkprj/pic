@@ -425,7 +425,7 @@ const onDelete:handler<Pic.Request> = async () => {
     }
 }
 
-const onReveal:handler<Pic.Request> = async () => {
+const onReveal:handler<Pic.Request> = () => {
 
     if(targetfiles.length <= 0){
         return;
@@ -463,12 +463,12 @@ const onOpen:handler<Pic.Request> = async () => {
 
 }
 
-const onSave:handler<Pic.SaveRequest> = async (_event:IpcMainEvent, data:Pic.SaveRequest) => {
+const onSave:handler<Pic.SaveRequest> = (_event:IpcMainEvent, data:Pic.SaveRequest) => {
     saveHistory(false)
     saveState(data, false)
 }
 
-const onRestore:handler<Pic.RestoreRequest> = async (_event:IpcMainEvent, data:Pic.RestoreRequest) => restoreFile(data)
+const onRestore:handler<Pic.RestoreRequest> = async (_event:IpcMainEvent, data:Pic.RestoreRequest) => await restoreFile(data)
 
 const onRotate:handler<Pic.RotateRequest> = async (_event:IpcMainEvent, data:Pic.RotateRequest) => {
 
@@ -489,9 +489,9 @@ const onChangeFlip:handler<Pic.FlipRequest> = async (_event:IpcMainEvent, data:P
     }
 }
 
-const onRemoveHistory:handler<Pic.RemoveHistoryRequest> = async (_event:IpcMainEvent, data:Pic.RemoveHistoryRequest) => removeHistory(data.fullPath)
+const onRemoveHistory:handler<Pic.RemoveHistoryRequest> = (_event:IpcMainEvent, data:Pic.RemoveHistoryRequest) => removeHistory(data.fullPath)
 
-const onToggleFullscreen:handler<Pic.Request> = async () => {
+const onToggleFullscreen:handler<Pic.Request> = () => {
 
     if(mainWindow.isFullScreen()){
         mainWindow.setFullScreen(false)
