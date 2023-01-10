@@ -752,7 +752,7 @@ window.api.receive<Pic.Config>("config-loaded", data => {
 window.api.receive<Pic.FetchResult>("after-fetch", data => {
 
     if(data.image){
-        const src = `app://${data.image.fullPath}?${new Date().getTime()}`;
+        const src = data.image.static ? data.image.fullPath : `app://${data.image.fullPath}?${new Date().getTime()}`;
         if(Dom.img) Dom.img.src = src
         const dummy = new Image();
         dummy.src = src;

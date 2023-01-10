@@ -55,6 +55,7 @@ declare global {
             directory:string;
             fileName:string;
             angle:number;
+            static?:boolean;
             category?:number;
         }
 

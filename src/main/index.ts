@@ -18,9 +18,10 @@ const util = new Util();
 const config = new Config(app.getPath("userData"));
 const STATIC = path.join(__dirname, "..", "static")
 const NOT_FOUND:Pic.ImageFile = {
-    fullPath:path.join(STATIC, "img", "notfound.svg"),
+    fullPath: "../static/img/notfound.svg",
     directory:"",
     fileName:"",
+    static:true,
     angle:0
 }
 const ORIENTATIONS = {none:1, flip:3};
