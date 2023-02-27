@@ -19,6 +19,17 @@ build({
                 },
             ]
         },
+        linux:{
+            target: "deb",
+            category: "Graphics",
+            icon: "./src/static/img/icon.icns",
+            fileAssociations: [
+                {
+                  ext: ["ico", "gif", "png", "jpg", "jpeg"],
+                  description: "Image files",
+                },
+            ]
+        },
         nsis: {
             oneClick: true,
             allowToChangeInstallationDirectory: false,
