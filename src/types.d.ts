@@ -7,8 +7,9 @@ declare global {
 
     type MainChannel = "minimize" | "toggle-maximize" | "close" | "drop-file" | "fetch-image" | "delete" |
                         "reveal" | "save" | "restore" | "open" | "rotate" | "change-flip" | "remove-history" |
-                        "toggle-fullscreen" | "set-category" | "open-file-dialog";
-    type RendererChannel = "config-loaded" | "after-fetch" | "after-remove-history" | "after-save" | "after-toggle-maximize" | "error";
+                        "toggle-fullscreen" | "set-category" | "open-file-dialog" | "close-file-dialog";
+    type RendererChannel = "config-loaded" | "after-fetch" | "after-remove-history" | "after-save" | "after-toggle-maximize" |
+                            "prepare-file-dialog" | "error";
 
     interface IpcMainHandler {
         channel: MainChannel;
@@ -110,6 +111,10 @@ declare global {
             category:number;
         }
 
+        type OpenFileDialogArgs = {
+            files:ImageFile[]
+        }
+
         type ErrorArgs = {
             message:string;
         }
@@ -120,7 +125,7 @@ declare global {
 
         type Args = FetchRequest | FetchResult | RestoreRequest | SaveRequest | SaveResult |
                     RotateRequest | DropRequest | FlipRequest | RemoveHistoryRequest | RemoveHistoryResult |
-                    CategoryArgs | Config | ErrorArgs | Request
+                    CategoryArgs | OpenFileDialogArgs | Config | ErrorArgs | Request
 
     }
 

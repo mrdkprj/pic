@@ -20,16 +20,16 @@ const State = {
 }
 
 const Dom = {
-    title: null as HTMLElement | null,
-    resizeBtn:null as HTMLElement | null,
-    img:null as HTMLImageElement | null,
-    imageArea:null as HTMLElement | null,
-    loader:null as HTMLElement | null,
-    viewport:null as HTMLElement | null,
-    fileList:null as HTMLElement | null,
-    themeCheckbox:null as HTMLInputElement | null,
-    counter:null as HTMLElement | null,
-    category:null as HTMLElement | null,
+    title: null as HTMLElement,
+    resizeBtn:null as HTMLElement,
+    img:null as HTMLImageElement,
+    imageArea:null as HTMLElement,
+    loader:null as HTMLElement,
+    viewport:null as HTMLElement,
+    fileList:null as HTMLElement,
+    themeCheckbox:null as HTMLInputElement,
+    counter:null as HTMLElement,
+    category:null as HTMLElement,
 }
 
 let currentDirectory = "";

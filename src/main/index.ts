@@ -130,6 +130,7 @@ function registerIpcChannels(){
         {channel:"toggle-fullscreen", handle:onToggleFullscreen},
         {channel:"set-category", handle:onSetCategory},
         {channel:"open-file-dialog", handle:onOpenFileDialog},
+        {channel:"close-file-dialog", handle:onCloseFileDialog}
     ]
 
     handlers.forEach(handler => ipcMain.on(handler.channel, (event, request) => handler.handle(event, request)));
@@ -508,4 +509,12 @@ const onSetCategory:handler<Pic.CategoryArgs> = (_event:IpcMainEvent, data:Pic.C
     }
 }
 
-const onOpenFileDialog:handler<any> = () => fileWindow.show()
+const onOpenFileDialog:handler<any> = () => {
+    const files = targetfiles.filter(file => file.category);
+    if(files.length > 0){
+        respond<Pic.OpenFileDialogArgs>("prepare-file-dialog", {files});
+        fileWindow.show()
+    }
+}
+
+const onCloseFileDialog:handler<any> = () => fileWindow.hide();

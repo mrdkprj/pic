@@ -35,7 +35,7 @@ const config: ForgeConfig = {
   hooks: {
     postPackage: async (_forgeConfig: any, packageResult: any) => {
         // remove out folder produced by Electron Forge
-        fs.rm(path.join(packageResult.outputPaths[0], ".."), {recursive:true})
+        await fs.rm(path.join(packageResult.outputPaths[0], ".."), {recursive:true})
     }
   }
 };
