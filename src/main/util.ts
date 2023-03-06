@@ -7,7 +7,9 @@ const EXTENSIONS = [
     ".jpg",
     ".png",
     ".gif",
-    ".svg"
+    ".svg",
+    ".webp",
+    ".ico",
 ]
 
 export default class Util{

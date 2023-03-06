@@ -15,7 +15,7 @@ build({
             icon: "/src/static/img/icon.ico",
             fileAssociations: [
                 {
-                  ext: ["ico", "gif", "png", "jpg", "jpeg"],
+                  ext: ["ico", "gif", "png", "jpg", "jpeg", "webp", "svg"],
                   description: "Image files",
                 },
             ]
@@ -26,7 +26,7 @@ build({
             icon: "./src/static/img/icon.icns",
             fileAssociations: [
                 {
-                  ext: ["ico", "gif", "png", "jpg", "jpeg"],
+                  ext: ["ico", "gif", "png", "jpg", "jpeg", "webp", "svg"],
                   description: "Image files",
                 },
             ],
