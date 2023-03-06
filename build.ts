@@ -4,6 +4,7 @@ build({
     config: {
         appId: "PicViewer",
         productName: "PicViewer",
+        //npmRebuild:false, // required for linux build
         win:{
             target: {
                 target: "nsis",
@@ -28,7 +29,7 @@ build({
                   ext: ["ico", "gif", "png", "jpg", "jpeg"],
                   description: "Image files",
                 },
-            ]
+            ],
         },
         nsis: {
             oneClick: true,
