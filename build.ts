@@ -4,6 +4,7 @@ build({
     config: {
         appId: "PicViewer",
         productName: "PicViewer",
+        //npmRebuild:false, // required for linux build
         win:{
             target: {
                 target: "nsis",
@@ -14,10 +15,21 @@ build({
             icon: "/src/static/img/icon.ico",
             fileAssociations: [
                 {
-                  ext: ["ico", "gif", "png", "jpg", "jpeg", "svg", "webp"],
+                  ext: ["ico", "gif", "png", "jpg", "jpeg", "webp", "svg"],
                   description: "Image files",
                 },
             ]
+        },
+        linux:{
+            target: "deb",
+            category: "Graphics",
+            icon: "./src/static/img/icon.icns",
+            fileAssociations: [
+                {
+                  ext: ["ico", "gif", "png", "jpg", "jpeg", "webp", "svg"],
+                  description: "Image files",
+                },
+            ],
         },
         nsis: {
             oneClick: true,
