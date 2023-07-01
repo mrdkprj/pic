@@ -5,18 +5,25 @@ declare global {
         api: Api;
     }
 
-    type MainChannel = "minimize" | "toggle-maximize" | "close" | "drop-file" | "fetch-image" | "delete" |
-                        "reveal" | "save" | "restore" | "open" | "rotate" | "change-flip" | "remove-history" |
-                        "toggle-fullscreen" | "set-category" | "open-file-dialog" | "close-file-dialog";
-    type RendererChannel = "config-loaded" | "after-fetch" | "after-remove-history" | "after-save" | "after-toggle-maximize" |
+    type MainChannel = "minimize" | "toggle-maximize" | "close" | "drop-file" | "fetch-image" | "delete" | "pin" | "restore" |
+                        "rotate" | "remove-history" | "toggle-fullscreen" | "set-category" | "open-file-dialog" | "clip" |
+                        "resize" | "close-edit-dialog" | "close-file-dialog" | "open-main-context" | "restart" | "open-edit-dialog" |
+                        "save-image"
+    type MainRendererChannel = "config-loaded" | "after-fetch" | "after-remove-history" | "after-pin" | "after-toggle-maximize" |
+                            "toggle-mode" | "toggle-theme" | "toggle-orientaion" | "open-history" | "toggle-clipmode" |
                             "prepare-file-dialog" | "error";
+    type FileRendererChannel = "";
+    type EditRendererChannel = "edit-dialog-opened" | "after-edit" | "after-save-image" | "after-toggle-maximize";
+    type RendererChannel = MainRendererChannel | FileRendererChannel | EditRendererChannel;
+    type RendererName = "Main" | "File" | "Edit";
+    type Renderer = {[key in RendererName] : Electron.BrowserWindow}
+
+    type handler<T extends Pic.Args> = (event: IpcMainEvent, data:T) => (void | Promise<void>)
 
     interface IpcMainHandler {
         channel: MainChannel;
         handle: handler;
     }
-
-    type handler<T extends Pic.Args> = (event: IpcMainEvent, data:T) => (void | Promise<void>)
 
     interface Api {
         send: <T extends Pic.Args>(channel: MainChannel, data?:T) => void;
@@ -27,7 +34,15 @@ declare global {
     const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
     const FILE_WINDOW_WEBPACK_ENTRY: string;
     const FILE_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
+    const EDIT_WINDOW_WEBPACK_ENTRY:string;
+    const EDIT_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
+    type Rect = {
+        top: number;
+        left: number;
+        width: number;
+        height: number;
+    }
 
     namespace Pic {
 
@@ -38,14 +53,16 @@ declare global {
             y:number;
         }
 
-        type Mode = "key" | "mouse";
-        type Theme = "dark" | "light";
+        type Mode = "Keyboard" | "Mouse";
+        type Orientaion = "Normal" | "Flip"
+        type Theme = "Dark" | "Light";
+
+        type Options = Mode | Orientaion | Theme
 
         type Config = {
             directory:string;
             fullPath:string;
-            mode: Mode;
-            theme:Theme;
+            preference: Preference;
             history:{[key: string]: string};
             bounds: Bounds;
             isMaximized:boolean;
@@ -55,9 +72,20 @@ declare global {
             fullPath:string;
             directory:string;
             fileName:string;
-            angle:number;
-            static?:boolean;
+            exists:boolean;
+            detail:ImageDetail;
+        }
+
+        type ImageDetail = {
+            width?:number;
+            height?:number;
+            orientation?:number;
             category?:number;
+        }
+
+        type OpenEditArg = {
+            file:ImageFile;
+            config:Config;
         }
 
         type FetchRequest = {
@@ -67,22 +95,14 @@ declare global {
         type FetchResult = {
             image:ImageFile;
             counter:string;
-            saved:boolean;
+            pinned:boolean;
         }
 
         type RestoreRequest = {
             fullPath:string;
-            directory:string;
         }
 
-        type SaveRequest = {
-            isDark:boolean;
-            mouseOnly:boolean;
-            flip:boolean;
-            history:{[key: string]: string};
-        }
-
-        type SaveResult = {
+        type PinResult = {
             success:boolean;
             history:{[key: string]: string};
         }
@@ -95,16 +115,61 @@ declare global {
             fullPath:string;
         }
 
-        type FlipRequest = {
-            flip:boolean;
-        }
-
         type RemoveHistoryRequest = {
             fullPath:string;
         }
 
         type RemoveHistoryResult = {
             history:{[key: string]: string};
+        }
+
+        type Preference = {
+            mode:Mode;
+            theme:Theme;
+            orientation:Orientaion;
+        }
+
+        type ChangePreferenceArgs = {
+            preference: Preference;
+        }
+
+        type EditMode = "none" | "clip" | "resize"
+
+        type ImageRectangle = {
+            left:number;
+            top:number;
+            width:number;
+            height:number;
+        }
+
+        type ImageSize = {
+            width:number;
+            height:number;
+        }
+
+        type ClipRequest = {
+            image:ImageFile;
+            rect:ImageRectangle;
+        }
+
+        type ResizeRequest = {
+            image:ImageFile;
+            scale:number;
+        }
+
+        type EditResult = {
+            image:ImageFile;
+            message?:string;
+        }
+
+        type SaveImageRequest = {
+            image:ImageFile;
+            saveCopy:boolean;
+        }
+
+        type SaveImageResult = {
+            image:ImageFile;
+            success:boolean;
         }
 
         type CategoryArgs = {
@@ -120,12 +185,13 @@ declare global {
         }
 
         type Request = {
-            data:string;
+            renderer:RendererName
         }
 
-        type Args = FetchRequest | FetchResult | RestoreRequest | SaveRequest | SaveResult |
-                    RotateRequest | DropRequest | FlipRequest | RemoveHistoryRequest | RemoveHistoryResult |
-                    CategoryArgs | OpenFileDialogArgs | Config | ErrorArgs | Request
+        type Args = FetchRequest | FetchResult | PinResult | ChangePreferenceArgs | EditResult |
+                    RotateRequest | DropRequest | RemoveHistoryRequest | RemoveHistoryResult | OpenEditArg |
+                    ClipRequest | ResizeRequest | SaveImageRequest | SaveImageResult | CategoryArgs | OpenFileDialogArgs |
+                    Config | ErrorArgs | Request
 
     }
 

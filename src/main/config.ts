@@ -1,4 +1,4 @@
-import fs from "fs/promises"
+import fs from "fs"
 import path from "path";
 import Util from "./util";
 
@@ -6,8 +6,11 @@ const CONFIG_FILE_NAME = "picviewer.config.json"
 const DEFAULT_CONFIG :Pic.Config = {
     directory:"",
     fullPath:"",
-    mode:"key",
-    theme:"light",
+    preference: {
+        mode:"Keyboard",
+        theme:"Dark",
+        orientation:"Normal",
+    },
     history:{},
     bounds: {width:1200, height:800, x:0, y:0},
     isMaximized: false
@@ -27,25 +30,25 @@ export default class Config{
         this._file = path.join(this._directory, CONFIG_FILE_NAME)
     }
 
-    async init(){
+    init(){
 
-        await this._util.exists(this._directory, true);
+        this._util.exists(this._directory, true);
 
-        const fileExists = await this._util.exists(this._file, false);
+        const fileExists = this._util.exists(this._file, false);
 
         if(fileExists){
 
-            const rawData = await fs.readFile(this._file, {encoding:"utf8"});
+            const rawData = fs.readFileSync(this._file, {encoding:"utf8"});
             this.data = this.createConfig(JSON.parse(rawData))
 
         }else{
 
-            await this.save()
+            this.save()
 
         }
     }
 
-    createConfig(rawConfig:any):Pic.Config{
+    private createConfig(rawConfig:any):Pic.Config{
 
         Object.keys(rawConfig).forEach(key => {
             if(!(key as keyof Pic.Config in DEFAULT_CONFIG)){
@@ -62,8 +65,8 @@ export default class Config{
         return rawConfig;
     }
 
-    async save(){
-        await fs.writeFile(this._file, JSON.stringify(this.data));
+    save(){
+        fs.writeFileSync(this._file, JSON.stringify(this.data));
     }
 
 }

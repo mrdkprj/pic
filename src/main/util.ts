@@ -1,6 +1,8 @@
-import fs from "fs/promises"
+import fs, { Dirent } from "fs"
 import path from "path";
-import { Dirent } from "fs";
+import sharp from "sharp";
+
+sharp.cache(false);
 
 const EXTENSIONS = [
     ".jpeg",
@@ -14,32 +16,62 @@ const EXTENSIONS = [
 
 export default class Util{
 
-    async exists(target:string, createIfNotFound = false){
+    exists(target:string, createIfNotFound = false){
 
-        try{
-            await fs.stat(target);
-
+        if(fs.existsSync(target)){
             return true;
-
-        }catch(ex){
-
-            if(createIfNotFound){
-                await fs.mkdir(target);
-            }
-
-            return false;
         }
+
+        if(createIfNotFound){
+            fs.mkdirSync(target);
+        }
+
+        return false;
+
     }
 
-    getImageFile(filePath:string, angle = 0){
+    toImageFile(fullPath:string):Pic.ImageFile{
 
         return {
-            fullPath:filePath,
-            directory:path.dirname(filePath),
-            fileName:path.basename(filePath),
-            angle:angle,
+            fullPath,
+            directory:path.dirname(fullPath),
+            fileName:path.basename(fullPath),
+            exists:true,
+            detail:{
+                orientation:0,
+                width:0,
+                height:0,
+            }
         }
 
+    }
+
+    async getOrientation(fullPath:string){
+        return (await this.getMetadata(fullPath)).orientation
+    }
+
+    async rotate(fullPath:string, orientation:number){
+
+        const buffer = await sharp(fullPath).withMetadata({orientation}).toBuffer();
+
+        await sharp(buffer).withMetadata().toFile(fullPath);
+
+    }
+
+    async resize(fullPath:string, size:{width:number, height:number}, destPath:string){
+        await sharp(fullPath).resize(size).toFile(destPath)
+    }
+
+    async resizeBuffer(fullPath:string | Buffer, size:Pic.ImageSize){
+        return await sharp(fullPath).resize(size).jpeg().toBuffer();
+    }
+
+    async clipBuffer(fullPath:string | Buffer, size:Pic.ImageRectangle){
+        return await sharp(fullPath).extract(size).jpeg().toBuffer();
+    }
+
+    async getMetadata(fullPath:string){
+        return await sharp(fullPath).metadata();
     }
 
     isImageFile(dirent:Dirent){

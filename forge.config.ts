@@ -28,6 +28,14 @@ const config: ForgeConfig = {
                 js: "./src/renderer/filePreload.ts",
               },
             },
+            {
+              html: "./src/renderer/edit.html",
+              js: "./src/renderer/edit.ts",
+              name: "edit_window",
+              preload: {
+                js: "./src/renderer/editPreload.ts",
+              },
+            },
           ],
         },
       }),

@@ -8,15 +8,11 @@ const ImagePadding = {x:0, y:0};
 const Current= {x:0, y:0, orgX:0, orgY:0}
 const State = {
     isMaximized:false,
-    isImageLoaded:false,
-    isFileListOpen:false,
-    isSaved: false,
+    isPinned: false,
     mouseOnly: false,
-    doFlip: false,
-    isDark:false,
     isDragging: false,
     isImageMoved: false,
-    isFullScreen: false,
+    contextMenuOpening:false,
 }
 
 const Dom = {
@@ -26,18 +22,17 @@ const Dom = {
     imageArea:null as HTMLElement,
     loader:null as HTMLElement,
     viewport:null as HTMLElement,
-    fileList:null as HTMLElement,
-    themeCheckbox:null as HTMLInputElement,
+    history:null as HTMLElement,
     counter:null as HTMLElement,
     category:null as HTMLElement,
 }
 
-let currentDirectory = "";
+let currentImageFile:Pic.ImageFile;
 let containerRect :Rect;
 let imgBoundRect :Rect;
 let scale = 1;
 let scaleDirection;
-let previousScale: number;
+let previousScale = 1;
 let angleIndex = 0;
 
 window.onload = function(){
@@ -48,39 +43,20 @@ window.onload = function(){
     Dom.img = (document.getElementById("img") as HTMLImageElement);
     Dom.imageArea = document.getElementById("imageArea");
     Dom.loader = document.getElementById("loader");
-    Dom.themeCheckbox = (document.getElementById("theme") as HTMLInputElement);
-    Dom.fileList = document.getElementById("fileList")
+    Dom.history = document.getElementById("history")
     Dom.counter = document.getElementById("counter");
     Dom.category = document.getElementById("category");
 
-    Dom.img.addEventListener("mousedown", e => {
-        State.isImageMoved = false;
-        State.isDragging = true;
-
-        if(scale != MIN_SCALE){
-            Dom.viewport.classList.add("dragging");
-        }
-
-        if(State.isFileListOpen){
-            hideFileList();
-        }
-
-        resetMousePosition(e);
-    })
+    Dom.img.addEventListener("mousedown", e => onImageMousedown(e))
 
     Dom.imageArea.addEventListener("mousedown", () => {
-        if(State.isFileListOpen){
-            hideFileList();
+        if(isHistoryOpen()){
+            closeHistory();
         }
     })
 
     Dom.imageArea.addEventListener("wheel", e => {
         zoom(e);
-    })
-
-    Dom.themeCheckbox.addEventListener("change", e =>{
-        State.isDark = (<HTMLInputElement>e.target).checked;
-        applyTheme();
     })
 
     document.getElementById("imageContainer").addEventListener("dragover", (e) => {
@@ -101,7 +77,7 @@ window.onload = function(){
 }
 
 window.addEventListener("resize", () => {
-    if(State.isImageLoaded){
+    if(Dom.img && Dom.img.src){
         onResize();
     }
 })
@@ -135,27 +111,28 @@ document.addEventListener("keydown", (e) => {
     }
 
     if(e.key == "F1" || e.key == "Escape"){
-        toggleFullScreen();
+        toggleFullscreen();
+    }
+
+    if(e.key == "F5"){
+        window.api.send("restart")
+    }
+
+    if(e.ctrlKey && e.key == "r"){
+        e.preventDefault();
+    }
+
+    if(e.ctrlKey && e.key == "h"){
+        toggleHistory();
     }
 
     if(e.ctrlKey && e.key == "s"){
         e.preventDefault();
-        save();
-    }
-
-    if(e.ctrlKey && e.key == "z"){
-        e.preventDefault();
-        restore();
-    }
-
-    if(e.ctrlKey && e.key == "t"){
-        e.preventDefault();
-        State.isDark = !State.isDark;
-        applyTheme();
+        pin();
     }
 
     if(e.key === "Escape"){
-        hideFileList();
+        closeHistory();
     }
 
     if(e.key === "Delete"){
@@ -171,7 +148,7 @@ document.addEventListener("keydown", (e) => {
     }
 
     if(isFinite(Number(e.key))){
-        window.api.send<Pic.CategoryArgs>("set-category", {category:Number(e.key)})
+        request<Pic.CategoryArgs>("set-category", {category:Number(e.key)})
         setCategory(Number(e.key));
     }
 
@@ -196,6 +173,10 @@ document.addEventListener("click", (e) =>{
         close();
     }
 
+    if(e.target.id == "edit"){
+        request("open-edit-dialog", null)
+    }
+
     if(e.target.id == "deleteBtn"){
         deleteFile();
     }
@@ -204,38 +185,16 @@ document.addEventListener("click", (e) =>{
         rotateLeft();
     }
 
+    if(e.target.id == "pinBtn"){
+        pin();
+    }
+
     if(e.target.id == "rotateRight"){
         rotateRight();
     }
 
-    if(e.target.id == "reveal"){
-        reveal();
-    }
-
-    if(e.target.id == "fileListBtn"){
-        toggleFileList();
-    }
-
-    if(e.target.id == "openFile"){
-        open();
-    }
-
-    if(e.target.id == "saveFile"){
-        save();
-    }
-
-    if(e.target.id == "restoreFile"){
-        restore();
-    }
-
-    if(e.target.id == "mode"){
-        State.mouseOnly = !State.mouseOnly;
-        changeMode();
-    }
-
-    if(e.target.id == "orientation"){
-        State.doFlip = !State.doFlip;
-        changeOrientation();
+    if(e.target.id == "setting"){
+        window.api.send("open-main-context")
     }
 
     if(e.target.id == "previous"){
@@ -246,19 +205,57 @@ document.addEventListener("click", (e) =>{
         startFetch(FORWARD);
     }
 
+    if(e.target.id == "closeHistoryBtn"){
+        closeHistory();
+    }
+
 })
 
-document.addEventListener("mousemove", e => {
+document.addEventListener("mousemove", e => onMousemove(e))
+
+document.addEventListener("mouseup", e => onMouseup(e))
+
+const onImageMousedown = (e:MouseEvent) => {
+
+    State.isImageMoved = false;
+    State.isDragging = true;
+
+    if(scale != MIN_SCALE){
+        Dom.viewport.classList.add("dragging");
+    }
+
+    if(isHistoryOpen()){
+        closeHistory();
+    }
+
+    resetMousePosition(e);
+}
+
+const onMousemove = (e:MouseEvent) => {
+
     if(State.isDragging){
         State.isImageMoved = true;
         e.preventDefault();
         moveImage(e);
     }
-})
+}
 
-document.addEventListener("mouseup", e => {
+const onMouseup = (e:MouseEvent) => {
 
     if(!e.target || !(e.target instanceof HTMLElement)) return;
+
+    if(State.contextMenuOpening){
+        e.preventDefault();
+        State.contextMenuOpening = false;
+        return;
+    }
+
+    if(e.button == 2 && e.buttons == 1){
+        e.preventDefault();
+        State.contextMenuOpening = true;
+        window.api.send("open-main-context")
+        return;
+    }
 
     if(!State.isImageMoved && e.target.classList.contains("clickable")){
 
@@ -279,7 +276,7 @@ document.addEventListener("mouseup", e => {
     Dom.viewport.classList.remove("dragging")
     State.isImageMoved = false;
     State.isDragging = false;
-})
+}
 
 function onResize(){
     setScale(MIN_SCALE);
@@ -287,26 +284,47 @@ function onResize(){
     resetImage();
 }
 
-function onImageLoaded(data:Pic.FetchResult, dummy:HTMLImageElement){
+function onImageLoaded(data:Pic.FetchResult){
 
-    State.isImageLoaded = true;
+    currentImageFile = data.image;
+
+    const src = currentImageFile.exists ? `app://${data.image.fullPath}?${new Date().getTime()}` : "";
+    Dom.img.src = src
+
+    if(currentImageFile.exists){
+        Dom.img.classList.add("current")
+    }else{
+        Dom.img.classList.remove("current")
+    }
 
     setScale(MIN_SCALE);
     previousScale = scale;
 
-    if(data){
-        currentDirectory = data.image.directory;
-        const angle = data.image.angle ? data.image.angle : ORIENTATIONS[0];
-        angleIndex = ORIENTATIONS.indexOf(angle);
-        State.isSaved = data.saved;
-        changeSaveStatus();
-        Dom.title.textContent = `Picture - ${data.image.fileName} (${dummy.width} x ${dummy.height})`;
-        Dom.counter.textContent = data.counter;
-        Dom.loader.style.display = "none";
-        setCategory(data.image.category)
-    }
+    const angle = currentImageFile.detail.orientation ?? ORIENTATIONS[0];
+    angleIndex = ORIENTATIONS.indexOf(angle);
+
+    State.isPinned = data.pinned;
+    changePinStatus();
+
+    changeTitle();
+
+    Dom.counter.textContent = data.counter;
+
+    setCategory(data.image.detail.category)
 
     resetImage();
+
+    unlock();
+
+}
+
+const changeTitle = () => {
+    const size = {
+        width: scale > MIN_SCALE ? Math.floor(currentImageFile.detail.width * scale) : currentImageFile.detail.width,
+        height: scale > MIN_SCALE ? Math.floor(currentImageFile.detail.height * scale) : currentImageFile.detail.height,
+    }
+
+    Dom.title.textContent = `${currentImageFile.fileName} (${size.width} x ${size.height})`;
 
 }
 
@@ -317,13 +335,6 @@ function resetPosition(){
     Current.y = 0;
     Current.orgX = 0;
     Current.orgY = 1;
-}
-
-type Rect = {
-    top: number;
-    left: number;
-    width: number;
-    height: number;
 }
 
 function resetImage(){
@@ -346,6 +357,10 @@ function resetImage(){
 }
 
 function zoom(e:WheelEvent) {
+
+    if(!currentImageFile.exists){
+        return;
+    }
 
     e.preventDefault();
 
@@ -385,12 +400,11 @@ function afterZooom(e:WheelEvent, scaleDirection:number){
 
 function calc(e:WheelEvent){
 
-    if(!Dom.img) return;
-
     const rect = Dom.img.getBoundingClientRect();
 
     const left = rect.left
     const top = rect.top
+
     const mouseX = e.pageX - left;
     const mouseY = e.pageY - top;
 
@@ -453,6 +467,7 @@ function adjustCalc(){
 
 function calculateBound(applicableScale?:number){
     const newScale = applicableScale ? applicableScale : 1;
+
     imgBoundRect.top = Math.max((imgBoundRect.height * newScale - containerRect.height),0);
     imgBoundRect.left = Math.max((imgBoundRect.width * newScale - containerRect.width),0);
 }
@@ -464,24 +479,24 @@ function resetMousePosition(e:MouseEvent){
 
 function moveImage(e:MouseEvent){
 
-    const dx = e.x - MousePosition.x;
+    const mouseMoveX = e.x - MousePosition.x;
     MousePosition.x = e.x;
 
-    const dy = e.y - MousePosition.y;
+    const mouseMoveY = e.y - MousePosition.y;
     MousePosition.y = e.y;
 
-    if(ImagePosition.y + dy > 0 || ImagePosition.y + dy < imgBoundRect.top * -1){
+    if(ImagePosition.y + mouseMoveY > 0 || ImagePosition.y + mouseMoveY < imgBoundRect.top * -1){
         //
     }else{
-        ImagePosition.y += dy;
-        Current.y += dy
+        ImagePosition.y += mouseMoveY;
+        Current.y += mouseMoveY
     }
 
-    if(ImagePosition.x + dx > 0 || ImagePosition.x + dx < imgBoundRect.left * -1){
+    if(ImagePosition.x + mouseMoveX > 0 || ImagePosition.x + mouseMoveX < imgBoundRect.left * -1){
         //
     }else{
-        ImagePosition.x += dx;
-        Current.x += dx
+        ImagePosition.x += mouseMoveX;
+        Current.x += mouseMoveX
     }
 
     changeTransform();
@@ -507,7 +522,7 @@ function rotateRight(){
 }
 
 function rotate(){
-    window.api.send("rotate", {orientation:ORIENTATIONS[angleIndex]});
+    request("rotate", {orientation:ORIENTATIONS[angleIndex]});
 }
 
 function setScale(newScale:number){
@@ -517,15 +532,14 @@ function setScale(newScale:number){
 }
 
 function changeTransform(){
-    if(!Dom.img) return;
 
     Dom.img.style.transformOrigin = `${Current.orgX}px ${Current.orgY}px`;
     Dom.img.style.transform = `matrix(${scale},0,0,${scale}, ${Current.x},${Current.y})`;
+
+    changeTitle();
 }
 
-function createRect(base:DOMRect | undefined){
-
-    if(!base) return new DOMRect();
+function createRect(base:DOMRect){
 
     return {
             top: base.top,
@@ -535,14 +549,14 @@ function createRect(base:DOMRect | undefined){
     }
 }
 
-function isPrepared(){
+function prepare(){
 
     if(Dom.loader.style.display == "block"){
         return false;
     }
 
-    if(State.isFileListOpen){
-        hideFileList();
+    if(isHistoryOpen()){
+        closeHistory();
     }
 
     lock();
@@ -550,40 +564,25 @@ function isPrepared(){
 }
 
 function dropFile(file:File | null){
-    if(isPrepared()){
+    if(prepare()){
         window.api.send<Pic.DropRequest>("drop-file", {fullPath:file?.path});
     }
 }
 
 function startFetch(index:number){
-    if(Dom.img.src){
-        if(isPrepared()){
-            window.api.send<Pic.FetchRequest>("fetch-image", {index});
-        }
+    if(prepare()){
+        request<Pic.FetchRequest>("fetch-image", {index});
     }
 }
 
 function deleteFile(){
-    if(isPrepared()){
-        window.api.send("delete");
+    if(prepare()){
+        request("delete", null);
     }
 }
 
-function save(){
-    const config = {isDark:State.isDark, mouseOnly:State.mouseOnly, flip:State.doFlip, history:{}};
-    window.api.send<Pic.SaveRequest>("save", config);
-}
-
-function open(){
-    window.api.send("open");
-}
-
-function reveal(){
-    window.api.send("reveal");
-}
-
-function restore(){
-    window.api.send<Pic.RestoreRequest>("restore", {directory:currentDirectory, fullPath:""});
+function pin(){
+    request("pin", null);
 }
 
 function applyConfig(data:Pic.Config){
@@ -591,21 +590,18 @@ function applyConfig(data:Pic.Config){
     State.isMaximized = data.isMaximized;
     changeMaximizeIcon();
 
-    State.mouseOnly = data.mode == "mouse";
-    changeMode();
+    changeMode(data.preference.mode);
 
-    State.isDark = data.theme == "dark";
-    if(Dom.themeCheckbox) Dom.themeCheckbox.checked = State.isDark;
-    applyTheme();
+    applyTheme(data.preference.theme);
 
     changeFileList(data.history);
 }
 
-function changeSaveStatus(){
-    if(State.isSaved){
-        Dom.viewport.classList.add("saved");
+function changePinStatus(){
+    if(State.isPinned){
+        Dom.viewport.classList.add("pinned");
     }else{
-        Dom.viewport.classList.remove("saved");
+        Dom.viewport.classList.remove("pinned");
     }
 }
 
@@ -619,53 +615,53 @@ function changeMaximizeIcon(){
     }
 }
 
-function changeMode(){
+function changeMode(mode:Pic.Mode){
+
+    State.mouseOnly = mode === "Mouse"
+
     if(State.mouseOnly){
         Dom.viewport.classList.add("mouse");
     }else{
         Dom.viewport.classList.remove("mouse");
     }
+
 }
 
-async function changeOrientation(){
-    if(State.doFlip){
-        Dom.viewport.classList.add("flip");
+function applyTheme(theme:Pic.Theme){
+    if(theme === "Light"){
+        Dom.viewport.classList.remove("dark");
     }else{
-        Dom.viewport.classList.remove("flip");
+        Dom.viewport.classList.add("dark");
     }
-
-    if(isPrepared()){
-        window.api.send<Pic.FlipRequest>("change-flip", {flip:State.doFlip});
-    }
-
 }
 
 function changeFileList(history:{[key:string]:string}){
 
-    if(!Dom.fileList) return;
-
-    Dom.fileList.innerHTML = "";
+    Dom.history.innerHTML = "";
 
     const fragment = document.createDocumentFragment();
 
     Object.keys(history).forEach(key => {
         const item = document.createElement("li");
-        const remIcon = document.createElement("span");
+        const remIcon = document.createElement("div");
         remIcon.innerHTML = "&times;";
         remIcon.classList.add("remove-history-btn");
         remIcon.addEventListener("click", removeHistory);
-        const text = document.createElement("span");
-        text.textContent = `${key}\\${history[key]}`;
+        const text = document.createElement("div");
+        text.classList.add("history-item")
+        const fullPath = `${key}\\${history[key]}`;
+        text.textContent = fullPath
+        text.title = fullPath;
         text.addEventListener("dblclick", onFileListItemClicked);
         item.append(remIcon, text);
         fragment.appendChild(item);
     });
 
-    Dom.fileList.appendChild(fragment)
+    Dom.history.appendChild(fragment)
 }
 
 function onFileListItemClicked(e:MouseEvent){
-    window.api.send<Pic.RestoreRequest>("restore", {directory:currentDirectory, fullPath: (e.target as HTMLElement).textContent});
+    window.api.send<Pic.RestoreRequest>("restore", {fullPath: (e.target as HTMLElement).textContent});
 }
 
 function removeHistory(e:MouseEvent){
@@ -674,27 +670,20 @@ function removeHistory(e:MouseEvent){
     }
 }
 
-function applyTheme(){
-    if(State.isDark == false){
-        Dom.viewport.classList.remove("dark");
+function toggleHistory(){
+    if(isHistoryOpen()){
+        Dom.viewport.classList.remove("history-open");
     }else{
-        Dom.viewport.classList.add("dark");
+        Dom.viewport.classList.add("history-open");
     }
 }
 
-function toggleFileList(){
-    if(State.isFileListOpen){
-        Dom.viewport.classList.remove("file-list-open");
-        State.isFileListOpen = false;
-    }else{
-        Dom.viewport.classList.add("file-list-open");
-        State.isFileListOpen = true;
-    }
+function isHistoryOpen(){
+    return Dom.viewport.classList.contains("history-open");
 }
 
-function hideFileList(){
-    Dom.viewport.classList.remove("file-list-open");
-    State.isFileListOpen = false;
+function closeHistory(){
+    Dom.viewport.classList.remove("history-open");
 }
 
 function minimize(){
@@ -705,30 +694,29 @@ function toggleMaximize(){
     window.api.send("toggle-maximize")
 }
 
-function toggleFullScreen(){
-    if(State.isFullScreen){
+function isFullScreen(){
+    return Dom.viewport.classList.contains("full")
+}
+
+function toggleFullscreen(){
+    if(isFullScreen()){
         Dom.viewport.classList.remove("full")
-        State.isFullScreen = false
     }else{
         Dom.viewport.classList.add("full")
-        State.isFullScreen = true
     }
 
     window.api.send("toggle-fullscreen")
 }
 
 function close(){
-    const config = {isDark:State.isDark, mouseOnly:State.mouseOnly, flip:State.doFlip, history:{}};
-    window.api.send<Pic.SaveRequest>("close", config);
+    window.api.send("close");
 }
 
 function lock(){
-    if(!Dom.loader) return
     Dom.loader.style.display = "block";
 }
 
 function unlock(){
-    if(!Dom.loader) return
     Dom.loader.style.display = "none";
 }
 
@@ -745,38 +733,33 @@ function openFileDialog(){
     window.api.send("open-file-dialog")
 }
 
+const request = <T extends Pic.Args>(channel:MainChannel, data:T) => {
+    if(Dom.img.src){
+        window.api.send(channel, data);
+    }
+}
+
 window.api.receive<Pic.Config>("config-loaded", data => {
     applyConfig(data);
 })
 
-window.api.receive<Pic.FetchResult>("after-fetch", data => {
+window.api.receive<Pic.FetchResult>("after-fetch", data => onImageLoaded(data))
 
-    if(data.image){
-        const src = data.image.static ? data.image.fullPath : `app://${data.image.fullPath}?${new Date().getTime()}`;
-        if(Dom.img) Dom.img.src = src
-        const dummy = new Image();
-        dummy.src = src;
-        dummy.onload = function(){
-            onImageLoaded(data, dummy);
-        };
-    }else{
-        unlock();
-    }
-
-});
-
-window.api.receive<Pic.SaveResult>("after-save", data => {
-    State.isSaved = data.success;
-    changeSaveStatus();
+window.api.receive<Pic.PinResult>("after-pin", data => {
+    State.isPinned = data.success;
+    changePinStatus();
     changeFileList(data.history)
 });
 
+window.api.receive<Pic.ChangePreferenceArgs>("toggle-mode", (data) => changeMode(data.preference.mode))
+window.api.receive<Pic.ChangePreferenceArgs>("toggle-theme", (data) => applyTheme(data.preference.theme))
+
+window.api.receive("open-history", toggleHistory);
 window.api.receive<Pic.RemoveHistoryResult>("after-remove-history", data => {
     changeFileList(data.history);
 })
 
 window.api.receive<Pic.Config>("after-toggle-maximize", data => {
-    console.log(data)
     State.isMaximized = data.isMaximized;
     changeMaximizeIcon()
 })

@@ -1,13 +1,18 @@
-import {app, BrowserWindow, ipcMain, dialog, shell, protocol, IpcMainEvent} from "electron"
+import {app, ipcMain, dialog, shell, protocol, IpcMainEvent} from "electron"
 import path from "path";
-import sharp from "sharp";
 import fs from "fs/promises"
 import proc from "child_process";
 import url from "url"
 import Config from "./config";
 import Util from "./util";
+import Helper from "./helper";
+import { MainContextMenuTypes } from "./enum";
 
-sharp.cache(false);
+const renderers:Renderer = {
+    Main:null,
+    File:null,
+    Edit:null,
+}
 
 protocol.registerSchemesAsPrivileged([
     { scheme: "app", privileges: { bypassCSP: true } }
@@ -16,27 +21,52 @@ protocol.registerSchemesAsPrivileged([
 const targetfiles:Pic.ImageFile[] = [];
 const util = new Util();
 const config = new Config(app.getPath("userData"));
-const STATIC = path.join(__dirname, "..", "static")
-const NOT_FOUND:Pic.ImageFile = {
-    fullPath: "../static/img/notfound.svg",
-    directory:"",
-    fileName:"",
-    static:true,
-    angle:0
-}
 const ORIENTATIONS = {none:1, flip:3};
-
-let mainWindow : Electron.CrossProcessExports.BrowserWindow | null;
-let fileWindow : Electron.CrossProcessExports.BrowserWindow | null;
+const helper = new Helper();
+let topRendererName:RendererName = "Main"
 let currentIndex = 0;
 let directLaunch = false;
 let doflip = false;
 
-app.on("ready", async () => {
+config.init();
+
+const mainContext = helper.createMainContextMenu(config.data, mainContextMenuCallback)
+
+function mainContextMenuCallback(menu:MainContextMenuTypes, args?:any){
+    switch(menu){
+        case MainContextMenuTypes.OpenFile:
+            onOpen();
+            break;
+        case MainContextMenuTypes.Reveal:
+            onReveal();
+            break;
+        case MainContextMenuTypes.Reload:
+            loadImage(targetfiles[currentIndex].fullPath);
+            break;
+        case MainContextMenuTypes.History:
+            respond("Main", "open-history", null);
+            break;
+        case MainContextMenuTypes.Mode:
+            toggleMode(args);
+            break;
+        case MainContextMenuTypes.Orientaion:
+            toggleOrientation(args)
+            break;
+        case MainContextMenuTypes.Theme:
+            toggleTheme(args);
+            break;
+    }
+}
+
+app.on("ready", () => {
 
     directLaunch = process.argv.length > 1 && process.argv[1] != ".";
 
-    await init();
+    init();
+
+    renderers.Main = helper.createMainWindow(config.data);
+    renderers.File = helper.createMoveFileWindow(renderers.Main);
+    renderers.Edit = helper.createEditWindow(renderers.Main)
 
     protocol.registerFileProtocol("app", (request, callback) => {
 
@@ -47,61 +77,31 @@ app.on("ready", async () => {
         callback(filePath);
     });
 
-    mainWindow = new BrowserWindow({
-        width: config.data.bounds.width,
-        height: config.data.bounds.height,
-        x:config.data.bounds.x,
-        y:config.data.bounds.y,
-        webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true,
-            preload:MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY
-        },
-        autoHideMenuBar: true,
-        show: false,
-        icon: path.join(STATIC, "img", "icon.ico"),
-        frame: false
-    });
-
-    mainWindow.on("ready-to-show", () => {
+    renderers.Main.on("ready-to-show", () => {
         if(config.data.isMaximized){
-            mainWindow.maximize();
+            renderers.Main.maximize();
         }
+        renderers.Main.setBounds(config.data.bounds)
 
         onReady();
     })
 
-    mainWindow.on("maximize", onMaximize)
+    renderers.Main.on("maximize", onMaximize)
+    renderers.Edit.on("maximize", onMaximize)
+    renderers.Main.on("unmaximize", onUnmaximize);
+    renderers.Edit.on("unmaximize", onUnmaximize);
 
-    mainWindow.on("unmaximize", onUnmaximize);
-
-    mainWindow.on("closed", () => {
-        mainWindow = null;
+    renderers.Main.on("closed", () => {
+        renderers.Main = null;
     });
 
-    mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-
-    fileWindow = new BrowserWindow({
-        parent:mainWindow,
-        modal:true,
-        autoHideMenuBar: true,
-        show: false,
-        frame: false,
-        center:true,
-        webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true,
-            preload:FILE_WINDOW_PRELOAD_WEBPACK_ENTRY
-        },
+    renderers.Edit.on("closed", () => {
+        renderers.Edit = null;
     });
-
-    fileWindow.loadURL(FILE_WINDOW_WEBPACK_ENTRY)
 
 });
 
-async function init(){
-
-    await config.init();
+function init(){
 
     currentIndex = 0;
 
@@ -116,35 +116,39 @@ function registerIpcChannels(){
     const handlers:IpcMainHandler[] = [
         {channel:"minimize", handle:minimize},
         {channel:"toggle-maximize", handle:toggleMaximize},
+        {channel:"open-main-context", handle:onOpenMainContext},
         {channel:"close", handle:onClose},
         {channel:"drop-file", handle:onDropFile},
         {channel:"fetch-image", handle:onFetchImage},
         {channel:"delete", handle:onDelete},
-        {channel:"reveal", handle:onReveal},
-        {channel:"save", handle:onSave},
-        {channel:"restore", handle:onRestore},
-        {channel:"open", handle:onOpen},
+        {channel:"pin", handle:onPin},
         {channel:"rotate", handle:onRotate},
-        {channel:"change-flip", handle:onChangeFlip},
+        {channel:"restore", handle:onRestore},
         {channel:"remove-history", handle:onRemoveHistory},
         {channel:"toggle-fullscreen", handle:onToggleFullscreen},
+        {channel:"open-edit-dialog", handle:openEditDialog},
+        {channel:"close-edit-dialog", handle:onCloseEditDialog},
+        {channel:"resize", handle:onResizeRequest},
+        {channel:"clip", handle:onClipRequest},
+        {channel:"save-image", handle:onSaveImageRequest},
         {channel:"set-category", handle:onSetCategory},
         {channel:"open-file-dialog", handle:onOpenFileDialog},
-        {channel:"close-file-dialog", handle:onCloseFileDialog}
+        {channel:"close-file-dialog", handle:onCloseFileDialog},
+        {channel:"restart", handle:restart},
     ]
 
     handlers.forEach(handler => ipcMain.on(handler.channel, (event, request) => handler.handle(event, request)));
 }
 
-const respond = <T extends Pic.Args>(channel:RendererChannel, data:T) => {
-    mainWindow.webContents.send(channel, data);
+const respond = <T extends Pic.Args>(rendererName:RendererName, channel:RendererChannel, data:T) => {
+    renderers[rendererName].webContents.send(channel, data);
 }
 
-async function onReady(){
+function onReady(){
 
-    mainWindow.show();
+    renderers.Main.show();
 
-    respond<Pic.Config>("config-loaded", config.data)
+    respond<Pic.Config>("Main", "config-loaded", config.data)
 
     if(directLaunch && targetfiles.length == 0){
         loadImage(process.argv[1]);
@@ -152,13 +156,13 @@ async function onReady(){
     }
 
     if(targetfiles.length > 0){
-        sendImageData(targetfiles[currentIndex]);
+        sendImageData();
         return;
     }
 
     if(config.data.fullPath){
 
-        const fileExists = await util.exists(config.data.fullPath);
+        const fileExists = util.exists(config.data.fullPath);
 
         if(fileExists){
             loadImage(config.data.fullPath);
@@ -166,7 +170,14 @@ async function onReady(){
     }
 }
 
-async function loadImage(fullPath:string){
+const getCurrentImageFile = ():Pic.ImageFile => {
+
+    if(targetfiles[currentIndex]) return targetfiles[currentIndex];
+
+    return null;
+}
+
+const loadImage = async (fullPath:string) => {
 
     const targetFile = path.basename(fullPath);
     const directory = path.dirname(fullPath);
@@ -181,13 +192,13 @@ async function loadImage(fullPath:string){
         if(targetFile == file){
             currentIndex = index;
         }
-        targetfiles.push(util.getImageFile(path.join(directory, file)));
+        targetfiles.push(util.toImageFile(path.join(directory, file)));
     })
 
-    sendImageData(targetfiles[currentIndex]);
+    sendImageData();
 }
 
-async function loadImages(directory:string){
+const loadImages = async (directory:string) => {
 
     targetfiles.length = 0;
     currentIndex = 0;
@@ -197,55 +208,67 @@ async function loadImages(directory:string){
     const fileNames = allDirents.filter(dirent => util.isImageFile(dirent)).map(({ name }) => name);
 
     fileNames.sort(util.sortByName).forEach(file => {
-        targetfiles.push(util.getImageFile(path.join(directory, file)));
+        targetfiles.push(util.toImageFile(path.join(directory, file)));
     })
 
-    sendImageData(targetfiles[currentIndex]);
+    sendImageData();
 }
 
-async function sendImageData(imageFile:Pic.ImageFile, angle?:number){
+const sendImageData = async (angle?:number) => {
 
-    const fileExists = await util.exists(imageFile.fullPath);
+    const imageFile = getCurrentImageFile();
 
-    if(fileExists && !angle){
+    imageFile.exists = util.exists(imageFile.fullPath);
 
-        imageFile.angle = (await sharp(imageFile.fullPath).metadata()).orientation;
+    const result:Pic.FetchResult = {
+        image: imageFile,
+        counter: (currentIndex + 1) + " / " + targetfiles.length,
+        pinned: config.data.history[imageFile.directory] && config.data.history[imageFile.directory] == imageFile.fileName,
+    }
 
-        if(doflip && imageFile.angle != ORIENTATIONS.flip){
+    if(!imageFile.exists){
+        return respond<Pic.FetchResult>("Main", "after-fetch", result);
+    }
+
+    if(!angle){
+        imageFile.detail.orientation = await util.getOrientation(imageFile.fullPath);
+
+        if(doflip && imageFile.detail.orientation != ORIENTATIONS.flip){
             await rotate(ORIENTATIONS.flip);
-            imageFile.angle = ORIENTATIONS.flip;
+            imageFile.detail.orientation = ORIENTATIONS.flip;
         }
 
     }
 
-    NOT_FOUND.directory = imageFile.directory;
-    NOT_FOUND.fileName = imageFile.fileName;
-    const targetImageFile = fileExists ? imageFile : NOT_FOUND;
-
-    const data :Pic.FetchResult = {
-        image:targetImageFile,
-        counter: (currentIndex + 1) + " / " + targetfiles.length,
-        saved: config.data.history[targetImageFile.directory] && config.data.history[targetImageFile.directory] == targetImageFile.fileName,
+    if(!imageFile.detail.width){
+        const metadata = await util.getMetadata(imageFile.fullPath);
+        imageFile.detail.width = metadata.width;
+        imageFile.detail.height = metadata.height;
     }
 
-    respond<Pic.FetchResult>("after-fetch", data);
+    respond<Pic.FetchResult>("Main", "after-fetch", result);
 
 }
 
-function sendError(ex:Error){
-    respond<Pic.ErrorArgs>("error", {message:ex.message});
+const sendError = (ex:Error) => {
+    respond<Pic.ErrorArgs>("Main", "error", {message:ex.message});
 }
 
-async function rotate(angle:number){
+const onOpenMainContext = () => {
+    mainContext.popup({window:renderers.Main})
+}
+
+const rotate = async (orientation:number) => {
+
+    const imageFile = getCurrentImageFile();
+
+    if(!imageFile || !imageFile.exists) return;
 
     try{
-        const buffer = await sharp(targetfiles[currentIndex].fullPath)
-                            .withMetadata({orientation: angle})
-                            .toBuffer();
 
-        await sharp(buffer).withMetadata().toFile(targetfiles[currentIndex].fullPath);
+        util.rotate(imageFile.fullPath, orientation)
 
-        targetfiles[currentIndex].angle = angle;
+        imageFile.detail.orientation = orientation;
 
     }catch(ex:any){
         sendError(ex);
@@ -253,40 +276,56 @@ async function rotate(angle:number){
 
 }
 
-async function restoreFile(data:Pic.RestoreRequest){
+const deleteFile = async () => {
 
-    let file = data.fullPath;
+    const imageFile = getCurrentImageFile();
 
-    if(data.directory && config.data.history[data.directory]){
-        file = path.join(data.directory, config.data.history[data.directory]);
-    }
-
-    if(!file){
-        return sendImageData(targetfiles[currentIndex]);
-    }
-
-    const fileExists = await util.exists(file);
-
-    if(fileExists){
-
-        loadImage(file);
+    if(!imageFile || !imageFile.exists){
+        sendImageData();
         return;
     }
 
-    const targetDir = path.dirname(file);
+    try{
 
-    const dirExists = await util.exists(targetDir);
+        await shell.trashItem(getCurrentImageFile().fullPath)
 
-    if(dirExists){
-        loadImages(targetDir);
+        targetfiles.splice(currentIndex, 1);
+
+        if(currentIndex > 0){
+            currentIndex--;
+        }
+
+        if(targetfiles.length - 1 > currentIndex){
+            currentIndex++;
+        }
+
+        sendImageData();
+
+    }catch(ex:any){
+        sendError(ex);
+    }
+}
+
+const restoreFile = (data:Pic.RestoreRequest) => {
+
+    if(util.exists(data.fullPath)){
+
+        loadImage(data.fullPath);
         return;
     }
 
-    reconstructHistory(targetDir);
+    const directory = path.dirname(data.fullPath)
+
+    if(util.exists(directory)){
+        loadImages(directory);
+        return;
+    }
+
+    reconstructHistory(directory);
 
 }
 
-function reconstructHistory(directory:string){
+const reconstructHistory = (directory:string) => {
 
     delete config.data.history[directory];
 
@@ -304,72 +343,187 @@ function reconstructHistory(directory:string){
 
 }
 
-function removeHistory(file:string){
+const removeHistory = (file:string) => {
     reconstructHistory(path.dirname(file));
-    respond<Pic.RemoveHistoryResult>("after-remove-history", {history:config.data.history});
+    respond<Pic.RemoveHistoryResult>("Main", "after-remove-history", {history:config.data.history});
 }
 
-async function saveState(data:Pic.SaveRequest, closing:boolean){
-
-    config.data.theme = data.isDark ? "dark" : "light";
-    config.data.mode = data.mouseOnly ? "mouse" : "key";
-    config.data.isMaximized = mainWindow.isMaximized();
-    const bounds = mainWindow.getBounds();
-    config.data.bounds.width = bounds.width;
-    config.data.bounds.height = bounds.height;
-    config.data.bounds.x = bounds.x;
-    config.data.bounds.y = bounds.y;
+const clip = async (request:Pic.ClipRequest) => {
 
     try{
-        await config.save();
 
-        if(closing) return;
+        const imageFile = request.image;
+        const input = imageFile.exists ? imageFile.fullPath : Buffer.from(imageFile.fullPath, "base64")
+        const result = await util.clipBuffer(input, request.rect);
 
-        respond<Pic.SaveResult>("after-save", {success:true, history:config.data.history});
+        const image:Pic.ImageFile = {
+            fullPath:result.toString('base64'),
+            fileName:imageFile.fileName,
+            directory:imageFile.directory,
+            exists:false,
+            detail:{width:request.rect.width, height:request.rect.height, orientation:imageFile.detail.orientation}
+        }
+
+        respond<Pic.EditResult>("Edit", "after-edit", {image})
+
+    }catch(ex:any){
+        respond<Pic.EditResult>("Edit", "after-edit", {image:null, message:ex.message})
+    }
+}
+
+const resize = async (request:Pic.ResizeRequest) => {
+
+    try{
+
+        const imageFile = request.image;
+        const input = imageFile.exists ? imageFile.fullPath : Buffer.from(imageFile.fullPath, "base64")
+        const size = {
+            width: Math.floor(imageFile.detail.width * request.scale),
+            height: Math.floor(imageFile.detail.height * request.scale)
+        }
+
+        const result = await util.resizeBuffer(input, size);
+
+        const image:Pic.ImageFile = {
+            fullPath:result.toString('base64'),
+            fileName:imageFile.fileName,
+            directory:imageFile.directory,
+            exists:false,
+            detail:{width:size.width, height:size.height, orientation:imageFile.detail.orientation}
+        }
+
+        respond<Pic.EditResult>("Edit", "after-edit", {image})
+
+    }catch(ex:any){
+        respond<Pic.EditResult>("Edit", "after-edit", {image:null, message:ex.message})
+    }
+
+
+}
+
+const saveImage = async (request:Pic.SaveImageRequest) => {
+
+    if(request.image.exists) return;
+
+    let savePath = getCurrentImageFile().fullPath;
+
+    if(request.saveCopy){
+        const ext = path.extname(request.image.fileName);
+        const fileName = request.image.fileName.replace(ext, "")
+        const saveFileName = `${fileName}-${new Date().getTime()}${ext}`
+
+        savePath = dialog.showSaveDialogSync(renderers.Edit, {
+            defaultPath: path.join(request.image.directory, saveFileName),
+            filters: [
+                { name: "Image", extensions: ["jpeg", "jpg"] },
+            ],
+        })
+
+        if(!savePath) return;
+    }
+
+    try{
+        await fs.writeFile(savePath, request.image.fullPath, "base64");
+        const image = request.image;
+        image.fullPath = savePath;
+        image.directory = path.dirname(savePath);
+        image.fileName = path.basename(savePath);
+        image.exists = true;
+        respond<Pic.SaveImageResult>("Edit", "after-save-image", {image:request.image, success:true})
+    }catch(ex:any){
+        respond<Pic.SaveImageResult>("Edit", "after-save-image", {image:request.image, success:false})
+    }
+
+}
+
+
+
+const save = () => {
+
+    config.data.isMaximized = renderers.Main.isMaximized();
+
+    if(!config.data.isMaximized){
+        config.data.bounds = renderers.Main.getBounds()
+    }
+
+    try{
+        config.save();
 
     }catch(ex:any){
         return sendError(ex);
     }
 }
 
-function saveHistory(closing:boolean){
+const saveHistory = () => {
 
-    if(targetfiles.length <= 0) return;
+    const imageFile = getCurrentImageFile();
 
-    if(closing && !config.data.history[targetfiles[currentIndex].directory]) return;
+    if(!imageFile) return;
 
-    config.data.fullPath = targetfiles[currentIndex].fullPath;
+    config.data.fullPath = imageFile.fullPath;
     config.data.directory = path.dirname(config.data.fullPath);
     config.data.history[path.dirname(config.data.fullPath)] = path.basename(config.data.fullPath);
 
 }
 
 const toggleMaximize = () => {
-    if(mainWindow.isMaximized()){
-        mainWindow.unmaximize();
+
+    const renderer = topRendererName === "Main" ? renderers.Main : renderers.Edit
+
+    if(renderer.isMaximized()){
+        renderer.unmaximize();
+        renderer.setBounds(config.data.bounds)
     }else{
-        mainWindow.maximize();
+        config.data.bounds = renderer.getBounds();
+        renderer.maximize();
     }
 }
 
 const minimize = () => {
-    mainWindow.minimize();
+    const renderer = topRendererName === "Main" ? renderers.Main : renderers.Edit
+    renderer.minimize();
 }
 
 const onUnmaximize:handler<Pic.Request> = () => {
     config.data.isMaximized = false;
-    respond<Pic.Config>("after-toggle-maximize", config.data)
+    respond<Pic.Config>(topRendererName, "after-toggle-maximize", config.data)
 }
 
 const onMaximize:handler<Pic.Request> = () => {
     config.data.isMaximized = true;
-    respond<Pic.Config>("after-toggle-maximize", config.data)
+    respond<Pic.Config>(topRendererName, "after-toggle-maximize", config.data)
 }
 
-const onClose:handler<Pic.SaveRequest> = async (_event:IpcMainEvent, data:Pic.SaveRequest) => {
-    saveHistory(true);
-    await saveState(data, true);
-    mainWindow.close();
+const changeTopRenderer = (name:RendererName) => {
+
+    topRendererName = name;
+
+    const topRenderer = topRendererName === "Main" ? renderers.Main : renderers.Edit;
+    const hiddenRenderer = topRendererName === "Main" ? renderers.Edit : renderers.Main;
+
+    topRenderer.setBounds(config.data.bounds);
+
+    if(config.data.isMaximized){
+        topRenderer.maximize();
+    }
+
+    hiddenRenderer.hide()
+    topRenderer.show();
+
+}
+
+const onClose:handler<Pic.Request> = async () => {
+
+    const imageFile = getCurrentImageFile();
+
+    if(imageFile && config.data.history[imageFile.directory]){
+        saveHistory();
+    }
+
+    save();
+
+    renderers.Edit.close();
+    renderers.Main.close();
 }
 
 const onDropFile:handler<Pic.DropRequest> = async (_event:IpcMainEvent, data:Pic.DropRequest) => await loadImage(data.fullPath)
@@ -377,15 +531,15 @@ const onDropFile:handler<Pic.DropRequest> = async (_event:IpcMainEvent, data:Pic
 const onFetchImage:handler<Pic.FetchRequest> = (_event:IpcMainEvent, data:any) => {
 
     if(targetfiles.length <= 0){
-        return sendImageData(targetfiles[currentIndex]);
+        return sendImageData();
     }
 
     if(data.index == 1 && targetfiles.length - 1 <= currentIndex){
-        return sendImageData(targetfiles[currentIndex]);
+        return sendImageData();
     }
 
     if(data.index == -1 && currentIndex <= 0){
-        return sendImageData(targetfiles[currentIndex]);
+        return sendImageData();
     }
 
     if(data.index == 0){
@@ -394,53 +548,27 @@ const onFetchImage:handler<Pic.FetchRequest> = (_event:IpcMainEvent, data:any) =
         currentIndex += data.index;
     }
 
-    sendImageData(targetfiles[currentIndex]);
+    sendImageData();
 
 }
 
-const onDelete:handler<Pic.Request> = async () => {
+const onDelete:handler<Pic.Request> = async () => await deleteFile()
 
-    if(targetfiles.length <= 0){
-        sendImageData(targetfiles[currentIndex]);
-        return;
-    }
 
-    try{
 
-        await shell.trashItem(targetfiles[currentIndex].fullPath)
+const onReveal = () => {
 
-        targetfiles.splice(currentIndex, 1);
+    const imageFile = getCurrentImageFile();
 
-        if(currentIndex > 0){
-            currentIndex--;
-        }
+    if(!imageFile) return;
 
-        if(targetfiles.length - 1 > currentIndex){
-            currentIndex++;
-        }
-
-        sendImageData(targetfiles[currentIndex]);
-
-    }catch(ex:any){
-        sendError(ex);
-    }
-}
-
-const onReveal:handler<Pic.Request> = () => {
-
-    if(targetfiles.length <= 0){
-        return;
-    }
-
-    proc.exec(`explorer /e,/select, ${targetfiles[currentIndex].fullPath}`);
+    proc.exec(`explorer /e,/select, ${imageFile.fullPath}`);
 
 }
 
-const onOpen:handler<Pic.Request> = async () => {
+const onOpen = async () => {
 
-    if(!mainWindow) return;
-
-    const result = await dialog.showOpenDialog(mainWindow, {
+    const result = await dialog.showOpenDialog(renderers.Main, {
         properties: ["openFile"],
         title: "Select image",
         defaultPath: config.data.directory ? config.data.directory :".",
@@ -452,69 +580,96 @@ const onOpen:handler<Pic.Request> = async () => {
     if(result.filePaths.length == 1){
         const file = result.filePaths[0];
         config.data.directory = path.dirname(file);
-
-        try{
-            await config.save();
-        }catch(ex:any){
-            return sendError(ex);
-        }
-
         loadImage(file);
     }
 
 }
 
-const onSave:handler<Pic.SaveRequest> = (_event:IpcMainEvent, data:Pic.SaveRequest) => {
-    saveHistory(false)
-    saveState(data, false)
+const onPin:handler<Pic.Request> = () => {
+
+    const imageFile = getCurrentImageFile();
+
+    if(!imageFile) return;
+
+    saveHistory()
+    respond<Pic.PinResult>("Main", "after-pin", {success:true, history:config.data.history});
+
 }
 
-const onRestore:handler<Pic.RestoreRequest> = async (_event:IpcMainEvent, data:Pic.RestoreRequest) => await restoreFile(data)
+const onRestore = (_event:IpcMainEvent, data:Pic.RestoreRequest) => restoreFile(data)
 
 const onRotate:handler<Pic.RotateRequest> = async (_event:IpcMainEvent, data:Pic.RotateRequest) => {
 
     await rotate(data.orientation);
-    sendImageData(targetfiles[currentIndex], data.orientation);
+    sendImageData(data.orientation);
 
 }
 
-const onChangeFlip:handler<Pic.FlipRequest> = async (_event:IpcMainEvent, data:Pic.FlipRequest) => {
+const toggleOrientation = async (orientation:Pic.Orientaion) => {
 
-    doflip = data.flip;
+    doflip = orientation === "Flip";
 
     const angle = doflip ? ORIENTATIONS.flip : ORIENTATIONS.none;
 
     if(targetfiles.length > 0){
         await rotate(angle)
-        sendImageData(targetfiles[currentIndex]);
+        sendImageData();
     }
+}
+
+const toggleMode = (mode:Pic.Mode) => {
+    config.data.preference.mode = mode;
+    respond<Pic.ChangePreferenceArgs>("Main", "toggle-mode", {preference:config.data.preference})
+}
+
+const toggleTheme = (theme:Pic.Theme) => {
+    config.data.preference.theme = theme;
+    respond<Pic.ChangePreferenceArgs>("Main", "toggle-theme", {preference:config.data.preference})
 }
 
 const onRemoveHistory:handler<Pic.RemoveHistoryRequest> = (_event:IpcMainEvent, data:Pic.RemoveHistoryRequest) => removeHistory(data.fullPath)
 
 const onToggleFullscreen:handler<Pic.Request> = () => {
 
-    if(mainWindow.isFullScreen()){
-        mainWindow.setFullScreen(false)
+    if(renderers.Main.isFullScreen()){
+        renderers.Main.setFullScreen(false)
     }else{
-        mainWindow.setFullScreen(true)
+        renderers.Main.setFullScreen(true)
     }
+}
+
+const onClipRequest:handler<Pic.ClipRequest> = (_event:IpcMainEvent, data:Pic.ClipRequest) => clip(data)
+const onResizeRequest:handler<Pic.ResizeRequest> = (_event:IpcMainEvent, data:Pic.ResizeRequest) => resize(data)
+const onSaveImageRequest:handler<Pic.SaveImageRequest> = async (_event:IpcMainEvent, data:Pic.SaveImageRequest) => await saveImage(data);
+
+const openEditDialog:handler<Pic.Request> = () => {
+
+    respond<Pic.OpenEditArg>("Edit", "edit-dialog-opened", {file:getCurrentImageFile(), config:config.data})
+
+    changeTopRenderer("Edit")
+}
+
+const onCloseEditDialog:handler<Pic.Request> = () => changeTopRenderer("Main");
+
+const restart:handler<Pic.Request> = () => {
+    renderers.Main.reload();
+    renderers.Edit.reload();
 }
 
 const onSetCategory:handler<Pic.CategoryArgs> = (_event:IpcMainEvent, data:Pic.CategoryArgs) => {
     if(data.category){
-        targetfiles[currentIndex].category = data.category;
+        targetfiles[currentIndex].detail.category = data.category;
     }else{
-        targetfiles[currentIndex].category = null;
+        targetfiles[currentIndex].detail.category = null;
     }
 }
 
 const onOpenFileDialog:handler<any> = () => {
-    const files = targetfiles.filter(file => file.category);
+    const files = targetfiles.filter(file => file.detail.category);
     if(files.length > 0){
-        respond<Pic.OpenFileDialogArgs>("prepare-file-dialog", {files});
-        fileWindow.show()
+        respond<Pic.OpenFileDialogArgs>("File", "prepare-file-dialog", {files});
+        renderers.File.show()
     }
 }
 
-const onCloseFileDialog:handler<any> = () => fileWindow.hide();
+const onCloseFileDialog:handler<any> = () => renderers.File.hide();
