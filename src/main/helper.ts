@@ -47,15 +47,13 @@ export default class Helper{
         return widow;
     }
 
-    createEditWindow(parent:BrowserWindow){
+    createEditWindow(){
         const widow = new BrowserWindow({
-            //parent:parent,
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
                 preload:MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY
             },
-            //modal:true,
             autoHideMenuBar: true,
             show: false,
             icon: path.join(__dirname, "..", "static", "img", "icon.ico"),

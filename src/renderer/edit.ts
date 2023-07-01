@@ -4,6 +4,7 @@ const ImagePosition = {x:0, y:0};
 const ImagePadding = {x:0, y:0};
 const Current= {x:0, y:0, orgX:0, orgY:0}
 const State = {
+    isMaximized:false,
     isDragging: false,
     isImageMoved: false,
     editMode: "none" as Pic.EditMode,
@@ -16,6 +17,7 @@ const clipState = {
 
 const Dom = {
     title: null as HTMLElement,
+    resizeBtn:null as HTMLElement,
     img:null as HTMLImageElement,
     imageArea:null as HTMLElement,
     loader:null as HTMLElement,
@@ -36,6 +38,7 @@ let previousScale = 1;
 window.onload = function(){
 
     Dom.title = document.getElementById("title");
+    Dom.resizeBtn = document.getElementById("resizeBtn")
     Dom.viewport = document.getElementById("viewport");
     Dom.btnArea = document.getElementById("btnArea")
     Dom.img = (document.getElementById("img") as HTMLImageElement);
@@ -491,6 +494,9 @@ function saveImage(saveCopy:boolean){
 
 function applyConfig(data:Pic.Config){
 
+    State.isMaximized = data.isMaximized;
+    changeMaximizeIcon();
+
     applyTheme(data.preference.theme);
 
 }
@@ -500,6 +506,16 @@ function applyTheme(theme:Pic.Theme){
         Dom.viewport.classList.remove("dark");
     }else{
         Dom.viewport.classList.add("dark");
+    }
+}
+
+function changeMaximizeIcon(){
+    if(State.isMaximized){
+        Dom.resizeBtn.classList.remove("minbtn");
+        Dom.resizeBtn.classList.add("maxbtn");
+    }else{
+        Dom.resizeBtn.classList.remove("maxbtn");
+        Dom.resizeBtn.classList.add("minbtn");
     }
 }
 
@@ -575,6 +591,11 @@ window.api.receive<Pic.EditResult>("after-edit", data => {
         showEditResult(data);
     }
     unlock();
+})
+
+window.api.receive<Pic.Config>("after-toggle-maximize", data => {
+    State.isMaximized = data.isMaximized;
+    changeMaximizeIcon()
 })
 
 export {}

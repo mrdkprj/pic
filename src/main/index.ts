@@ -66,7 +66,7 @@ app.on("ready", () => {
 
     renderers.Main = helper.createMainWindow(config.data);
     renderers.File = helper.createMoveFileWindow(renderers.Main);
-    renderers.Edit = helper.createEditWindow(renderers.Main)
+    renderers.Edit = helper.createEditWindow()
 
     protocol.registerFileProtocol("app", (request, callback) => {
 
@@ -430,13 +430,12 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
         image.fileName = path.basename(savePath);
         image.exists = true;
         respond<Pic.SaveImageResult>("Edit", "after-save-image", {image:request.image, success:true})
+        loadImage(targetfiles[currentIndex].fullPath)
     }catch(ex:any){
         respond<Pic.SaveImageResult>("Edit", "after-save-image", {image:request.image, success:false})
     }
 
 }
-
-
 
 const save = () => {
 
@@ -503,8 +502,12 @@ const changeTopRenderer = (name:RendererName) => {
 
     topRenderer.setBounds(config.data.bounds);
 
-    if(config.data.isMaximized){
+    if(config.data.isMaximized && !topRenderer.isMaximized()){
         topRenderer.maximize();
+    }
+
+    if(!config.data.isMaximized && topRenderer.isMaximized()){
+        topRenderer.unmaximize();
     }
 
     hiddenRenderer.hide()
@@ -553,8 +556,6 @@ const onFetchImage:handler<Pic.FetchRequest> = (_event:IpcMainEvent, data:any) =
 }
 
 const onDelete:handler<Pic.Request> = async () => await deleteFile()
-
-
 
 const onReveal = () => {
 
