@@ -292,9 +292,9 @@ function onImageLoaded(data:Pic.FetchResult){
     Dom.img.src = src
 
     if(currentImageFile.exists){
-        Dom.img.classList.add("current")
+        Dom.imageArea.classList.remove("no-image")
     }else{
-        Dom.img.classList.remove("current")
+        Dom.imageArea.classList.add("no-image")
     }
 
     setScale(MIN_SCALE);

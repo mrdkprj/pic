@@ -437,8 +437,12 @@ body{
     display: none;
 }
 
-.current + #notFoundImage{
+#notFoundImage{
     display: none;
+}
+
+.no-image #notFoundImage{
+    display: block;
 }
 
 /*----------------------------*/

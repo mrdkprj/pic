@@ -52,7 +52,7 @@ export default class Helper{
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
-                preload:MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY
+                preload:EDIT_WINDOW_PRELOAD_WEBPACK_ENTRY
             },
             autoHideMenuBar: true,
             show: false,

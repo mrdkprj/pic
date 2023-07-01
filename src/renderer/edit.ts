@@ -1,3 +1,5 @@
+
+
 const MIN_SCALE = 1;
 const MousePosition = {x:0, y:0};
 const ImagePosition = {x:0, y:0};

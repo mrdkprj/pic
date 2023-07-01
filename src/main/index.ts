@@ -151,11 +151,13 @@ function onReady(){
     respond<Pic.Config>("Main", "config-loaded", config.data)
 
     if(directLaunch && targetfiles.length == 0){
+        console.log(0)
         loadImage(process.argv[1]);
         return;
     }
 
     if(targetfiles.length > 0){
+        console.log(1)
         sendImageData();
         return;
     }
@@ -165,6 +167,7 @@ function onReady(){
         const fileExists = util.exists(config.data.fullPath);
 
         if(fileExists){
+            console.log(2)
             loadImage(config.data.fullPath);
         }
     }
