@@ -9,13 +9,15 @@ const State = {
     isMaximized:false,
     isDragging: false,
     isImageMoved: false,
-    editMode: "none" as Pic.EditMode,
+    editMode: "Resize" as Pic.EditMode,
     isClipping:false,
 }
 const clipState = {
     startX:0,
     startY:0,
 }
+const undoStack:Pic.ImageFile[] = []
+const redoStack:Pic.ImageFile[] = []
 
 const Dom = {
     title: null as HTMLElement,
@@ -30,7 +32,6 @@ const Dom = {
 }
 
 let currentImageFile:Pic.ImageFile;
-let originalImageFile:Pic.ImageFile;
 let containerRect :Rect;
 let imgBoundRect :Rect;
 let scale = 1;
@@ -56,7 +57,7 @@ window.onload = function(){
     })
 }
 
-window.addEventListener("resize", () => {
+window.addEventListener("Resize", () => {
     if(Dom.img.src){
         onResize();
     }
@@ -65,7 +66,7 @@ window.addEventListener("resize", () => {
 document.addEventListener("keydown", (e) => {
 
     if(e.key == "Escape"){
-        undo();
+        cancel();
     }
 
     if(e.key == "F5"){
@@ -76,6 +77,13 @@ document.addEventListener("keydown", (e) => {
         e.preventDefault();
     }
 
+    if(e.ctrlKey && e.key == "z"){
+        undo();
+    }
+
+    if(e.ctrlKey && e.key == "y"){
+        redo();
+    }
 
 })
 
@@ -96,11 +104,23 @@ document.addEventListener("click", (e) =>{
     }
 
     if(e.target.id == "clip"){
-        changeEditMode("clip");
+        changeEditMode("Clip");
+    }
+
+    if(e.target.id == "resize"){
+        resizeImage();
+    }
+
+    if(e.target.id == "undo"){
+        undo()
+    }
+
+    if(e.target.id == "redo"){
+        redo();
     }
 
     if(e.target.id == "cancel"){
-        undo();
+        cancel();
     }
 
     if(e.target.id == "apply"){
@@ -124,7 +144,7 @@ document.addEventListener("mouseup", e => onMouseup(e))
 
 const onImageMousedown = (e:MouseEvent) => {
 
-    if(State.editMode == "clip") return;
+    if(State.editMode == "Clip") return;
 
     State.isImageMoved = false;
     State.isDragging = true;
@@ -142,7 +162,7 @@ const onmousedown  = (e:MouseEvent) => {
 
     if(!e.target.classList.contains("clickable")) return;
 
-    if(State.editMode == "clip"){
+    if(State.editMode == "Clip"){
         prepareClip();
         Dom.clipArea.style.transform = ""
         Dom.clipArea.style.width = "0px"
@@ -184,6 +204,7 @@ const onMouseup = (e:MouseEvent) => {
 
     if(State.isClipping){
         State.isClipping = false;
+        applyEdit();
         return;
     }
 
@@ -195,7 +216,7 @@ const onMouseup = (e:MouseEvent) => {
 const changeEditMode = (mode:Pic.EditMode) => {
 
     if(State.editMode == mode){
-        State.editMode = "none"
+        State.editMode = "Resize"
     }else{
         State.editMode = mode
     }
@@ -207,15 +228,11 @@ const afterToggleMode = () => {
 
     celarClip();
     Dom.btnArea.classList.remove("clipping")
-    Dom.btnArea.classList.remove("resizing")
 
-    if(State.editMode == "clip"){
+    if(State.editMode == "Clip"){
         Dom.btnArea.classList.add("clipping")
     }
 
-    if(State.editMode == "resize"){
-        Dom.btnArea.classList.add("resizing")
-    }
 }
 
 const prepareClip = () => {
@@ -230,8 +247,98 @@ const celarClip = () => {
     Dom.canvas.style.display = "none"
 }
 
+const resizeImage = () => {
+    changeEditMode("Resize")
+    applyEdit();
+}
+
+const changeEditButtonState = () =>{
+    Dom.btnArea.classList.remove("can-undo");
+    Dom.btnArea.classList.remove("can-redo");
+
+    if(undoStack.length){
+        Dom.btnArea.classList.add("can-undo");
+    }
+
+    if(redoStack.length){
+        Dom.btnArea.classList.add("can-redo");
+    }
+
+}
+
 const undo = () => {
-    loadImage(originalImageFile)
+    if(undoStack.length){
+        const stack = undoStack.pop()
+        redoStack.push(currentImageFile);
+        loadImage(stack);
+    }
+    changeEditButtonState();
+}
+
+const redo = () => {
+    if(redoStack.length){
+        const stack = redoStack.pop()
+        undoStack.push(currentImageFile);
+        loadImage(stack);
+    }
+    changeEditButtonState();
+}
+
+const cancel = () => {
+    if(undoStack.length){
+        const firstStac = undoStack[0];
+        loadImage(firstStac)
+    }
+
+    undoStack.length = 0;
+    redoStack.length = 0;
+
+    changeEditButtonState();
+}
+
+const getClipInfo = () => {
+    const imgBoundRect = Dom.img.getBoundingClientRect();
+    const wration = imgBoundRect.width / currentImageFile.detail.width;
+    const hration = imgBoundRect.height / currentImageFile.detail.height;
+    const ration = Math.max(wration, hration);
+
+    const clip = Dom.clipArea.getBoundingClientRect()
+
+    return {
+        image:currentImageFile,
+        rect:{
+            left: Math.floor((clip.left - imgBoundRect.left) / ration),
+            top: Math.floor((clip.top - imgBoundRect.top) / ration),
+            width: Math.floor(clip.width / ration),
+            height: Math.floor(clip.height / ration)
+        }
+    }
+}
+
+const applyEdit = () => {
+
+    if(State.editMode === "Clip"){
+        request<Pic.ClipRequest>("clip", getClipInfo() )
+    }
+
+    if(State.editMode === "Resize" && scale != MIN_SCALE){
+        request<Pic.ResizeRequest>("resize", {image:currentImageFile, scale} )
+    }
+
+}
+
+const showEditResult = (data:Pic.EditResult) => {
+
+    undoStack.push(currentImageFile);
+
+    changeEditButtonState();
+
+    if(State.editMode === "Clip"){
+        celarClip();
+    }
+
+    loadImage(data.image)
+
 }
 
 function onResize(){
@@ -309,7 +416,7 @@ function resetImage(){
 
 function zoom(e:WheelEvent) {
 
-    if(State.editMode == "clip"){
+    if(State.editMode == "Clip"){
         return;
     }
 
@@ -487,13 +594,28 @@ function prepare(){
 
 function saveImage(saveCopy:boolean){
 
+    if(!undoStack.length) return;
+
     const executeSave = saveCopy ? true : window.confirm("Overwrite image?")
     if(executeSave){
-        window.api.send<Pic.SaveImageRequest>("save-image", {image:currentImageFile, saveCopy})
+        request<Pic.SaveImageRequest>("save-image", {image:currentImageFile, saveCopy})
     }
 
 }
 
+const afterSaveImage = (data:Pic.SaveImageResult) => {
+    if(data.message){
+        alert(data.message)
+    }else{
+        undoStack.length = 0;
+        redoStack.length = 0;
+        changeEditButtonState();
+        loadImage(data.image)
+    }
+
+    unlock();
+
+}
 function applyConfig(data:Pic.Config){
 
     State.isMaximized = data.isMaximized;
@@ -521,48 +643,14 @@ function changeMaximizeIcon(){
     }
 }
 
-const getClipInfo = () => {
-    const imgBoundRect = Dom.img.getBoundingClientRect();
-    const wration = imgBoundRect.width / currentImageFile.detail.width;
-    const hration = imgBoundRect.height / currentImageFile.detail.height;
-    const ration = Math.max(wration, hration);
-
-    const clip = Dom.clipArea.getBoundingClientRect()
-
-    return {
-        image:currentImageFile,
-        rect:{
-            left: Math.floor((clip.left - imgBoundRect.left) / ration),
-            top: Math.floor((clip.top - imgBoundRect.top) / ration),
-            width: Math.floor(clip.width / ration),
-            height: Math.floor(clip.height / ration)
-        }
-    }
-}
-
-const applyEdit = () => {
-
-    if(State.editMode === "clip"){
-        request<Pic.ClipRequest>("clip", getClipInfo() )
-    }
-
-    if(State.editMode !== "clip" && scale != MIN_SCALE){
-        request<Pic.ResizeRequest>("resize", {image:currentImageFile, scale} )
-    }
-
-}
-
-const showEditResult = (data:Pic.EditResult) => {
-
-    if(State.editMode === "clip"){
-        celarClip();
-    }
-
-    loadImage(data.image)
+function clear(){
+    unlock();
+    Dom.img.src = "";
+    changeEditMode(State.editMode)
 }
 
 function close(){
-    changeEditMode(State.editMode)
+    clear();
     window.api.send("close-edit-dialog");
 }
 
@@ -582,7 +670,6 @@ const request = <T extends Pic.Args>(channel:MainChannel, data:T) => {
 
 window.api.receive<Pic.OpenEditArg>("edit-dialog-opened", data => {
     applyConfig(data.config);
-    originalImageFile = data.file;
     loadImage(data.file)
 })
 
@@ -594,6 +681,8 @@ window.api.receive<Pic.EditResult>("after-edit", data => {
     }
     unlock();
 })
+
+window.api.receive<Pic.SaveImageResult>("after-save-image", data => afterSaveImage(data))
 
 window.api.receive<Pic.Config>("after-toggle-maximize", data => {
     State.isMaximized = data.isMaximized;

@@ -133,7 +133,7 @@ declare global {
             preference: Preference;
         }
 
-        type EditMode = "none" | "clip" | "resize"
+        type EditMode = "Clip" | "Resize"
 
         type ImageRectangle = {
             left:number;
@@ -169,7 +169,7 @@ declare global {
 
         type SaveImageResult = {
             image:ImageFile;
-            success:boolean;
+            message?:string;
         }
 
         type CategoryArgs = {

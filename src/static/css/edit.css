@@ -200,14 +200,28 @@ body{
     background-color: #6b676775;
 }
 
-.clipping #clip,
-.resizing #resize{
+.clipping #clip{
     background-color: #00000012;
 }
 
-.dark .clipping #clip,
-.dark .resizing #resize{
+.dark .clipping #clip{
     background-color: #6b676775;
+}
+
+#undo,
+#redo,
+#cancel{
+    color: #524e4e;
+}
+
+.can-undo #undo,
+.can-undo #cancel{
+    color: #c3bebe;
+}
+
+.can-redo #redo,
+.can-redo #cancel{
+    color: #c3bebe;
 }
 
 .image-container{

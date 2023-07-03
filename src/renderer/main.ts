@@ -5,7 +5,7 @@ const MIN_SCALE = 1;
 const MousePosition = {x:0, y:0};
 const ImagePosition = {x:0, y:0};
 const ImagePadding = {x:0, y:0};
-const Current= {x:0, y:0, orgX:0, orgY:0}
+const Current= {x:0, y:0, orgX:0, orgY:1}
 const State = {
     isMaximized:false,
     isPinned: false,
@@ -48,6 +48,7 @@ window.onload = function(){
     Dom.category = document.getElementById("category");
 
     Dom.img.addEventListener("mousedown", e => onImageMousedown(e))
+    Dom.img.addEventListener("load", onImageLoaded)
 
     Dom.imageArea.addEventListener("mousedown", () => {
         if(isHistoryOpen()){
@@ -56,7 +57,7 @@ window.onload = function(){
     })
 
     Dom.imageArea.addEventListener("wheel", e => {
-        zoom(e);
+        onZoom(e);
     })
 
     document.getElementById("imageContainer").addEventListener("dragover", (e) => {
@@ -284,8 +285,7 @@ function onResize(){
     resetImage();
 }
 
-function onImageLoaded(data:Pic.FetchResult){
-
+function loadImage(data:Pic.FetchResult){
     currentImageFile = data.image;
 
     const src = currentImageFile.exists ? `app://${data.image.fullPath}?${new Date().getTime()}` : "";
@@ -297,20 +297,23 @@ function onImageLoaded(data:Pic.FetchResult){
         Dom.imageArea.classList.add("no-image")
     }
 
+    State.isPinned = data.pinned;
+    changePinStatus();
+
+    Dom.counter.textContent = data.counter;
+
+    setCategory(data.image.detail.category)
+}
+
+function onImageLoaded(){
+
     setScale(MIN_SCALE);
     previousScale = scale;
 
     const angle = currentImageFile.detail.orientation ?? ORIENTATIONS[0];
     angleIndex = ORIENTATIONS.indexOf(angle);
 
-    State.isPinned = data.pinned;
-    changePinStatus();
-
     changeTitle();
-
-    Dom.counter.textContent = data.counter;
-
-    setCategory(data.image.detail.category)
 
     resetImage();
 
@@ -356,7 +359,7 @@ function resetImage(){
     changeTransform();
 }
 
-function zoom(e:WheelEvent) {
+function onZoom(e:WheelEvent) {
 
     if(!currentImageFile.exists){
         return;
@@ -375,11 +378,11 @@ function zoom(e:WheelEvent) {
         scaleDirection = -1;
     }
 
-    afterZooom(e, scaleDirection);
+    zoom(e, scaleDirection);
 
 }
 
-function afterZooom(e:WheelEvent, scaleDirection:number){
+function zoom(e:WheelEvent, scaleDirection:number){
 
     if(scale == MIN_SCALE){
         setScale(MIN_SCALE);
@@ -743,7 +746,7 @@ window.api.receive<Pic.Config>("config-loaded", data => {
     applyConfig(data);
 })
 
-window.api.receive<Pic.FetchResult>("after-fetch", data => onImageLoaded(data))
+window.api.receive<Pic.FetchResult>("after-fetch", data => loadImage(data))
 
 window.api.receive<Pic.PinResult>("after-pin", data => {
     State.isPinned = data.success;

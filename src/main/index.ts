@@ -151,13 +151,11 @@ function onReady(){
     respond<Pic.Config>("Main", "config-loaded", config.data)
 
     if(directLaunch && targetfiles.length == 0){
-        console.log(0)
         loadImage(process.argv[1]);
         return;
     }
 
     if(targetfiles.length > 0){
-        console.log(1)
         sendImageData();
         return;
     }
@@ -167,7 +165,6 @@ function onReady(){
         const fileExists = util.exists(config.data.fullPath);
 
         if(fileExists){
-            console.log(2)
             loadImage(config.data.fullPath);
         }
     }
@@ -269,7 +266,7 @@ const rotate = async (orientation:number) => {
 
     try{
 
-        util.rotate(imageFile.fullPath, orientation)
+        await util.rotate(imageFile.fullPath, orientation)
 
         imageFile.detail.orientation = orientation;
 
@@ -432,10 +429,10 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
         image.directory = path.dirname(savePath);
         image.fileName = path.basename(savePath);
         image.exists = true;
-        respond<Pic.SaveImageResult>("Edit", "after-save-image", {image:request.image, success:true})
+        respond<Pic.SaveImageResult>("Edit", "after-save-image", {image:request.image})
         loadImage(targetfiles[currentIndex].fullPath)
     }catch(ex:any){
-        respond<Pic.SaveImageResult>("Edit", "after-save-image", {image:request.image, success:false})
+        respond<Pic.SaveImageResult>("Edit", "after-save-image", {image:request.image, message:ex.message})
     }
 
 }
