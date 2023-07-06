@@ -6,4 +6,6 @@ export enum MainContextMenuTypes{
     Orientaion,
     Theme,
     History,
+    ToFirst,
+    ToLast,
 }

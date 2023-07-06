@@ -81,6 +81,15 @@ export default class Helper{
             },
             { type: 'separator' },
             {
+                label: "Move To First",
+                click: () => onclick(MainContextMenuTypes.ToFirst)
+            },
+            {
+                label: "Move To Last",
+                click: () => onclick(MainContextMenuTypes.ToLast)
+            },
+            { type: 'separator' },
+            {
                 label: "Mode",
                 submenu: this.modeSubMenu(config, onclick)
             },

@@ -51,6 +51,7 @@ window.onload = function(){
     Dom.canvas = document.getElementById("clipCanvas")
 
     Dom.img.addEventListener("mousedown", e => onImageMousedown(e))
+    Dom.img.addEventListener("load", onImageLoaded)
 
     Dom.imageArea.addEventListener("wheel", e => {
         zoom(e);
@@ -370,7 +371,9 @@ function loadImage(data:Pic.ImageFile){
     const src = currentImageFile.exists ? `app://${data.fullPath}?${new Date().getTime()}` : `data:image/jpeg;base64,${data.fullPath}`;
     Dom.img.src = src
 
-    imgBoundRect = createRect(Dom.img.getBoundingClientRect())
+}
+
+function onImageLoaded(){
 
     setScale(MIN_SCALE);
     previousScale = scale;
@@ -529,8 +532,11 @@ function adjustCalc(){
 
 function calculateBound(applicableScale?:number){
     const newScale = applicableScale ? applicableScale : 1;
-    imgBoundRect.top = Math.max((imgBoundRect.height * newScale - containerRect.height),0);
-    imgBoundRect.left = Math.max((imgBoundRect.width * newScale - containerRect.width),0);
+    const newHeight = Math.floor(imgBoundRect.height * newScale)
+    const newWidth = Math.floor(imgBoundRect.width * newScale)
+
+    imgBoundRect.top = Math.max(Math.floor((newHeight - containerRect.height) / 1),0);
+    imgBoundRect.left = Math.max(Math.floor((newWidth - containerRect.width) / 1),0);
 }
 
 function resetMousePosition(e:MouseEvent){

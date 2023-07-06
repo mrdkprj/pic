@@ -46,6 +46,12 @@ function mainContextMenuCallback(menu:MainContextMenuTypes, args?:any){
         case MainContextMenuTypes.History:
             respond("Main", "open-history", null);
             break;
+        case MainContextMenuTypes.ToFirst:
+            fetchFirst();
+            break;
+        case MainContextMenuTypes.ToLast:
+            fetchLast();
+            break;
         case MainContextMenuTypes.Mode:
             toggleMode(args);
             break;
@@ -144,6 +150,10 @@ const respond = <T extends Pic.Args>(rendererName:RendererName, channel:Renderer
     renderers[rendererName].webContents.send(channel, data);
 }
 
+const sendError = (ex:Error) => {
+    respond<Pic.ErrorArgs>("Main", "error", {message:ex.message});
+}
+
 function onReady(){
 
     renderers.Main.show();
@@ -222,7 +232,8 @@ const sendImageData = async (angle?:number) => {
 
     const result:Pic.FetchResult = {
         image: imageFile,
-        counter: (currentIndex + 1) + " / " + targetfiles.length,
+        currentIndex: currentIndex + 1,
+        fileCount: targetfiles.length,
         pinned: config.data.history[imageFile.directory] && config.data.history[imageFile.directory] == imageFile.fileName,
     }
 
@@ -250,8 +261,49 @@ const sendImageData = async (angle?:number) => {
 
 }
 
-const sendError = (ex:Error) => {
-    respond<Pic.ErrorArgs>("Main", "error", {message:ex.message});
+const fetchImage = (data:Pic.FetchRequest) => {
+
+    if(!targetfiles.length){
+        return sendImageData();
+    }
+
+    if(data.index == 1 && targetfiles.length - 1 <= currentIndex){
+        return sendImageData();
+    }
+
+    if(data.index == -1 && currentIndex <= 0){
+        return sendImageData();
+    }
+
+    if(data.index == 0){
+        currentIndex = 0;
+    }else{
+        currentIndex += data.index;
+    }
+
+    sendImageData();
+}
+
+const fetchFirst = () => {
+
+    if(!targetfiles.length){
+        return;
+    }
+
+    currentIndex = 0;
+
+    sendImageData();
+}
+
+const fetchLast = () => {
+
+    if(!targetfiles.length){
+        return;
+    }
+
+    currentIndex = targetfiles.length - 1;
+
+    sendImageData();
 }
 
 const onOpenMainContext = () => {
@@ -531,29 +583,7 @@ const onClose:handler<Pic.Request> = async () => {
 
 const onDropFile:handler<Pic.DropRequest> = async (_event:IpcMainEvent, data:Pic.DropRequest) => await loadImage(data.fullPath)
 
-const onFetchImage:handler<Pic.FetchRequest> = (_event:IpcMainEvent, data:any) => {
-
-    if(targetfiles.length <= 0){
-        return sendImageData();
-    }
-
-    if(data.index == 1 && targetfiles.length - 1 <= currentIndex){
-        return sendImageData();
-    }
-
-    if(data.index == -1 && currentIndex <= 0){
-        return sendImageData();
-    }
-
-    if(data.index == 0){
-        currentIndex = 0;
-    }else{
-        currentIndex += data.index;
-    }
-
-    sendImageData();
-
-}
+const onFetchImage:handler<Pic.FetchRequest> = (_event:IpcMainEvent, data:any) => fetchImage(data);
 
 const onDelete:handler<Pic.Request> = async () => await deleteFile()
 

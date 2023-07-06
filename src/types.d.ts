@@ -8,7 +8,7 @@ declare global {
     type MainChannel = "minimize" | "toggle-maximize" | "close" | "drop-file" | "fetch-image" | "delete" | "pin" | "restore" |
                         "rotate" | "remove-history" | "toggle-fullscreen" | "set-category" | "open-file-dialog" | "clip" |
                         "resize" | "close-edit-dialog" | "close-file-dialog" | "open-main-context" | "restart" | "open-edit-dialog" |
-                        "save-image"
+                        "save-image";
     type MainRendererChannel = "config-loaded" | "after-fetch" | "after-remove-history" | "after-pin" | "after-toggle-maximize" |
                             "toggle-mode" | "toggle-theme" | "toggle-orientaion" | "open-history" | "toggle-clipmode" |
                             "prepare-file-dialog" | "error";
@@ -94,7 +94,8 @@ declare global {
 
         type FetchResult = {
             image:ImageFile;
-            counter:string;
+            currentIndex:number;
+            fileCount:number;
             pinned:boolean;
         }
 

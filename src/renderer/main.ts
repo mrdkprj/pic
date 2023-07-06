@@ -28,6 +28,7 @@ const Dom = {
 }
 
 let currentImageFile:Pic.ImageFile;
+let fileCount = 0;
 let containerRect :Rect;
 let imgBoundRect :Rect;
 let scale = 1;
@@ -300,7 +301,9 @@ function loadImage(data:Pic.FetchResult){
     State.isPinned = data.pinned;
     changePinStatus();
 
-    Dom.counter.textContent = data.counter;
+    fileCount = data.fileCount;
+
+    Dom.counter.textContent = `${data.currentIndex} / ${fileCount}`;
 
     setCategory(data.image.detail.category)
 }
@@ -474,8 +477,8 @@ function calculateBound(applicableScale?:number){
     const newHeight = Math.floor(imgBoundRect.height * newScale)
     const newWidth = Math.floor(imgBoundRect.width * newScale)
 
-    imgBoundRect.top = Math.max(Math.floor((newHeight - containerRect.height) / 2),0);
-    imgBoundRect.left = Math.max(Math.floor((newWidth - containerRect.width) / 2),0);
+    imgBoundRect.top = Math.max(Math.floor((newHeight - containerRect.height) / 1),0);
+    imgBoundRect.left = Math.max(Math.floor((newWidth - containerRect.width) / 1),0);
 }
 
 function resetMousePosition(e:MouseEvent){
