@@ -54,7 +54,7 @@ window.onload = function(){
     Dom.img.addEventListener("load", onImageLoaded)
 
     Dom.imageArea.addEventListener("wheel", e => {
-        zoom(e);
+        onZoom(e);
     })
 }
 
@@ -240,8 +240,8 @@ const prepareClip = () => {
     const rect = Dom.img.getBoundingClientRect();
     Dom.canvas.style.width = rect.width + "px"
     Dom.canvas.style.height = rect.height + "px"
-    Dom.canvas.style.top = (rect.top - 30) + "px"
-    Dom.canvas.style.left = rect.left + "px"
+    Dom.canvas.style.top = (rect.top - 45) + "px"
+    Dom.canvas.style.left = (rect.left - 15) + "px"
 }
 
 const celarClip = () => {
@@ -299,18 +299,26 @@ const cancel = () => {
 
 const getClipInfo = () => {
 
-    const imgBoundRect = Dom.img.getBoundingClientRect();
-    const rate = Math.max(imgBoundRect.width / currentImageFile.detail.width, imgBoundRect.height / currentImageFile.detail.height);
+    const imageRect = Dom.img.getBoundingClientRect();
+    const rate = Math.max(imageRect.width / currentImageFile.detail.width, imageRect.height / currentImageFile.detail.height);
 
     const clip = Dom.clipArea.getBoundingClientRect()
 
-    const clipLeft = Math.floor((clip.left - imgBoundRect.left) / rate);
-    const clipTop = Math.floor((clip.top - imgBoundRect.top) / rate);
+    const clipLeft = Math.floor((clip.left - imageRect.left) / rate);
+    const clipRight = Math.floor((clip.right - imageRect.right) / rate);
+    const clipTop = Math.floor((clip.top - imageRect.top) / rate);
+    const clipBottom = Math.floor((clip.bottom - imageRect.bottom) / rate);
+
+    const clipWidth = Math.floor(clip.width / rate);
+    const clipHeight = Math.floor(clip.height / rate);
 
     const left = clipLeft < 0 ? 0 : clipLeft;
     const top = clipTop < 0 ? 0 : clipTop;
-    const width = Math.floor(clip.width / rate);
-    const height = Math.floor(clip.height / rate);
+
+    let width = clipLeft < 0 ? Math.floor(clipWidth + clipLeft) : clipWidth
+    width = clipRight > 0 ? Math.floor(width - (clipRight)) : width
+    let height = clipTop < 0 ? Math.floor(clipHeight + clipTop) : clipHeight
+    height = clipBottom > 0 ? Math.floor(height - (clipBottom)) : height
 
     return {
         image:currentImageFile,
@@ -337,11 +345,15 @@ const applyEdit = () => {
 
 const showEditResult = (data:Pic.EditResult) => {
 
+    if(redoStack.length){
+        redoStack.length = 0;
+    }
+
     undoStack.push(currentImageFile);
 
     changeEditButtonState();
 
-    if(State.editMode === "Clip"){
+    if(State.editMode == "Clip"){
         celarClip();
     }
 
@@ -424,10 +436,10 @@ function resetImage(){
     changeTransform();
 }
 
-function zoom(e:WheelEvent) {
+function onZoom(e:WheelEvent) {
 
     if(State.editMode == "Clip"){
-        return;
+        changeEditMode("Resize")
     }
 
     e.preventDefault();
@@ -443,11 +455,11 @@ function zoom(e:WheelEvent) {
         scaleDirection = -1;
     }
 
-    afterZooom(e, scaleDirection);
+    zoom(e, scaleDirection);
 
 }
 
-function afterZooom(e:WheelEvent, _scaleDirection:number){
+function zoom(e:WheelEvent, _scaleDirection:number){
 
     if(scale == MIN_SCALE){
         setScale(MIN_SCALE);
@@ -618,13 +630,8 @@ const afterSaveImage = (data:Pic.SaveImageResult) => {
     if(data.message){
         alert(data.message)
     }else{
-        undoStack.length = 0;
-        redoStack.length = 0;
-        changeEditButtonState();
-        loadImage(data.image)
+        close();
     }
-
-    unlock();
 
 }
 function applyConfig(data:Pic.Config){
