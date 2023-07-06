@@ -382,7 +382,7 @@ function onZoom(e:WheelEvent) {
 
 }
 
-function zoom(e:WheelEvent, scaleDirection:number){
+function zoom(e:WheelEvent, _scaleDirection:number){
 
     if(scale == MIN_SCALE){
         setScale(MIN_SCALE);
@@ -394,9 +394,9 @@ function zoom(e:WheelEvent, scaleDirection:number){
 
     calc(e);
 
-    if(scaleDirection < 0){
+    //if(scaleDirection < 0){
         adjustCalc();
-    }
+    //}
 
     changeTransform();
 }
@@ -430,12 +430,12 @@ function calc(e:WheelEvent){
 
     if(imgBoundRect.top == 0){
         translateY = 0;
-        newOrigY =  (imgBoundRect.height / 2);
+        newOrigY =  imgBoundRect.height / 2;
     }
 
     if(imgBoundRect.left == 0){
         translateX = 0;
-        newOrigX = (imgBoundRect.width / 2);
+        newOrigX = imgBoundRect.width / 2;
     }
 
     Current.x = translateX;
@@ -469,10 +469,13 @@ function adjustCalc(){
 }
 
 function calculateBound(applicableScale?:number){
-    const newScale = applicableScale ? applicableScale : 1;
 
-    imgBoundRect.top = Math.max((imgBoundRect.height * newScale - containerRect.height),0);
-    imgBoundRect.left = Math.max((imgBoundRect.width * newScale - containerRect.width),0);
+    const newScale = applicableScale ? applicableScale : 1;
+    const newHeight = Math.floor(imgBoundRect.height * newScale)
+    const newWidth = Math.floor(imgBoundRect.width * newScale)
+
+    imgBoundRect.top = Math.max(Math.floor((newHeight - containerRect.height) / 2),0);
+    imgBoundRect.left = Math.max(Math.floor((newWidth - containerRect.width) / 2),0);
 }
 
 function resetMousePosition(e:MouseEvent){

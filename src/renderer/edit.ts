@@ -66,7 +66,7 @@ window.addEventListener("Resize", () => {
 document.addEventListener("keydown", (e) => {
 
     if(e.key == "Escape"){
-        cancel();
+        close();
     }
 
     if(e.key == "F5"){
@@ -297,20 +297,27 @@ const cancel = () => {
 }
 
 const getClipInfo = () => {
+
     const imgBoundRect = Dom.img.getBoundingClientRect();
-    const wration = imgBoundRect.width / currentImageFile.detail.width;
-    const hration = imgBoundRect.height / currentImageFile.detail.height;
-    const ration = Math.max(wration, hration);
+    const rate = Math.max(imgBoundRect.width / currentImageFile.detail.width, imgBoundRect.height / currentImageFile.detail.height);
 
     const clip = Dom.clipArea.getBoundingClientRect()
+
+    const clipLeft = Math.floor((clip.left - imgBoundRect.left) / rate);
+    const clipTop = Math.floor((clip.top - imgBoundRect.top) / rate);
+
+    const left = clipLeft < 0 ? 0 : clipLeft;
+    const top = clipTop < 0 ? 0 : clipTop;
+    const width = Math.floor(clip.width / rate);
+    const height = Math.floor(clip.height / rate);
 
     return {
         image:currentImageFile,
         rect:{
-            left: Math.floor((clip.left - imgBoundRect.left) / ration),
-            top: Math.floor((clip.top - imgBoundRect.top) / ration),
-            width: Math.floor(clip.width / ration),
-            height: Math.floor(clip.height / ration)
+            left,
+            top,
+            width,
+            height
         }
     }
 }
@@ -437,7 +444,7 @@ function zoom(e:WheelEvent) {
 
 }
 
-function afterZooom(e:WheelEvent, scaleDirection:number){
+function afterZooom(e:WheelEvent, _scaleDirection:number){
 
     if(scale == MIN_SCALE){
         setScale(MIN_SCALE);
@@ -449,9 +456,7 @@ function afterZooom(e:WheelEvent, scaleDirection:number){
 
     calc(e);
 
-    if(scaleDirection < 0){
-        adjustCalc();
-    }
+    adjustCalc();
 
     changeTransform();
 }
