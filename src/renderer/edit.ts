@@ -1,5 +1,3 @@
-
-
 const MIN_SCALE = 1;
 const MousePosition = {x:0, y:0};
 const ImagePosition = {x:0, y:0};
@@ -11,6 +9,7 @@ const State = {
     isImageMoved: false,
     editMode: "Resize" as Pic.EditMode,
     isClipping:false,
+    isShrinkable:false,
 }
 const clipState = {
     startX:0,
@@ -26,7 +25,8 @@ const Dom = {
     imageArea:null as HTMLElement,
     loader:null as HTMLElement,
     viewport:null as HTMLElement,
-    btnArea:null as HTMLElement,
+    titleBar:null as HTMLElement,
+    scaleText:null as HTMLElement,
     clipArea:null as HTMLElement,
     canvas:null as HTMLElement,
 }
@@ -43,10 +43,11 @@ window.onload = function(){
     Dom.title = document.getElementById("title");
     Dom.resizeBtn = document.getElementById("resizeBtn")
     Dom.viewport = document.getElementById("viewport");
-    Dom.btnArea = document.getElementById("btnArea")
+    Dom.titleBar = document.getElementById("titleBar")
     Dom.img = (document.getElementById("img") as HTMLImageElement);
     Dom.imageArea = document.getElementById("imageArea");
     Dom.loader = document.getElementById("loader");
+    Dom.scaleText = document.getElementById("scaleText")
     Dom.clipArea = document.getElementById("clipArea")
     Dom.canvas = document.getElementById("clipCanvas")
 
@@ -110,6 +111,10 @@ document.addEventListener("click", (e) =>{
 
     if(e.target.id == "resize"){
         resizeImage();
+    }
+
+    if(e.target.id == "shrink"){
+        changeResizeMode(!State.isShrinkable);
     }
 
     if(e.target.id == "undo"){
@@ -181,15 +186,17 @@ const onMousemove = (e:MouseEvent) => {
 
     if(!e.target || !(e.target instanceof HTMLElement)) return;
 
-    if(State.isClipping){
-        const dx = e.clientX - clipState.startX;
-        const dy = e.clientY - clipState.startY
-        const hor = dx >= 0 ? 1 : -1
-        const ver = dy >=0 ? 1 : -1
+    if(e.button != 0) return;
 
-        Dom.clipArea.style.transform = `scale(${hor}, ${ver})`
-        Dom.clipArea.style.width = Math.abs(dx) + "px"
-        Dom.clipArea.style.height = Math.abs(dy) + "px"
+    if(State.isClipping){
+        const moveX = e.clientX - clipState.startX;
+        const moveY = e.clientY - clipState.startY
+        const scaleX = moveX >= 0 ? 1 : -1
+        const scaleY = moveY >=0 ? 1 : -1
+
+        Dom.clipArea.style.transform = `scale(${scaleX}, ${scaleY})`
+        Dom.clipArea.style.width = Math.abs(moveX) + "px"
+        Dom.clipArea.style.height = Math.abs(moveY) + "px"
     }
 
     if(State.isDragging){
@@ -228,20 +235,32 @@ const changeEditMode = (mode:Pic.EditMode) => {
 const afterToggleMode = () => {
 
     celarClip();
-    Dom.btnArea.classList.remove("clipping")
+    Dom.titleBar.classList.remove("clipping")
 
     if(State.editMode == "Clip"){
-        Dom.btnArea.classList.add("clipping")
+        Dom.titleBar.classList.add("clipping")
     }
 
 }
 
+const changeResizeMode = (shrinkable:boolean) => {
+
+    State.isShrinkable = shrinkable;
+    if(State.isShrinkable){
+        Dom.titleBar.classList.add("shrink")
+    }else{
+        Dom.titleBar.classList.remove("shrink")
+    }
+}
+
 const prepareClip = () => {
+    const padding = 15;
+    const titlebarHeight = 30 + padding;
     const rect = Dom.img.getBoundingClientRect();
     Dom.canvas.style.width = rect.width + "px"
     Dom.canvas.style.height = rect.height + "px"
-    Dom.canvas.style.top = (rect.top - 45) + "px"
-    Dom.canvas.style.left = (rect.left - 15) + "px"
+    Dom.canvas.style.top = (rect.top - titlebarHeight) + "px"
+    Dom.canvas.style.left = (rect.left - padding) + "px"
 }
 
 const celarClip = () => {
@@ -254,15 +273,15 @@ const resizeImage = () => {
 }
 
 const changeEditButtonState = () =>{
-    Dom.btnArea.classList.remove("can-undo");
-    Dom.btnArea.classList.remove("can-redo");
+    Dom.titleBar.classList.remove("can-undo");
+    Dom.titleBar.classList.remove("can-redo");
 
     if(undoStack.length){
-        Dom.btnArea.classList.add("can-undo");
+        Dom.titleBar.classList.add("can-undo");
     }
 
     if(redoStack.length){
-        Dom.btnArea.classList.add("can-redo");
+        Dom.titleBar.classList.add("can-redo");
     }
 
 }
@@ -297,17 +316,123 @@ const cancel = () => {
     changeEditButtonState();
 }
 
+const ORIENTATIONS = [1,6,3,8];
+const OrientationName = {
+    "None":1,
+    "Clock90deg":6,
+    "Clock180deg":3,
+    "Clock270deg":8
+}
+
+const getActualRect = (rect:Pic.ImageRectangle) => {
+
+    const x = 0;
+    if(x > 0) return rect;
+    console.log(rect)
+    const orientation = ORIENTATIONS[ORIENTATIONS.indexOf(currentImageFile.detail.orientation)];
+
+    const rotated = orientation % 2 == 0;
+
+    const width = rotated ? rect.height : rect.width
+    const height = rotated ? rect.width : rect.height
+
+    let top = rect.top;
+    let left = rect.left;
+
+    if(orientation === OrientationName.Clock90deg){
+        //top = rect.right
+        //left = rect.top
+        // right = rect.bottom
+        // bottom = rect.left
+    }
+
+    if(orientation == OrientationName.Clock180deg){
+
+        top = rect.bottom + rect.height
+        left = rect.left + rect.right;
+    }
+
+    if(orientation == OrientationName.Clock270deg){
+        top = rect.left
+        left = rect.bottom
+        // right = rect.top
+        // bottom = rect.right
+    }
+
+
+    console.log(orientation)
+
+    /*
+    {
+    "width": 298,
+    "height": 149,
+    "top": 414,
+    "right": 998,
+    "bottom": 563,
+    "left": 700
+}
+    */
+   /*
+   corret
+   {
+    "top": 627,
+    "left": 499,
+    "width": 142,
+    "height": 436
+}
+   */
+
+    return {
+        top,
+        left,
+        // right,
+        // bottom,
+        width,
+        height,
+    }
+}
+
+const toRect = (rect:DOMRect) => {
+
+    function radians(deg:number) {
+        return deg * (Math.PI / 180);
+    }
+
+    console.log(currentImageFile.detail.orientation)
+    const orientation = ORIENTATIONS[ORIENTATIONS.indexOf(currentImageFile.detail.orientation)];
+
+    const Xos = -rect.width / 2;
+    const Yos = rect.height / 2
+    const rotatedX = Math.ceil(rect.x + Xos * Math.cos(radians(90)) - Yos * Math.sin(radians(90)))
+    const rotatedY = Math.ceil(rect.y + Xos * Math.sin(radians(90)) + Yos * Math.cos(radians(90)))
+
+        return {
+          x: rotatedX,
+          y: rotatedY
+        };
+
+
+}
+
 const getClipInfo = () => {
 
-    const imageRect = Dom.img.getBoundingClientRect();
+    const clip = Dom.clipArea.getBoundingClientRect()
+console.log(toRect(clip))
+    if(clip.width < 5 || clip.height < 5) return null;
+
+    const imageRect = Dom.img.getBoundingClientRect()
+console.log(clip)
+console.log(imageRect)
+    if(clip.left > imageRect.right || clip.right < imageRect.left) return null
+
+    if(clip.top > imageRect.bottom || clip.bottom < imageRect.top) return null
+
     const rate = Math.max(imageRect.width / currentImageFile.detail.width, imageRect.height / currentImageFile.detail.height);
 
-    const clip = Dom.clipArea.getBoundingClientRect()
-
     const clipLeft = Math.floor((clip.left - imageRect.left) / rate);
-    const clipRight = Math.floor((clip.right - imageRect.right) / rate);
+    const clipRight = Math.floor((imageRect.right - clip.right) / rate);
     const clipTop = Math.floor((clip.top - imageRect.top) / rate);
-    const clipBottom = Math.floor((clip.bottom - imageRect.bottom) / rate);
+    const clipBottom = Math.floor((imageRect.bottom - clip.bottom) / rate);
 
     const clipWidth = Math.floor(clip.width / rate);
     const clipHeight = Math.floor(clip.height / rate);
@@ -316,25 +441,47 @@ const getClipInfo = () => {
     const top = clipTop < 0 ? 0 : clipTop;
 
     let width = clipLeft < 0 ? Math.floor(clipWidth + clipLeft) : clipWidth
-    width = clipRight > 0 ? Math.floor(width - (clipRight)) : width
-    let height = clipTop < 0 ? Math.floor(clipHeight + clipTop) : clipHeight
-    height = clipBottom > 0 ? Math.floor(height - (clipBottom)) : height
+    width = clipRight < 0 ? Math.floor(width + clipRight) : width
 
+    let height = clipTop < 0 ? Math.floor(clipHeight + clipTop) : clipHeight
+    height = clipBottom < 0 ? Math.floor(height + clipBottom) : height
+
+    const rect = getActualRect({
+        top,
+        left,
+        right:clipRight,
+        bottom:clipBottom,
+        width,
+        height
+    })
+   /*
+   const rect = getActualRect({
+    "left": 725,
+    "top": Math.floor((imageRect.bottom - clip.bottom) / rate),//404,
+    "width": 346,
+    "height": 174
+})
+*/
+clip.x = clipLeft;
+clip.y = clipTop;
+    rect.left = toRect(clip).x
+    rect.top = toRect(clip).y
+console.log(rect)
     return {
         image:currentImageFile,
-        rect:{
-            left,
-            top,
-            width,
-            height
-        }
+        rect
     }
 }
 
 const applyEdit = () => {
 
     if(State.editMode === "Clip"){
-        request<Pic.ClipRequest>("clip", getClipInfo() )
+
+        const clipInfo = getClipInfo();
+
+        if(!clipInfo) return celarClip();
+
+        request<Pic.ClipRequest>("clip",  clipInfo)
     }
 
     if(State.editMode === "Resize" && scale != MIN_SCALE){
@@ -356,6 +503,8 @@ const showEditResult = (data:Pic.EditResult) => {
     if(State.editMode == "Clip"){
         celarClip();
     }
+
+    changeResizeMode(false)
 
     loadImage(data.image)
 
@@ -399,12 +548,16 @@ function onImageLoaded(){
 }
 
 const changeTitle = () => {
-    const size = {
-        width: scale > MIN_SCALE ? Math.floor(currentImageFile.detail.width * scale) : currentImageFile.detail.width,
-        height: scale > MIN_SCALE ? Math.floor(currentImageFile.detail.height * scale) : currentImageFile.detail.height,
-    }
 
+    const size = {
+        width: Math.floor(currentImageFile.detail.width * scale),
+        height: Math.floor(currentImageFile.detail.height * scale),
+    }
     Dom.title.textContent = `${currentImageFile.fileName} (${size.width} x ${size.height})`;
+
+    const imageRect = Dom.img.getBoundingClientRect();
+    const ratio = Math.max(imageRect.width / currentImageFile.detail.width, imageRect.height / currentImageFile.detail.height);
+    Dom.scaleText.textContent = `${Math.ceil(ratio * 100)}%`
 
 }
 
@@ -451,7 +604,7 @@ function onZoom(e:WheelEvent) {
         scale = Math.max(.125, scale);
         scaleDirection = 1;
     }else{
-        scale = Math.max(Math.max(.125, scale), MIN_SCALE);
+        scale = State.isShrinkable ? Math.max(.125, scale) : Math.max(Math.max(.125, scale), MIN_SCALE) ;
         scaleDirection = -1;
     }
 
@@ -460,12 +613,6 @@ function onZoom(e:WheelEvent) {
 }
 
 function zoom(e:WheelEvent, _scaleDirection:number){
-
-    if(scale == MIN_SCALE){
-        setScale(MIN_SCALE);
-        resetImage();
-        return;
-    }
 
     calculateBound(scale);
 

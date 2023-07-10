@@ -56,8 +56,9 @@ declare global {
         type Mode = "Keyboard" | "Mouse";
         type Orientaion = "Normal" | "Flip"
         type Theme = "Dark" | "Light";
+        type SortType = "NameAsc" | "NameDesc" | "DateAsc" | "DateDesc"
 
-        type Options = Mode | Orientaion | Theme
+        type Options = Mode | Orientaion | Theme | SortType
 
         type Config = {
             directory:string;
@@ -73,6 +74,7 @@ declare global {
             directory:string;
             fileName:string;
             exists:boolean;
+            timestamp:number;
             detail:ImageDetail;
         }
 
@@ -125,6 +127,7 @@ declare global {
         }
 
         type Preference = {
+            sort:SortType;
             mode:Mode;
             theme:Theme;
             orientation:Orientaion;
@@ -138,6 +141,15 @@ declare global {
 
         type ImageRectangle = {
             left:number;
+            right:number;
+            top:number;
+            bottom:number;
+            width:number;
+            height:number;
+        }
+
+        type ClipRectangle = {
+            left:number;
             top:number;
             width:number;
             height:number;
@@ -150,7 +162,7 @@ declare global {
 
         type ClipRequest = {
             image:ImageFile;
-            rect:ImageRectangle;
+            rect:ClipRectangle;
         }
 
         type ResizeRequest = {

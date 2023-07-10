@@ -224,6 +224,21 @@ body{
     color: #c3bebe;
 }
 
+#shrink{
+    display: none;
+    position: relative;
+}
+
+.shrink #shrink{
+    background-color: #6b676775;
+}
+
+.scale-text{
+    font-size: 14px;
+    margin: 0px 15px;
+    position: relative;
+}
+
 .image-container{
     display: flex;
     width:100%;

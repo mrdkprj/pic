@@ -14,6 +14,19 @@ const EXTENSIONS = [
     ".ico",
 ]
 
+export const EmptyImageFile = {
+    fullPath:"",
+    directory:"",
+    fileName:"",
+    exists:false,
+    timestamp: 0,
+    detail:{
+        orientation:0,
+        width:0,
+        height:0,
+    }
+}
+
 export default class Util{
 
     exists(target:string, createIfNotFound = false){
@@ -37,6 +50,7 @@ export default class Util{
             directory:path.dirname(fullPath),
             fileName:path.basename(fullPath),
             exists:true,
+            timestamp: fs.statSync(fullPath).mtimeMs,
             detail:{
                 orientation:0,
                 width:0,
@@ -44,10 +58,6 @@ export default class Util{
             }
         }
 
-    }
-
-    async getOrientation(fullPath:string){
-        return (await this.getMetadata(fullPath)).orientation
     }
 
     async rotate(fullPath:string, orientation:number){
@@ -63,11 +73,11 @@ export default class Util{
     }
 
     async resizeBuffer(fullPath:string | Buffer, size:Pic.ImageSize){
-        return await sharp(fullPath).resize(size).jpeg().toBuffer();
+        return await sharp(fullPath).resize(size).withMetadata().jpeg().toBuffer();
     }
 
-    async clipBuffer(fullPath:string | Buffer, size:Pic.ImageRectangle){
-        return await sharp(fullPath).extract(size).jpeg().toBuffer();
+    async clipBuffer(fullPath:string | Buffer, size:Pic.ClipRectangle){
+        return await sharp(fullPath).extract(size).withMetadata().jpeg().toBuffer();
     }
 
     async getMetadata(fullPath:string){
@@ -81,6 +91,24 @@ export default class Util{
         if(!EXTENSIONS.includes(path.extname(dirent.name).toLowerCase())) return false;
 
         return true;
+    }
+
+    sort(imageFiles:Pic.ImageFile[], sortType:Pic.SortType){
+
+        switch(sortType){
+            case "NameAsc":
+                imageFiles.sort((a,b) => a.fileName.replace(path.extname(a.fileName), "").localeCompare(b.fileName.replace(path.extname(b.fileName), "")))
+                break;
+            case "NameDesc":
+                imageFiles.sort((a,b) => b.fileName.replace(path.extname(b.fileName), "").localeCompare(a.fileName.replace(path.extname(a.fileName), "")))
+                break;
+            case "DateAsc":
+                imageFiles.sort((a,b) => a.timestamp - b.timestamp)
+                break;
+            case "DateDesc":
+                imageFiles.sort((a,b) => b.timestamp - a.timestamp)
+                break;
+        }
     }
 
     sortByName(a:string, b:string){

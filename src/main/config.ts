@@ -7,6 +7,7 @@ const DEFAULT_CONFIG :Pic.Config = {
     directory:"",
     fullPath:"",
     preference: {
+        sort:"NameAsc",
         mode:"Keyboard",
         theme:"Dark",
         orientation:"Normal",
@@ -25,12 +26,12 @@ export default class Config{
     private _util = new Util();
 
     constructor(workingDirectory:string){
-        this.data = DEFAULT_CONFIG;
         this._directory = process.env.NODE_ENV === "development" ? path.join(__dirname, "..", "..", "temp") : path.join(workingDirectory, "temp");
         this._file = path.join(this._directory, CONFIG_FILE_NAME)
+        this.init();
     }
 
-    init(){
+    private init(){
 
         this._util.exists(this._directory, true);
 
@@ -48,21 +49,29 @@ export default class Config{
         }
     }
 
-    private createConfig(rawConfig:any):Pic.Config{
+    createConfig(rawConfig:any):Pic.Config{
+
+        const config = {...DEFAULT_CONFIG} as any;
 
         Object.keys(rawConfig).forEach(key => {
-            if(!(key as keyof Pic.Config in DEFAULT_CONFIG)){
-                delete rawConfig[key]
+
+            if(!(key in config)) return;
+
+            const value = rawConfig[key];
+
+            if(typeof value === "object" && key !== "history"){
+
+                Object.keys(value).forEach(valueKey => {
+                    if(valueKey in config[key]){
+                        config[key][valueKey] = value[valueKey]
+                    }
+                })
+            }else{
+                config[key] = value;
             }
         })
 
-        Object.keys(DEFAULT_CONFIG).forEach(key => {
-            if(!(key in rawConfig)){
-                rawConfig[key] = DEFAULT_CONFIG[key as keyof Pic.Config];
-            }
-        })
-
-        return rawConfig;
+        return config;
     }
 
     save(){

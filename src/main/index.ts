@@ -4,7 +4,7 @@ import fs from "fs/promises"
 import proc from "child_process";
 import url from "url"
 import Config from "./config";
-import Util from "./util";
+import Util, { EmptyImageFile } from "./util";
 import Helper from "./helper";
 import { MainContextMenuTypes } from "./enum";
 
@@ -28,8 +28,6 @@ let currentIndex = 0;
 let directLaunch = false;
 let doflip = false;
 
-config.init();
-
 const mainContext = helper.createMainContextMenu(config.data, mainContextMenuCallback)
 
 function mainContextMenuCallback(menu:MainContextMenuTypes, args?:any){
@@ -41,7 +39,7 @@ function mainContextMenuCallback(menu:MainContextMenuTypes, args?:any){
             onReveal();
             break;
         case MainContextMenuTypes.Reload:
-            loadImage(targetfiles[currentIndex].fullPath);
+            loadImage(getCurrentImageFile().fullPath);
             break;
         case MainContextMenuTypes.History:
             respond("Main", "open-history", null);
@@ -51,6 +49,9 @@ function mainContextMenuCallback(menu:MainContextMenuTypes, args?:any){
             break;
         case MainContextMenuTypes.ToLast:
             fetchLast();
+            break;
+        case MainContextMenuTypes.Sort:
+            sortImageFiles(args, getCurrentImageFile().fileName);
             break;
         case MainContextMenuTypes.Mode:
             toggleMode(args);
@@ -184,7 +185,7 @@ const getCurrentImageFile = ():Pic.ImageFile => {
 
     if(targetfiles[currentIndex]) return targetfiles[currentIndex];
 
-    return null;
+    return EmptyImageFile;
 }
 
 const loadImage = async (fullPath:string) => {
@@ -196,14 +197,17 @@ const loadImage = async (fullPath:string) => {
 
     const allDirents = await fs.readdir(directory, {withFileTypes: true});
 
-    const fileNames = allDirents.filter(dirent => util.isImageFile(dirent)).map(({ name }) => name);
+    allDirents.filter(dirent => util.isImageFile(dirent)).forEach(({ name }) => targetfiles.push(util.toImageFile(path.join(directory, name))));
 
+/*
     fileNames.sort(util.sortByName).forEach((file, index) => {
         if(targetFile == file){
             currentIndex = index;
         }
         targetfiles.push(util.toImageFile(path.join(directory, file)));
     })
+*/
+    sortImageFiles(config.data.preference.sort, targetFile)
 
     sendImageData();
 }
@@ -215,11 +219,13 @@ const loadImages = async (directory:string) => {
 
     const allDirents = await fs.readdir(directory, {withFileTypes: true});
 
-    const fileNames = allDirents.filter(dirent => util.isImageFile(dirent)).map(({ name }) => name);
-
+    allDirents.filter(dirent => util.isImageFile(dirent)).forEach(({ name }) => targetfiles.push(util.toImageFile(path.join(directory, name))));
+/*
     fileNames.sort(util.sortByName).forEach(file => {
         targetfiles.push(util.toImageFile(path.join(directory, file)));
     })
+*/
+    sortImageFiles(config.data.preference.sort)
 
     sendImageData();
 }
@@ -241,8 +247,11 @@ const sendImageData = async (angle?:number) => {
         return respond<Pic.FetchResult>("Main", "after-fetch", result);
     }
 
+    const metadata = await util.getMetadata(imageFile.fullPath);
+
     if(!angle){
-        imageFile.detail.orientation = await util.getOrientation(imageFile.fullPath);
+
+        imageFile.detail.orientation = metadata.orientation;
 
         if(doflip && imageFile.detail.orientation != ORIENTATIONS.flip){
             await rotate(ORIENTATIONS.flip);
@@ -252,9 +261,8 @@ const sendImageData = async (angle?:number) => {
     }
 
     if(!imageFile.detail.width){
-        const metadata = await util.getMetadata(imageFile.fullPath);
-        imageFile.detail.width = metadata.width;
-        imageFile.detail.height = metadata.height;
+        imageFile.detail.width = metadata.orientation % 2 === 0 ? metadata.height : metadata.width;
+        imageFile.detail.height = metadata.orientation % 2 === 0 ? metadata.width : metadata.height;
     }
 
     respond<Pic.FetchResult>("Main", "after-fetch", result);
@@ -306,6 +314,19 @@ const fetchLast = () => {
     sendImageData();
 }
 
+const sortImageFiles = (sortType:Pic.SortType, currentFileName?:string) => {
+
+    if(!targetfiles.length) return;
+
+    util.sort(targetfiles, sortType);
+
+    if(currentFileName){
+        currentIndex = targetfiles.findIndex(imageFile => imageFile.fileName === currentFileName);
+    }
+
+    config.data.preference.sort = sortType;
+}
+
 const onOpenMainContext = () => {
     mainContext.popup({window:renderers.Main})
 }
@@ -314,7 +335,7 @@ const rotate = async (orientation:number) => {
 
     const imageFile = getCurrentImageFile();
 
-    if(!imageFile || !imageFile.exists) return;
+    if(!imageFile.fullPath || !imageFile.exists) return;
 
     try{
 
@@ -332,7 +353,7 @@ const deleteFile = async () => {
 
     const imageFile = getCurrentImageFile();
 
-    if(!imageFile || !imageFile.exists){
+    if(!imageFile.fullPath || !imageFile.exists){
         sendImageData();
         return;
     }
@@ -413,6 +434,7 @@ const clip = async (request:Pic.ClipRequest) => {
             fileName:imageFile.fileName,
             directory:imageFile.directory,
             exists:false,
+            timestamp: imageFile.timestamp,
             detail:{width:request.rect.width, height:request.rect.height, orientation:imageFile.detail.orientation}
         }
 
@@ -441,6 +463,7 @@ const resize = async (request:Pic.ResizeRequest) => {
             fileName:imageFile.fileName,
             directory:imageFile.directory,
             exists:false,
+            timestamp:imageFile.timestamp,
             detail:{width:size.width, height:size.height, orientation:imageFile.detail.orientation}
         }
 
@@ -509,7 +532,7 @@ const saveHistory = () => {
 
     const imageFile = getCurrentImageFile();
 
-    if(!imageFile) return;
+    if(!imageFile.fullPath) return;
 
     config.data.fullPath = imageFile.fullPath;
     config.data.directory = path.dirname(config.data.fullPath);
@@ -571,7 +594,7 @@ const onClose:handler<Pic.Request> = async () => {
 
     const imageFile = getCurrentImageFile();
 
-    if(imageFile && config.data.history[imageFile.directory]){
+    if(imageFile.fullPath && config.data.history[imageFile.directory]){
         saveHistory();
     }
 
@@ -591,7 +614,7 @@ const onReveal = () => {
 
     const imageFile = getCurrentImageFile();
 
-    if(!imageFile) return;
+    if(!imageFile.fullPath) return;
 
     proc.exec(`explorer /e,/select, ${imageFile.fullPath}`);
 
@@ -620,7 +643,7 @@ const onPin:handler<Pic.Request> = () => {
 
     const imageFile = getCurrentImageFile();
 
-    if(!imageFile) return;
+    if(!imageFile.fullPath) return;
 
     saveHistory()
     respond<Pic.PinResult>("Main", "after-pin", {success:true, history:config.data.history});

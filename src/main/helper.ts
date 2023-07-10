@@ -88,6 +88,10 @@ export default class Helper{
                 label: "Move To Last",
                 click: () => onclick(MainContextMenuTypes.ToLast)
             },
+            {
+                label: "Sort by",
+                submenu: this.createSortMenu(config, onclick)
+            },
             { type: 'separator' },
             {
                 label: "Mode",
@@ -110,6 +114,43 @@ export default class Helper{
 
         return Menu.buildFromTemplate(mainContextTemplate)
     }
+
+    private createSortMenu(config:Pic.Config, onclick: (menu:MainContextMenuTypes, args?:Pic.Options) => void){
+
+        const sortMenuTemplate:Electron.MenuItemConstructorOptions[] = [
+            {
+                id: "NameAsc",
+                label: "Name Asc",
+                type: "checkbox",
+                checked: config.preference.sort === "NameAsc",
+                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Sort, "NameAsc"))
+            },
+            {
+                id: "NameDesc",
+                label: "Name Desc",
+                type: "checkbox",
+                checked: config.preference.sort === "NameDesc",
+                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Sort, "NameDesc"))
+            },
+            {
+                id: "DateAsc",
+                label: "Date Asc",
+                type: "checkbox",
+                checked: config.preference.sort === "DateAsc",
+                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Sort, "DateAsc"))
+            },
+            {
+                id: "DateDesc",
+                label: "Date Desc",
+                type: "checkbox",
+                checked: config.preference.sort === "DateDesc",
+                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Sort, "DateDesc"))
+            },
+        ]
+
+        return Menu.buildFromTemplate(sortMenuTemplate);
+    }
+
 
     private modeSubMenu(config:Pic.Config, onclick: (menu:MainContextMenuTypes, args?:Pic.Options) => void){
 
