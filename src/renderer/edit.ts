@@ -15,6 +15,13 @@ const clipState = {
     startX:0,
     startY:0,
 }
+const ORIENTATIONS = [1,6,3,8];
+const OrientationName = {
+    "None":1,
+    "Clock90deg":6,
+    "Clock180deg":3,
+    "Clock270deg":8
+}
 const undoStack:Pic.ImageFile[] = []
 const redoStack:Pic.ImageFile[] = []
 
@@ -123,10 +130,6 @@ document.addEventListener("click", (e) =>{
 
     if(e.target.id == "redo"){
         redo();
-    }
-
-    if(e.target.id == "cancel"){
-        cancel();
     }
 
     if(e.target.id == "apply"){
@@ -250,6 +253,10 @@ const changeResizeMode = (shrinkable:boolean) => {
         Dom.titleBar.classList.add("shrink")
     }else{
         Dom.titleBar.classList.remove("shrink")
+        if(scale < MIN_SCALE){
+            scale = MIN_SCALE
+            resetImage();
+        }
     }
 }
 
@@ -304,31 +311,8 @@ const redo = () => {
     changeEditButtonState();
 }
 
-const cancel = () => {
-    if(undoStack.length){
-        const firstStac = undoStack[0];
-        loadImage(firstStac)
-    }
-
-    undoStack.length = 0;
-    redoStack.length = 0;
-
-    changeEditButtonState();
-}
-
-const ORIENTATIONS = [1,6,3,8];
-const OrientationName = {
-    "None":1,
-    "Clock90deg":6,
-    "Clock180deg":3,
-    "Clock270deg":8
-}
-
 const getActualRect = (rect:Pic.ImageRectangle) => {
 
-    const x = 0;
-    if(x > 0) return rect;
-    console.log(rect)
     const orientation = ORIENTATIONS[ORIENTATIONS.indexOf(currentImageFile.detail.orientation)];
 
     const rotated = orientation % 2 == 0;
@@ -340,89 +324,38 @@ const getActualRect = (rect:Pic.ImageRectangle) => {
     let left = rect.left;
 
     if(orientation === OrientationName.Clock90deg){
-        //top = rect.right
-        //left = rect.top
-        // right = rect.bottom
-        // bottom = rect.left
+        top = rect.right
+        left = rect.top
     }
 
     if(orientation == OrientationName.Clock180deg){
-
-        top = rect.bottom + rect.height
-        left = rect.left + rect.right;
+        top = rect.bottom
+        left = rect.right;
     }
 
     if(orientation == OrientationName.Clock270deg){
         top = rect.left
         left = rect.bottom
-        // right = rect.top
-        // bottom = rect.right
     }
 
-
-    console.log(orientation)
-
-    /*
-    {
-    "width": 298,
-    "height": 149,
-    "top": 414,
-    "right": 998,
-    "bottom": 563,
-    "left": 700
-}
-    */
-   /*
-   corret
-   {
-    "top": 627,
-    "left": 499,
-    "width": 142,
-    "height": 436
-}
-   */
+    console.log(currentImageFile.detail)
 
     return {
         top,
         left,
-        // right,
-        // bottom,
         width,
         height,
     }
 }
 
-const toRect = (rect:DOMRect) => {
-
-    function radians(deg:number) {
-        return deg * (Math.PI / 180);
-    }
-
-    console.log(currentImageFile.detail.orientation)
-    const orientation = ORIENTATIONS[ORIENTATIONS.indexOf(currentImageFile.detail.orientation)];
-
-    const Xos = -rect.width / 2;
-    const Yos = rect.height / 2
-    const rotatedX = Math.ceil(rect.x + Xos * Math.cos(radians(90)) - Yos * Math.sin(radians(90)))
-    const rotatedY = Math.ceil(rect.y + Xos * Math.sin(radians(90)) + Yos * Math.cos(radians(90)))
-
-        return {
-          x: rotatedX,
-          y: rotatedY
-        };
-
-
-}
-
 const getClipInfo = () => {
 
     const clip = Dom.clipArea.getBoundingClientRect()
-console.log(toRect(clip))
+
     if(clip.width < 5 || clip.height < 5) return null;
 
     const imageRect = Dom.img.getBoundingClientRect()
-console.log(clip)
-console.log(imageRect)
+
     if(clip.left > imageRect.right || clip.right < imageRect.left) return null
 
     if(clip.top > imageRect.bottom || clip.bottom < imageRect.top) return null
@@ -439,6 +372,8 @@ console.log(imageRect)
 
     const left = clipLeft < 0 ? 0 : clipLeft;
     const top = clipTop < 0 ? 0 : clipTop;
+    const right = clipRight < 0 ? 0 : clipRight;
+    const bottom = clipBottom < 0 ? 0 : clipBottom
 
     let width = clipLeft < 0 ? Math.floor(clipWidth + clipLeft) : clipWidth
     width = clipRight < 0 ? Math.floor(width + clipRight) : width
@@ -447,26 +382,14 @@ console.log(imageRect)
     height = clipBottom < 0 ? Math.floor(height + clipBottom) : height
 
     const rect = getActualRect({
-        top,
-        left,
-        right:clipRight,
-        bottom:clipBottom,
-        width,
-        height
+            top,
+            left,
+            right,
+            bottom,
+            width,
+            height
     })
-   /*
-   const rect = getActualRect({
-    "left": 725,
-    "top": Math.floor((imageRect.bottom - clip.bottom) / rate),//404,
-    "width": 346,
-    "height": 174
-})
-*/
-clip.x = clipLeft;
-clip.y = clipTop;
-    rect.left = toRect(clip).x
-    rect.top = toRect(clip).y
-console.log(rect)
+
     return {
         image:currentImageFile,
         rect

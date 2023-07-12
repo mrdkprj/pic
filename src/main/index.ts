@@ -8,7 +8,7 @@ import Util, { EmptyImageFile } from "./util";
 import Helper from "./helper";
 import { MainContextMenuTypes } from "./enum";
 
-const renderers:Renderer = {
+const Renderers:Renderer = {
     Main:null,
     File:null,
     Edit:null,
@@ -21,7 +21,7 @@ protocol.registerSchemesAsPrivileged([
 const targetfiles:Pic.ImageFile[] = [];
 const util = new Util();
 const config = new Config(app.getPath("userData"));
-const ORIENTATIONS = {none:1, flip:3};
+const OrientationMode = {none:1, flip:3};
 const helper = new Helper();
 let topRendererName:RendererName = "Main"
 let currentIndex = 0;
@@ -71,9 +71,9 @@ app.on("ready", () => {
 
     init();
 
-    renderers.Main = helper.createMainWindow(config.data);
-    renderers.File = helper.createMoveFileWindow(renderers.Main);
-    renderers.Edit = helper.createEditWindow()
+    Renderers.Main = helper.createMainWindow(config.data);
+    Renderers.File = helper.createMoveFileWindow(Renderers.Main);
+    Renderers.Edit = helper.createEditWindow()
 
     protocol.registerFileProtocol("app", (request, callback) => {
 
@@ -84,26 +84,26 @@ app.on("ready", () => {
         callback(filePath);
     });
 
-    renderers.Main.on("ready-to-show", () => {
+    Renderers.Main.on("ready-to-show", () => {
         if(config.data.isMaximized){
-            renderers.Main.maximize();
+            Renderers.Main.maximize();
         }
-        renderers.Main.setBounds(config.data.bounds)
+        Renderers.Main.setBounds(config.data.bounds)
 
         onReady();
     })
 
-    renderers.Main.on("maximize", onMaximize)
-    renderers.Edit.on("maximize", onMaximize)
-    renderers.Main.on("unmaximize", onUnmaximize);
-    renderers.Edit.on("unmaximize", onUnmaximize);
+    Renderers.Main.on("maximize", onMaximize)
+    Renderers.Edit.on("maximize", onMaximize)
+    Renderers.Main.on("unmaximize", onUnmaximize);
+    Renderers.Edit.on("unmaximize", onUnmaximize);
 
-    renderers.Main.on("closed", () => {
-        renderers.Main = null;
+    Renderers.Main.on("closed", () => {
+        Renderers.Main = null;
     });
 
-    renderers.Edit.on("closed", () => {
-        renderers.Edit = null;
+    Renderers.Edit.on("closed", () => {
+        Renderers.Edit = null;
     });
 
 });
@@ -148,7 +148,7 @@ function registerIpcChannels(){
 }
 
 const respond = <T extends Pic.Args>(rendererName:RendererName, channel:RendererChannel, data:T) => {
-    renderers[rendererName].webContents.send(channel, data);
+    Renderers[rendererName].webContents.send(channel, data);
 }
 
 const sendError = (ex:Error) => {
@@ -157,7 +157,7 @@ const sendError = (ex:Error) => {
 
 function onReady(){
 
-    renderers.Main.show();
+    Renderers.Main.show();
 
     respond<Pic.Config>("Main", "config-loaded", config.data)
 
@@ -199,14 +199,6 @@ const loadImage = async (fullPath:string) => {
 
     allDirents.filter(dirent => util.isImageFile(dirent)).forEach(({ name }) => targetfiles.push(util.toImageFile(path.join(directory, name))));
 
-/*
-    fileNames.sort(util.sortByName).forEach((file, index) => {
-        if(targetFile == file){
-            currentIndex = index;
-        }
-        targetfiles.push(util.toImageFile(path.join(directory, file)));
-    })
-*/
     sortImageFiles(config.data.preference.sort, targetFile)
 
     sendImageData();
@@ -220,17 +212,13 @@ const loadImages = async (directory:string) => {
     const allDirents = await fs.readdir(directory, {withFileTypes: true});
 
     allDirents.filter(dirent => util.isImageFile(dirent)).forEach(({ name }) => targetfiles.push(util.toImageFile(path.join(directory, name))));
-/*
-    fileNames.sort(util.sortByName).forEach(file => {
-        targetfiles.push(util.toImageFile(path.join(directory, file)));
-    })
-*/
+
     sortImageFiles(config.data.preference.sort)
 
     sendImageData();
 }
 
-const sendImageData = async (angle?:number) => {
+const sendImageData = async () => {
 
     const imageFile = getCurrentImageFile();
 
@@ -249,21 +237,15 @@ const sendImageData = async (angle?:number) => {
 
     const metadata = await util.getMetadata(imageFile.fullPath);
 
-    if(!angle){
+    imageFile.detail.orientation = metadata.orientation;
 
-        imageFile.detail.orientation = metadata.orientation;
-
-        if(doflip && imageFile.detail.orientation != ORIENTATIONS.flip){
-            await rotate(ORIENTATIONS.flip);
-            imageFile.detail.orientation = ORIENTATIONS.flip;
-        }
-
+    if(doflip && imageFile.detail.orientation != OrientationMode.flip){
+        await rotate(OrientationMode.flip);
+        imageFile.detail.orientation = OrientationMode.flip;
     }
 
-    if(!imageFile.detail.width){
-        imageFile.detail.width = metadata.orientation % 2 === 0 ? metadata.height : metadata.width;
-        imageFile.detail.height = metadata.orientation % 2 === 0 ? metadata.width : metadata.height;
-    }
+    imageFile.detail.width = metadata.orientation % 2 === 0 ? metadata.height : metadata.width;
+    imageFile.detail.height = metadata.orientation % 2 === 0 ? metadata.width : metadata.height;
 
     respond<Pic.FetchResult>("Main", "after-fetch", result);
 
@@ -328,7 +310,7 @@ const sortImageFiles = (sortType:Pic.SortType, currentFileName?:string) => {
 }
 
 const onOpenMainContext = () => {
-    mainContext.popup({window:renderers.Main})
+    mainContext.popup({window:Renderers.Main})
 }
 
 const rotate = async (orientation:number) => {
@@ -487,7 +469,7 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
         const fileName = request.image.fileName.replace(ext, "")
         const saveFileName = `${fileName}-${new Date().getTime()}${ext}`
 
-        savePath = dialog.showSaveDialogSync(renderers.Edit, {
+        savePath = dialog.showSaveDialogSync(Renderers.Edit, {
             defaultPath: path.join(request.image.directory, saveFileName),
             filters: [
                 { name: "Image", extensions: ["jpeg", "jpg"] },
@@ -514,10 +496,10 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
 
 const save = () => {
 
-    config.data.isMaximized = renderers.Main.isMaximized();
+    config.data.isMaximized = Renderers.Main.isMaximized();
 
     if(!config.data.isMaximized){
-        config.data.bounds = renderers.Main.getBounds()
+        config.data.bounds = Renderers.Main.getBounds()
     }
 
     try{
@@ -542,7 +524,7 @@ const saveHistory = () => {
 
 const toggleMaximize = () => {
 
-    const renderer = topRendererName === "Main" ? renderers.Main : renderers.Edit
+    const renderer = topRendererName === "Main" ? Renderers.Main : Renderers.Edit
 
     if(renderer.isMaximized()){
         renderer.unmaximize();
@@ -554,7 +536,7 @@ const toggleMaximize = () => {
 }
 
 const minimize = () => {
-    const renderer = topRendererName === "Main" ? renderers.Main : renderers.Edit
+    const renderer = topRendererName === "Main" ? Renderers.Main : Renderers.Edit
     renderer.minimize();
 }
 
@@ -572,8 +554,8 @@ const changeTopRenderer = (name:RendererName) => {
 
     topRendererName = name;
 
-    const topRenderer = topRendererName === "Main" ? renderers.Main : renderers.Edit;
-    const hiddenRenderer = topRendererName === "Main" ? renderers.Edit : renderers.Main;
+    const topRenderer = topRendererName === "Main" ? Renderers.Main : Renderers.Edit;
+    const hiddenRenderer = topRendererName === "Main" ? Renderers.Edit : Renderers.Main;
 
     topRenderer.setBounds(config.data.bounds);
 
@@ -600,8 +582,8 @@ const onClose:handler<Pic.Request> = async () => {
 
     save();
 
-    renderers.Edit.close();
-    renderers.Main.close();
+    Renderers.Edit.close();
+    Renderers.Main.close();
 }
 
 const onDropFile:handler<Pic.DropRequest> = async (_event:IpcMainEvent, data:Pic.DropRequest) => await loadImage(data.fullPath)
@@ -622,7 +604,7 @@ const onReveal = () => {
 
 const onOpen = async () => {
 
-    const result = await dialog.showOpenDialog(renderers.Main, {
+    const result = await dialog.showOpenDialog(Renderers.Main, {
         properties: ["openFile"],
         title: "Select image",
         defaultPath: config.data.directory ? config.data.directory :".",
@@ -655,7 +637,7 @@ const onRestore = (_event:IpcMainEvent, data:Pic.RestoreRequest) => restoreFile(
 const onRotate:handler<Pic.RotateRequest> = async (_event:IpcMainEvent, data:Pic.RotateRequest) => {
 
     await rotate(data.orientation);
-    sendImageData(data.orientation);
+    sendImageData();
 
 }
 
@@ -663,7 +645,7 @@ const toggleOrientation = async (orientation:Pic.Orientaion) => {
 
     doflip = orientation === "Flip";
 
-    const angle = doflip ? ORIENTATIONS.flip : ORIENTATIONS.none;
+    const angle = doflip ? OrientationMode.flip : OrientationMode.none;
 
     if(targetfiles.length > 0){
         await rotate(angle)
@@ -685,10 +667,10 @@ const onRemoveHistory:handler<Pic.RemoveHistoryRequest> = (_event:IpcMainEvent, 
 
 const onToggleFullscreen:handler<Pic.Request> = () => {
 
-    if(renderers.Main.isFullScreen()){
-        renderers.Main.setFullScreen(false)
+    if(Renderers.Main.isFullScreen()){
+        Renderers.Main.setFullScreen(false)
     }else{
-        renderers.Main.setFullScreen(true)
+        Renderers.Main.setFullScreen(true)
     }
 }
 
@@ -706,8 +688,8 @@ const openEditDialog:handler<Pic.Request> = () => {
 const onCloseEditDialog:handler<Pic.Request> = () => changeTopRenderer("Main");
 
 const restart:handler<Pic.Request> = () => {
-    renderers.Main.reload();
-    renderers.Edit.reload();
+    Renderers.Main.reload();
+    Renderers.Edit.reload();
 }
 
 const onSetCategory:handler<Pic.CategoryArgs> = (_event:IpcMainEvent, data:Pic.CategoryArgs) => {
@@ -722,8 +704,8 @@ const onOpenFileDialog:handler<any> = () => {
     const files = targetfiles.filter(file => file.detail.category);
     if(files.length > 0){
         respond<Pic.OpenFileDialogArgs>("File", "prepare-file-dialog", {files});
-        renderers.File.show()
+        Renderers.File.show()
     }
 }
 
-const onCloseFileDialog:handler<any> = () => renderers.File.hide();
+const onCloseFileDialog:handler<any> = () => Renderers.File.hide();
