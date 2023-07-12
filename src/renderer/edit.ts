@@ -94,6 +94,10 @@ document.addEventListener("keydown", (e) => {
         redo();
     }
 
+    if(e.ctrlKey && e.key == "s"){
+        saveImage(false);
+    }
+
 })
 
 document.addEventListener("click", (e) =>{
@@ -711,6 +715,10 @@ function applyConfig(data:Pic.Config){
 
     applyTheme(data.preference.theme);
 
+    undoStack.length = 0;
+    redoStack.length = 0;
+
+    changeEditButtonState();
 }
 
 function applyTheme(theme:Pic.Theme){

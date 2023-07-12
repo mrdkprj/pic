@@ -690,6 +690,7 @@ const onCloseEditDialog:handler<Pic.Request> = () => changeTopRenderer("Main");
 const restart:handler<Pic.Request> = () => {
     Renderers.Main.reload();
     Renderers.Edit.reload();
+    respond<Pic.OpenEditArg>("Edit", "edit-dialog-opened", {file:getCurrentImageFile(), config:config.data})
 }
 
 const onSetCategory:handler<Pic.CategoryArgs> = (_event:IpcMainEvent, data:Pic.CategoryArgs) => {
