@@ -342,8 +342,6 @@ const getActualRect = (rect:Pic.ImageRectangle) => {
         left = rect.bottom
     }
 
-    console.log(currentImageFile.detail)
-
     return {
         top,
         left,
@@ -437,22 +435,22 @@ const showEditResult = (data:Pic.EditResult) => {
 
 }
 
-function onResize(){
+const onResize = () => {
     setScale(MIN_SCALE);
     previousScale = scale;
     celarClip();
     resetImage();
 }
 
-function minimize(){
+const minimize = () => {
     window.api.send("minimize")
 }
 
-function toggleMaximize(){
+const toggleMaximize = () => {
     window.api.send("toggle-maximize")
 }
 
-function loadImage(data:Pic.ImageFile){
+const loadImage = (data:Pic.ImageFile) => {
 
     currentImageFile = data;
 
@@ -461,7 +459,7 @@ function loadImage(data:Pic.ImageFile){
 
 }
 
-function onImageLoaded(){
+const onImageLoaded = () => {
 
     setScale(MIN_SCALE);
     previousScale = scale;
@@ -488,7 +486,7 @@ const changeTitle = () => {
 
 }
 
-function resetPosition(){
+const resetPosition = () => {
     ImagePosition.y = 0;
     ImagePosition.x = 0;
     Current.x = 0;
@@ -497,7 +495,7 @@ function resetPosition(){
     Current.orgY = 1;
 }
 
-function resetImage(){
+const resetImage = () => {
 
     containerRect = createRect(Dom.imageArea.getBoundingClientRect());
 
@@ -539,7 +537,7 @@ function onZoom(e:WheelEvent) {
 
 }
 
-function zoom(e:WheelEvent, _scaleDirection:number){
+const zoom = (e:WheelEvent, _scaleDirection:number) => {
 
     calculateBound(scale);
 
@@ -550,7 +548,7 @@ function zoom(e:WheelEvent, _scaleDirection:number){
     changeTransform();
 }
 
-function calc(e:WheelEvent){
+const calc = (e:WheelEvent) => {
 
     const rect = Dom.img.getBoundingClientRect();
 
@@ -596,7 +594,7 @@ function calc(e:WheelEvent){
 
 }
 
-function adjustCalc(){
+const adjustCalc = () => {
 
     if(imgBoundRect.top == 0){
         Current.y = 0;
@@ -616,7 +614,7 @@ function adjustCalc(){
 
 }
 
-function calculateBound(applicableScale?:number){
+const calculateBound = (applicableScale?:number) => {
     const newScale = applicableScale ? applicableScale : 1;
     const newHeight = Math.floor(imgBoundRect.height * newScale)
     const newWidth = Math.floor(imgBoundRect.width * newScale)
@@ -625,12 +623,12 @@ function calculateBound(applicableScale?:number){
     imgBoundRect.left = Math.max(Math.floor((newWidth - containerRect.width) / 1),0);
 }
 
-function resetMousePosition(e:MouseEvent){
+const resetMousePosition = (e:MouseEvent) => {
     MousePosition.x = e.x;
     MousePosition.y = e.y;
 }
 
-function moveImage(e:MouseEvent){
+const moveImage = (e:MouseEvent) => {
 
     const mouseMoveX = e.x - MousePosition.x;
     MousePosition.x = e.x;
@@ -656,13 +654,13 @@ function moveImage(e:MouseEvent){
 
 }
 
-function setScale(newScale:number){
+const setScale = (newScale:number) => {
     previousScale = scale;
     scale = newScale;
     changeTransform();
 }
 
-function changeTransform(){
+const changeTransform = () => {
 
     Dom.img.style.transformOrigin = `${Current.orgX}px ${Current.orgY}px`;
     Dom.img.style.transform = `matrix(${scale},0,0,${scale}, ${Current.x},${Current.y})`;
@@ -670,7 +668,7 @@ function changeTransform(){
     changeTitle();
 }
 
-function createRect(base:DOMRect){
+const createRect = (base:DOMRect) => {
 
     return {
         top: base.top,
@@ -680,7 +678,7 @@ function createRect(base:DOMRect){
     }
 }
 
-function prepare(){
+const prepare = () => {
 
     if(Dom.loader.style.display == "block"){
         return false;
@@ -689,7 +687,7 @@ function prepare(){
     return true;
 }
 
-function saveImage(saveCopy:boolean){
+const saveImage = (saveCopy:boolean) => {
 
     if(!undoStack.length) return;
 
@@ -708,7 +706,7 @@ const afterSaveImage = (data:Pic.SaveImageResult) => {
     }
 
 }
-function applyConfig(data:Pic.Config){
+const applyConfig = (data:Pic.Config) => {
 
     State.isMaximized = data.isMaximized;
     changeMaximizeIcon();
@@ -721,7 +719,7 @@ function applyConfig(data:Pic.Config){
     changeEditButtonState();
 }
 
-function applyTheme(theme:Pic.Theme){
+const applyTheme = (theme:Pic.Theme) => {
     if(theme === "Light"){
         Dom.viewport.classList.remove("dark");
     }else{
@@ -729,7 +727,7 @@ function applyTheme(theme:Pic.Theme){
     }
 }
 
-function changeMaximizeIcon(){
+const changeMaximizeIcon = () => {
     if(State.isMaximized){
         Dom.resizeBtn.classList.remove("minbtn");
         Dom.resizeBtn.classList.add("maxbtn");
@@ -739,22 +737,22 @@ function changeMaximizeIcon(){
     }
 }
 
-function clear(){
+const clear = () => {
     unlock();
     Dom.img.src = "";
     changeEditMode(State.editMode)
 }
 
-function close(){
+const close = () => {
     clear();
     window.api.send("close-edit-dialog");
 }
 
-function lock(){
+const lock = () => {
     Dom.loader.style.display = "block";
 }
 
-function unlock(){
+const unlock = () => {
     Dom.loader.style.display = "none";
 }
 

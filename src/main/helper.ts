@@ -79,6 +79,10 @@ export default class Helper{
                 label: "History",
                 click: () => onclick(MainContextMenuTypes.History)
             },
+            {
+                label: "Show Actual Size",
+                click: () => onclick(MainContextMenuTypes.ShowActualSize)
+            },
             { type: 'separator' },
             {
                 label: "Move To First",

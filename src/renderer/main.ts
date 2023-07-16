@@ -23,6 +23,7 @@ const Dom = {
     loader:null as HTMLElement,
     viewport:null as HTMLElement,
     history:null as HTMLElement,
+    scaleRate:null as HTMLElement,
     counter:null as HTMLElement,
     category:null as HTMLElement,
 }
@@ -33,10 +34,11 @@ let containerRect :Rect;
 let imgBoundRect :Rect;
 let scale = 1;
 let scaleDirection;
+let scaleForActualSize = 1;
 let previousScale = 1;
 let angleIndex = 0;
 
-window.onload = function(){
+window.onload = () => {
 
     Dom.title = document.getElementById("title");
     Dom.resizeBtn = document.getElementById("resizeBtn");
@@ -45,6 +47,7 @@ window.onload = function(){
     Dom.imageArea = document.getElementById("imageArea");
     Dom.loader = document.getElementById("loader");
     Dom.history = document.getElementById("history")
+    Dom.scaleRate = document.getElementById("scaleRate")
     Dom.counter = document.getElementById("counter");
     Dom.category = document.getElementById("category");
 
@@ -280,13 +283,13 @@ const onMouseup = (e:MouseEvent) => {
     State.isDragging = false;
 }
 
-function onResize(){
+const onResize = () => {
     setScale(MIN_SCALE);
     previousScale = scale;
     resetImage();
 }
 
-function loadImage(data:Pic.FetchResult){
+const loadImage = (data:Pic.FetchResult) => {
     currentImageFile = data.image;
 
     const src = currentImageFile.exists ? `app://${data.image.fullPath}?${new Date().getTime()}` : "";
@@ -308,15 +311,12 @@ function loadImage(data:Pic.FetchResult){
     setCategory(data.image.detail.category)
 }
 
-function onImageLoaded(){
+const onImageLoaded = () => {
 
     setScale(MIN_SCALE);
-    previousScale = scale;
 
     const angle = currentImageFile.detail.orientation ?? ORIENTATIONS[0];
     angleIndex = ORIENTATIONS.indexOf(angle);
-
-    changeTitle();
 
     resetImage();
 
@@ -324,17 +324,16 @@ function onImageLoaded(){
 
 }
 
-const changeTitle = () => {
-    const size = {
-        width: scale > MIN_SCALE ? Math.floor(currentImageFile.detail.width * scale) : currentImageFile.detail.width,
-        height: scale > MIN_SCALE ? Math.floor(currentImageFile.detail.height * scale) : currentImageFile.detail.height,
-    }
+const changeInfoTexts = () => {
 
-    Dom.title.textContent = `${currentImageFile.fileName} (${size.width} x ${size.height})`;
+    Dom.title.textContent = `${currentImageFile.fileName} (${currentImageFile.detail.width} x ${currentImageFile.detail.height})`;
 
+    const ratio = Math.max(imgBoundRect.width / currentImageFile.detail.width, imgBoundRect.height / currentImageFile.detail.height);
+
+    Dom.scaleRate.textContent = `${Math.ceil(ratio * 100)}%`
 }
 
-function resetPosition(){
+const resetPosition = () => {
     ImagePosition.y = 0;
     ImagePosition.x = 0;
     Current.x = 0;
@@ -343,13 +342,13 @@ function resetPosition(){
     Current.orgY = 1;
 }
 
-function resetImage(){
+const resetImage = () => {
 
-    containerRect = createRect(Dom.imageArea.getBoundingClientRect());
+    containerRect = toImageRectangle(Dom.imageArea.getBoundingClientRect());
 
     resetPosition();
 
-    imgBoundRect = createRect(Dom.img.getBoundingClientRect());
+    imgBoundRect = toImageRectangle(Dom.img.getBoundingClientRect());
 
     ImagePadding.x = (containerRect.width - imgBoundRect.width) / 2;
     ImagePadding.y = (containerRect.height - imgBoundRect.height) / 2;
@@ -360,9 +359,23 @@ function resetImage(){
     calculateBound();
 
     changeTransform();
+
+    scaleForActualSize = Math.max(currentImageFile.detail.width / imgBoundRect.width, currentImageFile.detail.height / imgBoundRect.height);
 }
 
-function onZoom(e:WheelEvent) {
+const toImageRectangle = (rect:DOMRect):Pic.ImageRectangle => {
+
+    return {
+        width:rect.width,
+        height:rect.height,
+        top:rect.top,
+        left:rect.left,
+        right:rect.right,
+        bottom:rect.bottom
+    }
+}
+
+const onZoom = (e:WheelEvent) => {
 
     if(!currentImageFile.exists){
         return;
@@ -385,7 +398,7 @@ function onZoom(e:WheelEvent) {
 
 }
 
-function zoom(e:WheelEvent, _scaleDirection:number){
+const zoom = (e:WheelEvent, _scaleDirection:number) => {
 
     if(scale == MIN_SCALE){
         setScale(MIN_SCALE);
@@ -404,7 +417,7 @@ function zoom(e:WheelEvent, _scaleDirection:number){
     changeTransform();
 }
 
-function calc(e:WheelEvent){
+const calc = (e:WheelEvent) => {
 
     const rect = Dom.img.getBoundingClientRect();
 
@@ -451,7 +464,7 @@ function calc(e:WheelEvent){
 
 }
 
-function adjustCalc(){
+const adjustCalc = () => {
 
     if(imgBoundRect.top == 0){
         Current.y = 0;
@@ -471,7 +484,7 @@ function adjustCalc(){
 
 }
 
-function calculateBound(applicableScale?:number){
+const calculateBound = (applicableScale?:number) => {
 
     const newScale = applicableScale ? applicableScale : 1;
     const newHeight = Math.floor(imgBoundRect.height * newScale)
@@ -481,12 +494,12 @@ function calculateBound(applicableScale?:number){
     imgBoundRect.left = Math.max(Math.floor((newWidth - containerRect.width) / 1),0);
 }
 
-function resetMousePosition(e:MouseEvent){
+const resetMousePosition = (e:MouseEvent) => {
     MousePosition.x = e.x;
     MousePosition.y = e.y;
 }
 
-function moveImage(e:MouseEvent){
+const moveImage = (e:MouseEvent) => {
 
     const mouseMoveX = e.x - MousePosition.x;
     MousePosition.x = e.x;
@@ -512,7 +525,7 @@ function moveImage(e:MouseEvent){
 
 }
 
-function rotateLeft(){
+const rotateLeft = () => {
     angleIndex--;
     if(angleIndex < 0){
         angleIndex = ORIENTATIONS.length - 1;
@@ -521,7 +534,7 @@ function rotateLeft(){
     rotate();
 }
 
-function rotateRight(){
+const rotateRight = () => {
     angleIndex++;
     if(angleIndex > ORIENTATIONS.length - 1){
         angleIndex = 0;
@@ -530,35 +543,24 @@ function rotateRight(){
     rotate();
 }
 
-function rotate(){
+const rotate = () => {
     request("rotate", {orientation:ORIENTATIONS[angleIndex]});
 }
 
-function setScale(newScale:number){
+const setScale = (newScale:number) => {
     previousScale = scale;
     scale = newScale;
-    changeTransform();
 }
 
-function changeTransform(){
+const changeTransform = () => {
 
     Dom.img.style.transformOrigin = `${Current.orgX}px ${Current.orgY}px`;
     Dom.img.style.transform = `matrix(${scale},0,0,${scale}, ${Current.x},${Current.y})`;
 
-    changeTitle();
+    changeInfoTexts();
 }
 
-function createRect(base:DOMRect){
-
-    return {
-            top: base.top,
-            left: base.left,
-            width: base.width,
-            height: base.height,
-    }
-}
-
-function prepare(){
+const prepare = () => {
 
     if(Dom.loader.style.display == "block"){
         return false;
@@ -572,29 +574,29 @@ function prepare(){
     return true;
 }
 
-function dropFile(file:File | null){
+const dropFile = (file:File | null) => {
     if(prepare()){
         window.api.send<Pic.DropRequest>("drop-file", {fullPath:file?.path});
     }
 }
 
-function startFetch(index:number){
+const startFetch = (index:number) => {
     if(prepare()){
         request<Pic.FetchRequest>("fetch-image", {index});
     }
 }
 
-function deleteFile(){
+const deleteFile = () => {
     if(prepare()){
         request("delete", null);
     }
 }
 
-function pin(){
+const pin = () => {
     request("pin", null);
 }
 
-function applyConfig(data:Pic.Config){
+const applyConfig = (data:Pic.Config) => {
 
     State.isMaximized = data.isMaximized;
     changeMaximizeIcon();
@@ -606,7 +608,7 @@ function applyConfig(data:Pic.Config){
     changeFileList(data.history);
 }
 
-function changePinStatus(){
+const changePinStatus = () => {
     if(State.isPinned){
         Dom.viewport.classList.add("pinned");
     }else{
@@ -614,7 +616,7 @@ function changePinStatus(){
     }
 }
 
-function changeMaximizeIcon(){
+const changeMaximizeIcon = () => {
     if(State.isMaximized){
         Dom.resizeBtn.classList.remove("minbtn");
         Dom.resizeBtn.classList.add("maxbtn");
@@ -624,7 +626,7 @@ function changeMaximizeIcon(){
     }
 }
 
-function changeMode(mode:Pic.Mode){
+const changeMode = (mode:Pic.Mode) => {
 
     State.mouseOnly = mode === "Mouse"
 
@@ -636,7 +638,7 @@ function changeMode(mode:Pic.Mode){
 
 }
 
-function applyTheme(theme:Pic.Theme){
+const applyTheme = (theme:Pic.Theme) => {
     if(theme === "Light"){
         Dom.viewport.classList.remove("dark");
     }else{
@@ -644,7 +646,7 @@ function applyTheme(theme:Pic.Theme){
     }
 }
 
-function changeFileList(history:{[key:string]:string}){
+const changeFileList = (history:{[key:string]:string}) => {
 
     Dom.history.innerHTML = "";
 
@@ -669,17 +671,17 @@ function changeFileList(history:{[key:string]:string}){
     Dom.history.appendChild(fragment)
 }
 
-function onFileListItemClicked(e:MouseEvent){
+const onFileListItemClicked = (e:MouseEvent) => {
     window.api.send<Pic.RestoreRequest>("restore", {fullPath: (e.target as HTMLElement).textContent});
 }
 
-function removeHistory(e:MouseEvent){
+const removeHistory = (e:MouseEvent) => {
     if(confirm("Remove history?")){
         window.api.send<Pic.RemoveHistoryRequest>("remove-history", {fullPath: (e.target as HTMLElement).nextElementSibling.textContent});
     }
 }
 
-function toggleHistory(){
+const toggleHistory = () => {
     if(isHistoryOpen()){
         Dom.viewport.classList.remove("history-open");
     }else{
@@ -687,27 +689,27 @@ function toggleHistory(){
     }
 }
 
-function isHistoryOpen(){
+const isHistoryOpen = () => {
     return Dom.viewport.classList.contains("history-open");
 }
 
-function closeHistory(){
+const closeHistory = () => {
     Dom.viewport.classList.remove("history-open");
 }
 
-function minimize(){
+const minimize = () => {
     window.api.send("minimize")
 }
 
-function toggleMaximize(){
+const toggleMaximize = () => {
     window.api.send("toggle-maximize")
 }
 
-function isFullScreen(){
+const isFullScreen = () => {
     return Dom.viewport.classList.contains("full")
 }
 
-function toggleFullscreen(){
+const toggleFullscreen = () => {
     if(isFullScreen()){
         Dom.viewport.classList.remove("full")
     }else{
@@ -717,19 +719,19 @@ function toggleFullscreen(){
     window.api.send("toggle-fullscreen")
 }
 
-function close(){
+const close = () => {
     window.api.send("close");
 }
 
-function lock(){
+const lock = () => {
     Dom.loader.style.display = "block";
 }
 
-function unlock(){
+const unlock = () => {
     Dom.loader.style.display = "none";
 }
 
-function setCategory(category:number){
+const setCategory = (category:number) => {
 
     if(category){
         Dom.category.textContent = `- [ @${category} ]`;
@@ -738,7 +740,16 @@ function setCategory(category:number){
     }
 }
 
-function openFileDialog(){
+const onShowActualSize = () => {
+
+    if(scaleForActualSize == MIN_SCALE) return;
+
+    scale = scaleForActualSize
+    changeTransform();
+
+}
+
+const openFileDialog = () => {
     window.api.send("open-file-dialog")
 }
 
@@ -759,6 +770,8 @@ window.api.receive<Pic.PinResult>("after-pin", data => {
     changePinStatus();
     changeFileList(data.history)
 });
+
+window.api.receive("show-actual-size", onShowActualSize);
 
 window.api.receive<Pic.ChangePreferenceArgs>("toggle-mode", (data) => changeMode(data.preference.mode))
 window.api.receive<Pic.ChangePreferenceArgs>("toggle-theme", (data) => applyTheme(data.preference.theme))

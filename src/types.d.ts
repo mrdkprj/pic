@@ -11,7 +11,7 @@ declare global {
                         "save-image";
     type MainRendererChannel = "config-loaded" | "after-fetch" | "after-remove-history" | "after-pin" | "after-toggle-maximize" |
                             "toggle-mode" | "toggle-theme" | "toggle-orientaion" | "open-history" | "toggle-clipmode" |
-                            "prepare-file-dialog" | "error";
+                            "prepare-file-dialog" | "show-actual-size" | "error";
     type FileRendererChannel = "";
     type EditRendererChannel = "edit-dialog-opened" | "after-edit" | "after-save-image" | "after-toggle-maximize";
     type RendererChannel = MainRendererChannel | FileRendererChannel | EditRendererChannel;

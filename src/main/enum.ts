@@ -9,4 +9,5 @@ export enum MainContextMenuTypes{
     ToFirst,
     ToLast,
     Sort,
+    ShowActualSize,
 }

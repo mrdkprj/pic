@@ -28,9 +28,7 @@ let currentIndex = 0;
 let directLaunch = false;
 let doflip = false;
 
-const mainContext = helper.createMainContextMenu(config.data, mainContextMenuCallback)
-
-function mainContextMenuCallback(menu:MainContextMenuTypes, args?:any){
+const mainContextMenuCallback = (menu:MainContextMenuTypes, args?:any) => {
     switch(menu){
         case MainContextMenuTypes.OpenFile:
             onOpen();
@@ -38,11 +36,11 @@ function mainContextMenuCallback(menu:MainContextMenuTypes, args?:any){
         case MainContextMenuTypes.Reveal:
             onReveal();
             break;
-        case MainContextMenuTypes.Reload:
-            loadImage(getCurrentImageFile().fullPath);
-            break;
         case MainContextMenuTypes.History:
             respond("Main", "open-history", null);
+            break;
+        case MainContextMenuTypes.ShowActualSize:
+            respond("Main", "show-actual-size", null);
             break;
         case MainContextMenuTypes.ToFirst:
             fetchFirst();
@@ -62,14 +60,23 @@ function mainContextMenuCallback(menu:MainContextMenuTypes, args?:any){
         case MainContextMenuTypes.Theme:
             toggleTheme(args);
             break;
+        case MainContextMenuTypes.Reload:
+            loadImage(getCurrentImageFile().fullPath);
+            break;
     }
 }
+
+const mainContext = helper.createMainContextMenu(config.data, mainContextMenuCallback)
 
 app.on("ready", () => {
 
     directLaunch = process.argv.length > 1 && process.argv[1] != ".";
 
-    init();
+    currentIndex = 0;
+
+    targetfiles.length = 0;
+
+    registerIpcChannels();
 
     Renderers.Main = helper.createMainWindow(config.data);
     Renderers.File = helper.createMoveFileWindow(Renderers.Main);
@@ -108,17 +115,7 @@ app.on("ready", () => {
 
 });
 
-function init(){
-
-    currentIndex = 0;
-
-    targetfiles.length = 0;
-
-    registerIpcChannels();
-
-}
-
-function registerIpcChannels(){
+const registerIpcChannels = () => {
 
     const handlers:IpcMainHandler[] = [
         {channel:"minimize", handle:minimize},
@@ -155,7 +152,7 @@ const sendError = (ex:Error) => {
     respond<Pic.ErrorArgs>("Main", "error", {message:ex.message});
 }
 
-function onReady(){
+const onReady = () => {
 
     Renderers.Main.show();
 
@@ -689,7 +686,6 @@ const onCloseEditDialog:handler<Pic.Request> = () => changeTopRenderer("Main");
 
 const restart:handler<Pic.Request> = () => {
     Renderers.Main.reload();
-    Renderers.Edit.reload();
     respond<Pic.OpenEditArg>("Edit", "edit-dialog-opened", {file:getCurrentImageFile(), config:config.data})
 }
 

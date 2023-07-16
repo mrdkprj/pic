@@ -187,7 +187,8 @@ body{
     height: 100%;
 }
 
-.btn{
+.btn,
+.btn-sm{
     display: flex;
     justify-content: center;
     align-items: center;
@@ -212,6 +213,12 @@ body{
 
 .dark .btn:hover{
     background-color: #6b676775;
+}
+
+.btn-sm svg{
+    width: 15px;
+    height: 15px;
+    padding: 0 10px;
 }
 
 .pinned-btn{
@@ -400,9 +407,13 @@ body{
     white-space: nowrap;
 }
 
-.counter{
+.text{
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     font-size: 14px;
-    margin-right: 50px;
+    margin: 0 20px;
 }
 
 .arrow {
