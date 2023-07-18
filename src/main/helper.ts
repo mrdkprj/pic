@@ -1,6 +1,6 @@
 import {  Menu, BrowserWindow } from "electron"
 import path from "path"
-import { MainContextMenuTypes } from "./enum";
+import { MainContextMenuTypes } from "../constants";
 
 export default class Helper{
 

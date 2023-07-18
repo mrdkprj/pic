@@ -1,26 +1,14 @@
-const MIN_SCALE = 1;
-const MousePosition = {x:0, y:0};
-const ImagePosition = {x:0, y:0};
-const ImagePadding = {x:0, y:0};
-const Current= {x:0, y:0, orgX:0, orgY:0}
+import { ImageTransform } from "./imageTransform";
+import { OrientationName } from "../constants"
+
 const State = {
     isMaximized:false,
-    isDragging: false,
-    isImageMoved: false,
     editMode: "Resize" as Pic.EditMode,
     isClipping:false,
-    isShrinkable:false,
 }
 const clipState = {
     startX:0,
     startY:0,
-}
-const ORIENTATIONS = [1,6,3,8];
-const OrientationName = {
-    "None":1,
-    "Clock90deg":6,
-    "Clock180deg":3,
-    "Clock270deg":8
 }
 const undoStack:Pic.ImageFile[] = []
 const redoStack:Pic.ImageFile[] = []
@@ -38,14 +26,10 @@ const Dom = {
     canvas:null as HTMLElement,
 }
 
+const imageTransform = new ImageTransform
 let currentImageFile:Pic.ImageFile;
-let containerRect :Rect;
-let imgBoundRect :Rect;
-let scale = 1;
-let scaleDirection;
-let previousScale = 1;
 
-window.onload = function(){
+window.onload = () => {
 
     Dom.title = document.getElementById("title");
     Dom.resizeBtn = document.getElementById("resizeBtn")
@@ -61,18 +45,21 @@ window.onload = function(){
     Dom.img.addEventListener("mousedown", e => onImageMousedown(e))
     Dom.img.addEventListener("load", onImageLoaded)
 
-    Dom.imageArea.addEventListener("wheel", e => {
-        onZoom(e);
-    })
+    Dom.imageArea.addEventListener("wheel", imageTransform.onWheel)
+
+    imageTransform.init(Dom.imageArea, Dom.img)
+    imageTransform.on("transformchange", onTransformChange)
 }
 
-window.addEventListener("Resize", () => {
-    if(Dom.img.src){
-        onResize();
-    }
-})
+window.addEventListener("resize", _e => onResize())
 
-document.addEventListener("keydown", (e) => {
+document.addEventListener("keydown", e => onKeydown(e))
+document.addEventListener("click", e => onClick(e))
+document.addEventListener("mousedown", e => onmousedown(e))
+document.addEventListener("mousemove", e => onMousemove(e))
+document.addEventListener("mouseup", e => onMouseup(e))
+
+const onKeydown = (e:KeyboardEvent) => {
 
     if(e.key == "Escape"){
         close();
@@ -98,9 +85,9 @@ document.addEventListener("keydown", (e) => {
         saveImage(false);
     }
 
-})
+}
 
-document.addEventListener("click", (e) =>{
+const onClick = (e:MouseEvent) =>{
 
     if(!e.target || !(e.target instanceof HTMLElement)) return;
 
@@ -125,7 +112,7 @@ document.addEventListener("click", (e) =>{
     }
 
     if(e.target.id == "shrink"){
-        changeResizeMode(!State.isShrinkable);
+        changeResizeMode(!imageTransform.isShrinkable());
     }
 
     if(e.target.id == "undo"){
@@ -137,7 +124,7 @@ document.addEventListener("click", (e) =>{
     }
 
     if(e.target.id == "apply"){
-        applyEdit();
+        requestEdit();
     }
 
     if(e.target.id == "saveCopy"){
@@ -148,25 +135,13 @@ document.addEventListener("click", (e) =>{
         saveImage(false);
     }
 
-})
-
-document.addEventListener("mousedown", e => onmousedown(e))
-document.addEventListener("mousemove", e => onMousemove(e))
-
-document.addEventListener("mouseup", e => onMouseup(e))
+}
 
 const onImageMousedown = (e:MouseEvent) => {
 
     if(State.editMode == "Clip") return;
 
-    State.isImageMoved = false;
-    State.isDragging = true;
-
-    if(scale != MIN_SCALE){
-        Dom.viewport.classList.add("dragging");
-    }
-
-    resetMousePosition(e);
+    imageTransform.onMousedown(e)
 }
 
 const onmousedown  = (e:MouseEvent) => {
@@ -206,11 +181,7 @@ const onMousemove = (e:MouseEvent) => {
         Dom.clipArea.style.height = Math.abs(moveY) + "px"
     }
 
-    if(State.isDragging){
-        State.isImageMoved = true;
-        e.preventDefault();
-        moveImage(e);
-    }
+    imageTransform.onMousemove(e);
 }
 
 const onMouseup = (e:MouseEvent) => {
@@ -219,13 +190,39 @@ const onMouseup = (e:MouseEvent) => {
 
     if(State.isClipping){
         State.isClipping = false;
-        applyEdit();
+        requestEdit();
         return;
     }
 
     Dom.viewport.classList.remove("dragging")
-    State.isImageMoved = false;
-    State.isDragging = false;
+    imageTransform.onMouseup(e);
+}
+
+const loadImage = (data:Pic.ImageFile) => {
+
+    currentImageFile = data;
+
+    const src = currentImageFile.type === "path" ? `app://${data.fullPath}?${new Date().getTime()}` : `data:image/jpeg;base64,${data.fullPath}`;
+    Dom.img.src = src
+
+}
+
+const onImageLoaded = () => {
+
+    imageTransform.setImage(currentImageFile)
+
+}
+
+const changeTitle = () => {
+
+    const size = {
+        width: Math.floor(currentImageFile.detail.renderedWidth * imageTransform.getScale()),
+        height: Math.floor(currentImageFile.detail.renderedHeight * imageTransform.getScale()),
+    }
+    Dom.title.textContent = `${currentImageFile.fileName} (${size.width} x ${size.height})`;
+
+    Dom.scaleText.textContent = `${Math.floor(imageTransform.getImageRatio() * 100)}%`
+
 }
 
 const changeEditMode = (mode:Pic.EditMode) => {
@@ -252,15 +249,11 @@ const afterToggleMode = () => {
 
 const changeResizeMode = (shrinkable:boolean) => {
 
-    State.isShrinkable = shrinkable;
-    if(State.isShrinkable){
+    imageTransform.enableShrink(shrinkable);
+    if(shrinkable){
         Dom.titleBar.classList.add("shrink")
     }else{
         Dom.titleBar.classList.remove("shrink")
-        if(scale < MIN_SCALE){
-            scale = MIN_SCALE
-            resetImage();
-        }
     }
 }
 
@@ -280,12 +273,11 @@ const celarClip = () => {
 
 const resizeImage = () => {
     changeEditMode("Resize")
-    applyEdit();
+    requestEdit();
 }
 
-const changeEditButtonState = () =>{
-    Dom.titleBar.classList.remove("can-undo");
-    Dom.titleBar.classList.remove("can-redo");
+const changeButtonState = () =>{
+    Dom.titleBar.classList.remove("can-undo", "can-redo", "resized", "edited");
 
     if(undoStack.length){
         Dom.titleBar.classList.add("can-undo");
@@ -295,6 +287,13 @@ const changeEditButtonState = () =>{
         Dom.titleBar.classList.add("can-redo");
     }
 
+    if(imageTransform.isResized()){
+        Dom.titleBar.classList.add("resized");
+    }
+
+    if(currentImageFile.type === "buffer"){
+        Dom.titleBar.classList.add("edited");
+    }
 }
 
 const undo = () => {
@@ -303,7 +302,7 @@ const undo = () => {
         redoStack.push(currentImageFile);
         loadImage(stack);
     }
-    changeEditButtonState();
+    changeButtonState();
 }
 
 const redo = () => {
@@ -312,13 +311,12 @@ const redo = () => {
         undoStack.push(currentImageFile);
         loadImage(stack);
     }
-    changeEditButtonState();
+    changeButtonState();
 }
 
 const getActualRect = (rect:Pic.ImageRectangle) => {
 
-    const orientation = ORIENTATIONS[ORIENTATIONS.indexOf(currentImageFile.detail.orientation)];
-
+    const orientation = currentImageFile.detail.orientation;
     const rotated = orientation % 2 == 0;
 
     const width = rotated ? rect.height : rect.width
@@ -362,7 +360,7 @@ const getClipInfo = () => {
 
     if(clip.top > imageRect.bottom || clip.bottom < imageRect.top) return null
 
-    const rate = Math.max(imageRect.width / currentImageFile.detail.width, imageRect.height / currentImageFile.detail.height);
+    const rate = Math.max(imageRect.width / currentImageFile.detail.renderedWidth, imageRect.height / currentImageFile.detail.renderedHeight);
 
     const clipLeft = Math.floor((clip.left - imageRect.left) / rate);
     const clipRight = Math.floor((imageRect.right - clip.right) / rate);
@@ -398,7 +396,7 @@ const getClipInfo = () => {
     }
 }
 
-const applyEdit = () => {
+const requestEdit = () => {
 
     if(State.editMode === "Clip"){
 
@@ -409,8 +407,16 @@ const applyEdit = () => {
         request<Pic.ClipRequest>("clip",  clipInfo)
     }
 
-    if(State.editMode === "Resize" && scale != MIN_SCALE){
-        request<Pic.ResizeRequest>("resize", {image:currentImageFile, scale} )
+    if(State.editMode === "Resize" && imageTransform.isResized()){
+
+        const scale = imageTransform.getScale();
+
+        const size = {
+            width: Math.floor(currentImageFile.detail.width * scale),
+            height: Math.floor(currentImageFile.detail.height * scale),
+        }
+
+        request<Pic.ResizeRequest>("resize", {image:currentImageFile, size} )
     }
 
 }
@@ -423,7 +429,7 @@ const showEditResult = (data:Pic.EditResult) => {
 
     undoStack.push(currentImageFile);
 
-    changeEditButtonState();
+    changeButtonState();
 
     if(State.editMode == "Clip"){
         celarClip();
@@ -436,10 +442,10 @@ const showEditResult = (data:Pic.EditResult) => {
 }
 
 const onResize = () => {
-    setScale(MIN_SCALE);
-    previousScale = scale;
-    celarClip();
-    resetImage();
+    imageTransform.onWindowResize();
+    if(Dom.img.src){
+        celarClip();
+    }
 }
 
 const minimize = () => {
@@ -450,232 +456,15 @@ const toggleMaximize = () => {
     window.api.send("toggle-maximize")
 }
 
-const loadImage = (data:Pic.ImageFile) => {
+const onTransformChange = () => {
 
-    currentImageFile = data;
-
-    const src = currentImageFile.exists ? `app://${data.fullPath}?${new Date().getTime()}` : `data:image/jpeg;base64,${data.fullPath}`;
-    Dom.img.src = src
-
-}
-
-const onImageLoaded = () => {
-
-    setScale(MIN_SCALE);
-    previousScale = scale;
-
-    changeTitle();
-
-    resetImage();
-
-    unlock();
-
-}
-
-const changeTitle = () => {
-
-    const size = {
-        width: Math.floor(currentImageFile.detail.width * scale),
-        height: Math.floor(currentImageFile.detail.height * scale),
-    }
-    Dom.title.textContent = `${currentImageFile.fileName} (${size.width} x ${size.height})`;
-
-    const imageRect = Dom.img.getBoundingClientRect();
-    const ratio = Math.max(imageRect.width / currentImageFile.detail.width, imageRect.height / currentImageFile.detail.height);
-    Dom.scaleText.textContent = `${Math.ceil(ratio * 100)}%`
-
-}
-
-const resetPosition = () => {
-    ImagePosition.y = 0;
-    ImagePosition.x = 0;
-    Current.x = 0;
-    Current.y = 0;
-    Current.orgX = 0;
-    Current.orgY = 1;
-}
-
-const resetImage = () => {
-
-    containerRect = createRect(Dom.imageArea.getBoundingClientRect());
-
-    resetPosition();
-
-    imgBoundRect = createRect(Dom.img.getBoundingClientRect());
-
-    ImagePadding.x = (containerRect.width - imgBoundRect.width) / 2;
-    ImagePadding.y = (containerRect.height - imgBoundRect.height) / 2;
-
-    Current.orgX = imgBoundRect.width / 2;
-    Current.orgY = imgBoundRect.height / 2;
-
-    calculateBound();
-
-    changeTransform();
-}
-
-function onZoom(e:WheelEvent) {
-
-    if(State.editMode == "Clip"){
+    if(imageTransform.isResized() && State.editMode == "Clip"){
         changeEditMode("Resize")
     }
 
-    e.preventDefault();
-
-    previousScale = scale;
-    scale += e.deltaY * -0.002;
-
-    if(e.deltaY < 0){
-        scale = Math.max(.125, scale);
-        scaleDirection = 1;
-    }else{
-        scale = State.isShrinkable ? Math.max(.125, scale) : Math.max(Math.max(.125, scale), MIN_SCALE) ;
-        scaleDirection = -1;
-    }
-
-    zoom(e, scaleDirection);
-
-}
-
-const zoom = (e:WheelEvent, _scaleDirection:number) => {
-
-    calculateBound(scale);
-
-    calc(e);
-
-    adjustCalc();
-
-    changeTransform();
-}
-
-const calc = (e:WheelEvent) => {
-
-    const rect = Dom.img.getBoundingClientRect();
-
-    const left = rect.left
-    const top = rect.top
-    const mouseX = e.pageX - left;
-    const mouseY = e.pageY - top;
-
-    const prevOrigX = Current.orgX*previousScale
-    const prevOrigY = Current.orgY*previousScale
-
-    let translateX = Current.x;
-    let translateY = Current.y;
-
-    let newOrigX = mouseX/previousScale
-    let newOrigY = mouseY/previousScale
-
-    if ((Math.abs(mouseX-prevOrigX)>1 || Math.abs(mouseY-prevOrigY)>1)) {
-        translateX = translateX + (mouseX-prevOrigX)*(1-1/previousScale);
-        translateY = translateY + (mouseY-prevOrigY)*(1-1/previousScale);
-    }else if(previousScale != 1 || (mouseX != prevOrigX && mouseY != prevOrigY)) {
-        newOrigX = prevOrigX/previousScale;
-        newOrigY = prevOrigY/previousScale;
-    }
-
-    if(imgBoundRect.top == 0){
-        translateY = 0;
-        newOrigY =  (imgBoundRect.height / 2);
-    }
-
-    if(imgBoundRect.left == 0){
-        translateX = 0;
-        newOrigX = (imgBoundRect.width / 2);
-    }
-
-    Current.x = translateX;
-    Current.y = translateY;
-    Current.orgX = newOrigX;
-    Current.orgY = newOrigY;
-
-    ImagePosition.y = ImagePadding.y + (newOrigY - newOrigY*scale)+translateY ;
-    ImagePosition.x = ImagePadding.x + (newOrigX - newOrigX*scale)+translateX;
-
-}
-
-const adjustCalc = () => {
-
-    if(imgBoundRect.top == 0){
-        Current.y = 0;
-    } else if(ImagePosition.y > 0){
-        Current.y -= ImagePosition.y;
-    } else if(ImagePosition.y < imgBoundRect.top * -1){
-        Current.y += Math.abs(ImagePosition.y) - imgBoundRect.top;
-    }
-
-    if(imgBoundRect.left == 0 ){
-        Current.x = 0;
-    }else if(ImagePosition.x > 0){
-        Current.x -= ImagePosition.x;
-    } else if(ImagePosition.x < imgBoundRect.left * -1){
-        Current.x += Math.abs(ImagePosition.x) - imgBoundRect.left;
-    }
-
-}
-
-const calculateBound = (applicableScale?:number) => {
-    const newScale = applicableScale ? applicableScale : 1;
-    const newHeight = Math.floor(imgBoundRect.height * newScale)
-    const newWidth = Math.floor(imgBoundRect.width * newScale)
-
-    imgBoundRect.top = Math.max(Math.floor((newHeight - containerRect.height) / 1),0);
-    imgBoundRect.left = Math.max(Math.floor((newWidth - containerRect.width) / 1),0);
-}
-
-const resetMousePosition = (e:MouseEvent) => {
-    MousePosition.x = e.x;
-    MousePosition.y = e.y;
-}
-
-const moveImage = (e:MouseEvent) => {
-
-    const mouseMoveX = e.x - MousePosition.x;
-    MousePosition.x = e.x;
-
-    const mouseMoveY = e.y - MousePosition.y;
-    MousePosition.y = e.y;
-
-    if(ImagePosition.y + mouseMoveY > 0 || ImagePosition.y + mouseMoveY < imgBoundRect.top * -1){
-        //
-    }else{
-        ImagePosition.y += mouseMoveY;
-        Current.y += mouseMoveY
-    }
-
-    if(ImagePosition.x + mouseMoveX > 0 || ImagePosition.x + mouseMoveX < imgBoundRect.left * -1){
-        //
-    }else{
-        ImagePosition.x += mouseMoveX;
-        Current.x += mouseMoveX
-    }
-
-    changeTransform();
-
-}
-
-const setScale = (newScale:number) => {
-    previousScale = scale;
-    scale = newScale;
-    changeTransform();
-}
-
-const changeTransform = () => {
-
-    Dom.img.style.transformOrigin = `${Current.orgX}px ${Current.orgY}px`;
-    Dom.img.style.transform = `matrix(${scale},0,0,${scale}, ${Current.x},${Current.y})`;
+    changeButtonState();
 
     changeTitle();
-}
-
-const createRect = (base:DOMRect) => {
-
-    return {
-        top: base.top,
-        left: base.left,
-        width: base.width,
-        height: base.height,
-    }
 }
 
 const prepare = () => {
@@ -715,8 +504,6 @@ const applyConfig = (data:Pic.Config) => {
 
     undoStack.length = 0;
     redoStack.length = 0;
-
-    changeEditButtonState();
 }
 
 const applyTheme = (theme:Pic.Theme) => {
@@ -756,31 +543,41 @@ const unlock = () => {
     Dom.loader.style.display = "none";
 }
 
+const onOpen = (data:Pic.OpenEditArg) => {
+    applyConfig(data.config);
+    loadImage(data.file)
+}
+
+const onAfterEdit = (data:Pic.EditResult) => {
+    if(data.message){
+        alert(data.message);
+    }else{
+        showEditResult(data);
+    }
+}
+
+const onAfterToggleMaximize = (data:Pic.Config) => {
+    State.isMaximized = data.isMaximized;
+    changeMaximizeIcon()
+}
+
 const request = <T extends Pic.Args>(channel:MainChannel, data:T) => {
     if(prepare()){
         window.api.send(channel, data);
     }
 }
 
-window.api.receive<Pic.OpenEditArg>("edit-dialog-opened", data => {
-    applyConfig(data.config);
-    loadImage(data.file)
-})
-
-window.api.receive<Pic.EditResult>("after-edit", data => {
-    if(data.message){
-        alert(data.message);
-    }else{
-        showEditResult(data);
-    }
+const onResponse = (callback:() => void) => {
     unlock();
-})
+    callback();
+}
 
-window.api.receive<Pic.SaveImageResult>("after-save-image", data => afterSaveImage(data))
+window.api.receive<Pic.OpenEditArg>("edit-dialog-opened", data => onResponse(() => onOpen(data)))
 
-window.api.receive<Pic.Config>("after-toggle-maximize", data => {
-    State.isMaximized = data.isMaximized;
-    changeMaximizeIcon()
-})
+window.api.receive<Pic.EditResult>("after-edit", data => onResponse(() => onAfterEdit(data)))
+
+window.api.receive<Pic.SaveImageResult>("after-save-image", data => onResponse(() => afterSaveImage(data)))
+
+window.api.receive<Pic.Config>("after-toggle-maximize", data => onResponse(() => onAfterToggleMaximize(data)))
 
 export {}

@@ -6,7 +6,7 @@ import url from "url"
 import Config from "./config";
 import Util, { EmptyImageFile } from "./util";
 import Helper from "./helper";
-import { MainContextMenuTypes } from "./enum";
+import { OrientationName, MainContextMenuTypes } from "../constants";
 
 const Renderers:Renderer = {
     Main:null,
@@ -21,12 +21,10 @@ protocol.registerSchemesAsPrivileged([
 const targetfiles:Pic.ImageFile[] = [];
 const util = new Util();
 const config = new Config(app.getPath("userData"));
-const OrientationMode = {none:1, flip:3};
 const helper = new Helper();
 let topRendererName:RendererName = "Main"
 let currentIndex = 0;
 let directLaunch = false;
-let doflip = false;
 
 const mainContextMenuCallback = (menu:MainContextMenuTypes, args?:any) => {
     switch(menu){
@@ -55,7 +53,7 @@ const mainContextMenuCallback = (menu:MainContextMenuTypes, args?:any) => {
             toggleMode(args);
             break;
         case MainContextMenuTypes.Orientaion:
-            toggleOrientation(args)
+            changeOrientaionMode(args)
             break;
         case MainContextMenuTypes.Theme:
             toggleTheme(args);
@@ -219,8 +217,6 @@ const sendImageData = async () => {
 
     const imageFile = getCurrentImageFile();
 
-    imageFile.exists = util.exists(imageFile.fullPath);
-
     const result:Pic.FetchResult = {
         image: imageFile,
         currentIndex: currentIndex + 1,
@@ -228,7 +224,7 @@ const sendImageData = async () => {
         pinned: config.data.history[imageFile.directory] && config.data.history[imageFile.directory] == imageFile.fileName,
     }
 
-    if(!imageFile.exists){
+    if(imageFile.type === "undefined"){
         return respond<Pic.FetchResult>("Main", "after-fetch", result);
     }
 
@@ -236,13 +232,15 @@ const sendImageData = async () => {
 
     imageFile.detail.orientation = metadata.orientation;
 
-    if(doflip && imageFile.detail.orientation != OrientationMode.flip){
-        await rotate(OrientationMode.flip);
-        imageFile.detail.orientation = OrientationMode.flip;
+    if(config.data.preference.orientation === "Flip" && imageFile.detail.orientation != OrientationName.Clock180deg){
+        await rotate(OrientationName.Clock180deg);
+        imageFile.detail.orientation = OrientationName.Clock180deg;
     }
 
-    imageFile.detail.width = metadata.orientation % 2 === 0 ? metadata.height : metadata.width;
-    imageFile.detail.height = metadata.orientation % 2 === 0 ? metadata.width : metadata.height;
+    imageFile.detail.width = metadata.width;
+    imageFile.detail.height = metadata.height;
+    imageFile.detail.renderedWidth = metadata.orientation % 2 === 0 ? metadata.height : metadata.width;
+    imageFile.detail.renderedHeight = metadata.orientation % 2 === 0 ? metadata.width : metadata.height;
 
     respond<Pic.FetchResult>("Main", "after-fetch", result);
 
@@ -314,7 +312,7 @@ const rotate = async (orientation:number) => {
 
     const imageFile = getCurrentImageFile();
 
-    if(!imageFile.fullPath || !imageFile.exists) return;
+    if(imageFile.type === "undefined") return;
 
     try{
 
@@ -332,7 +330,7 @@ const deleteFile = async () => {
 
     const imageFile = getCurrentImageFile();
 
-    if(!imageFile.fullPath || !imageFile.exists){
+    if(imageFile.type === "undefined"){
         sendImageData();
         return;
     }
@@ -405,19 +403,17 @@ const clip = async (request:Pic.ClipRequest) => {
     try{
 
         const imageFile = request.image;
-        const input = imageFile.exists ? imageFile.fullPath : Buffer.from(imageFile.fullPath, "base64")
+        const input = imageFile.type === "path" ? imageFile.fullPath : Buffer.from(imageFile.fullPath, "base64")
         const result = await util.clipBuffer(input, request.rect);
 
-        const image:Pic.ImageFile = {
-            fullPath:result.toString('base64'),
-            fileName:imageFile.fileName,
-            directory:imageFile.directory,
-            exists:false,
-            timestamp: imageFile.timestamp,
-            detail:{width:request.rect.width, height:request.rect.height, orientation:imageFile.detail.orientation}
-        }
+        imageFile.fullPath = result.toString('base64'),
+        imageFile.type = "buffer",
+        imageFile.detail.width = request.rect.width,
+        imageFile.detail.height = request.rect.height
+        imageFile.detail.renderedWidth = imageFile.detail.orientation % 2 === 0 ? request.rect.height : request.rect.width;
+        imageFile.detail.renderedHeight = imageFile.detail.orientation % 2 === 0 ? request.rect.width : request.rect.height;
 
-        respond<Pic.EditResult>("Edit", "after-edit", {image})
+        respond<Pic.EditResult>("Edit", "after-edit", {image:imageFile})
 
     }catch(ex:any){
         respond<Pic.EditResult>("Edit", "after-edit", {image:null, message:ex.message})
@@ -429,24 +425,18 @@ const resize = async (request:Pic.ResizeRequest) => {
     try{
 
         const imageFile = request.image;
-        const input = imageFile.exists ? imageFile.fullPath : Buffer.from(imageFile.fullPath, "base64")
-        const size = {
-            width: Math.floor(imageFile.detail.width * request.scale),
-            height: Math.floor(imageFile.detail.height * request.scale)
-        }
+        const input = imageFile.type === "path" ? imageFile.fullPath : Buffer.from(imageFile.fullPath, "base64")
 
-        const result = await util.resizeBuffer(input, size);
+        const result = await util.resizeBuffer(input, request.size);
 
-        const image:Pic.ImageFile = {
-            fullPath:result.toString('base64'),
-            fileName:imageFile.fileName,
-            directory:imageFile.directory,
-            exists:false,
-            timestamp:imageFile.timestamp,
-            detail:{width:size.width, height:size.height, orientation:imageFile.detail.orientation}
-        }
+        imageFile.fullPath = result.toString('base64'),
+        imageFile.type = "buffer",
+        imageFile.detail.width = request.size.width,
+        imageFile.detail.height = request.size.height
+        imageFile.detail.renderedWidth = imageFile.detail.orientation % 2 === 0 ? request.size.height : request.size.width;
+        imageFile.detail.renderedHeight = imageFile.detail.orientation % 2 === 0 ? request.size.width : request.size.height;
 
-        respond<Pic.EditResult>("Edit", "after-edit", {image})
+        respond<Pic.EditResult>("Edit", "after-edit", {image:imageFile})
 
     }catch(ex:any){
         respond<Pic.EditResult>("Edit", "after-edit", {image:null, message:ex.message})
@@ -457,7 +447,7 @@ const resize = async (request:Pic.ResizeRequest) => {
 
 const saveImage = async (request:Pic.SaveImageRequest) => {
 
-    if(request.image.exists) return;
+    if(request.image.type === "path") return;
 
     let savePath = getCurrentImageFile().fullPath;
 
@@ -473,7 +463,7 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
             ],
         })
 
-        if(!savePath) return;
+        if(!savePath) return respond<Pic.SaveImageResult>("Edit", "after-save-image", {image:request.image});
     }
 
     try{
@@ -482,7 +472,7 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
         image.fullPath = savePath;
         image.directory = path.dirname(savePath);
         image.fileName = path.basename(savePath);
-        image.exists = true;
+        image.type = "path"
         respond<Pic.SaveImageResult>("Edit", "after-save-image", {image:request.image})
         loadImage(targetfiles[currentIndex].fullPath)
     }catch(ex:any){
@@ -638,16 +628,18 @@ const onRotate:handler<Pic.RotateRequest> = async (_event:IpcMainEvent, data:Pic
 
 }
 
-const toggleOrientation = async (orientation:Pic.Orientaion) => {
+const changeOrientaionMode = async (orientationName:Pic.Orientaion) => {
 
-    doflip = orientation === "Flip";
+    config.data.preference.orientation = orientationName;
 
-    const angle = doflip ? OrientationMode.flip : OrientationMode.none;
+    if(!targetfiles.length) return;
 
-    if(targetfiles.length > 0){
-        await rotate(angle)
-        sendImageData();
-    }
+    const orientation = orientationName === "Flip" ? OrientationName.Clock180deg : OrientationName.None;
+
+    await rotate(orientation)
+
+    sendImageData();
+
 }
 
 const toggleMode = (mode:Pic.Mode) => {

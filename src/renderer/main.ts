@@ -1,17 +1,13 @@
-const ORIENTATIONS = [1,6,3,8];
+import { ImageTransform } from "./imageTransform";
+import { Orientations } from "../constants"
+
 const BACKWARD = -1;
 const FORWARD = 1;
-const MIN_SCALE = 1;
-const MousePosition = {x:0, y:0};
-const ImagePosition = {x:0, y:0};
-const ImagePadding = {x:0, y:0};
-const Current= {x:0, y:0, orgX:0, orgY:1}
+
 const State = {
     isMaximized:false,
     isPinned: false,
     mouseOnly: false,
-    isDragging: false,
-    isImageMoved: false,
     contextMenuOpening:false,
 }
 
@@ -28,15 +24,11 @@ const Dom = {
     category:null as HTMLElement,
 }
 
+const imageTransform = new ImageTransform()
+
 let currentImageFile:Pic.ImageFile;
 let fileCount = 0;
-let containerRect :Rect;
-let imgBoundRect :Rect;
-let scale = 1;
-let scaleDirection;
-let scaleForActualSize = 1;
-let previousScale = 1;
-let angleIndex = 0;
+let orientationIndex = 0;
 
 window.onload = () => {
 
@@ -51,8 +43,9 @@ window.onload = () => {
     Dom.counter = document.getElementById("counter");
     Dom.category = document.getElementById("category");
 
-    Dom.img.addEventListener("mousedown", e => onImageMousedown(e))
     Dom.img.addEventListener("load", onImageLoaded)
+
+    Dom.img.addEventListener("mousedown", onImageMousedown)
 
     Dom.imageArea.addEventListener("mousedown", () => {
         if(isHistoryOpen()){
@@ -60,34 +53,27 @@ window.onload = () => {
         }
     })
 
-    Dom.imageArea.addEventListener("wheel", e => {
-        onZoom(e);
-    })
+    Dom.imageArea.addEventListener("wheel", imageTransform.onWheel);
 
-    document.getElementById("imageContainer").addEventListener("dragover", (e) => {
-        e.preventDefault();
-    })
+    document.getElementById("imageContainer").addEventListener("dragover", e => e.preventDefault())
 
-    document.getElementById("imageContainer").addEventListener("drop", (e) =>{
+    document.getElementById("imageContainer").addEventListener("drop", onDrop);
 
-        e.preventDefault();
-
-        if(!e.dataTransfer) return;
-
-        if(e.dataTransfer.items[0].kind === "file" && e.dataTransfer.items[0].type.includes("image")){
-            dropFile(e.dataTransfer.items[0].getAsFile());
-        }
-    });
+    imageTransform.init(Dom.imageArea, Dom.img)
+    imageTransform.on("transformchange", changeInfoTexts)
+    imageTransform.on("dragstart", onImageDragStart)
+    imageTransform.on("dragend", onImageDragEnd)
 
 }
 
-window.addEventListener("resize", () => {
-    if(Dom.img && Dom.img.src){
-        onResize();
-    }
-})
+window.addEventListener("resize", imageTransform.onWindowResize)
+document.addEventListener("keydown", e => onKeydown(e))
+document.addEventListener("click", e => onClick(e))
+document.addEventListener("mousemove", e => imageTransform.onMousemove(e))
+document.addEventListener("mouseup", e => onMouseup(e))
+document.addEventListener("mouseup", e => onMouseup(e))
 
-document.addEventListener("keydown", (e) => {
+const onKeydown = (e:KeyboardEvent) => {
 
     if(e.ctrlKey){
 
@@ -102,13 +88,13 @@ document.addEventListener("keydown", (e) => {
         }
 
         if(e.key == "ArrowUp"){
-            angleIndex = 0;
+            orientationIndex = 0;
             rotate();
             return;
         }
 
         if(e.key == "ArrowDown"){
-            angleIndex = 2;
+            orientationIndex = 2;
             rotate();
             return;
         }
@@ -160,9 +146,9 @@ document.addEventListener("keydown", (e) => {
     if(e.key === "F12"){
         openFileDialog();
     }
-})
+}
 
-document.addEventListener("click", (e) =>{
+const onClick = (e:MouseEvent) => {
 
     if(!e.target || !(e.target instanceof HTMLElement)) return;
 
@@ -214,34 +200,12 @@ document.addEventListener("click", (e) =>{
         closeHistory();
     }
 
-})
-
-document.addEventListener("mousemove", e => onMousemove(e))
-
-document.addEventListener("mouseup", e => onMouseup(e))
-
-const onImageMousedown = (e:MouseEvent) => {
-
-    State.isImageMoved = false;
-    State.isDragging = true;
-
-    if(scale != MIN_SCALE){
-        Dom.viewport.classList.add("dragging");
-    }
-
-    if(isHistoryOpen()){
-        closeHistory();
-    }
-
-    resetMousePosition(e);
 }
 
-const onMousemove = (e:MouseEvent) => {
-
-    if(State.isDragging){
-        State.isImageMoved = true;
-        e.preventDefault();
-        moveImage(e);
+const onImageMousedown = (e:MouseEvent) => {
+    imageTransform.onMousedown(e);
+    if(isHistoryOpen()){
+        closeHistory();
     }
 }
 
@@ -262,7 +226,7 @@ const onMouseup = (e:MouseEvent) => {
         return;
     }
 
-    if(!State.isImageMoved && e.target.classList.contains("clickable")){
+    if(!imageTransform.isImageMoved() && e.target.classList.contains("clickable")){
 
         if(State.mouseOnly){
 
@@ -278,47 +242,55 @@ const onMouseup = (e:MouseEvent) => {
 
     }
 
-    Dom.viewport.classList.remove("dragging")
-    State.isImageMoved = false;
-    State.isDragging = false;
+    imageTransform.onMouseup(e)
 }
 
-const onResize = () => {
-    setScale(MIN_SCALE);
-    previousScale = scale;
-    resetImage();
+const onImageDragStart = () => {
+    Dom.viewport.classList.add("dragging");
 }
 
-const loadImage = (data:Pic.FetchResult) => {
-    currentImageFile = data.image;
+const onImageDragEnd = () => {
+    Dom.viewport.classList.remove("dragging");
+}
 
-    const src = currentImageFile.exists ? `app://${data.image.fullPath}?${new Date().getTime()}` : "";
+const onDrop = (e:DragEvent) => {
+
+    e.preventDefault();
+
+    if(!e.dataTransfer) return;
+
+    if(e.dataTransfer.items[0].kind === "file" && e.dataTransfer.items[0].type.includes("image")){
+        dropFile(e.dataTransfer.items[0].getAsFile());
+    }
+}
+
+const loadImage = (result:Pic.FetchResult) => {
+    currentImageFile = result.image;
+
+    const src = currentImageFile.type === "path" ? `app://${result.image.fullPath}?${new Date().getTime()}` : "";
     Dom.img.src = src
 
-    if(currentImageFile.exists){
+    if(src){
         Dom.imageArea.classList.remove("no-image")
     }else{
         Dom.imageArea.classList.add("no-image")
     }
 
-    State.isPinned = data.pinned;
+    State.isPinned = result.pinned;
     changePinStatus();
 
-    fileCount = data.fileCount;
+    fileCount = result.fileCount;
 
-    Dom.counter.textContent = `${data.currentIndex} / ${fileCount}`;
+    Dom.counter.textContent = `${result.currentIndex} / ${fileCount}`;
 
-    setCategory(data.image.detail.category)
+    setCategory(result.image.detail.category)
 }
 
 const onImageLoaded = () => {
 
-    setScale(MIN_SCALE);
+    orientationIndex = Orientations.indexOf(currentImageFile.detail.orientation);
 
-    const angle = currentImageFile.detail.orientation ?? ORIENTATIONS[0];
-    angleIndex = ORIENTATIONS.indexOf(angle);
-
-    resetImage();
+    imageTransform.setImage(currentImageFile)
 
     unlock();
 
@@ -326,239 +298,34 @@ const onImageLoaded = () => {
 
 const changeInfoTexts = () => {
 
-    Dom.title.textContent = `${currentImageFile.fileName} (${currentImageFile.detail.width} x ${currentImageFile.detail.height})`;
+    Dom.title.textContent = `${currentImageFile.fileName} (${currentImageFile.detail.renderedWidth} x ${currentImageFile.detail.renderedHeight})`;
 
-    const ratio = Math.max(imgBoundRect.width / currentImageFile.detail.width, imgBoundRect.height / currentImageFile.detail.height);
-
-    Dom.scaleRate.textContent = `${Math.ceil(ratio * 100)}%`
+    Dom.scaleRate.textContent = `${Math.floor(imageTransform.getImageRatio() * 100)}%`
 }
 
-const resetPosition = () => {
-    ImagePosition.y = 0;
-    ImagePosition.x = 0;
-    Current.x = 0;
-    Current.y = 0;
-    Current.orgX = 0;
-    Current.orgY = 1;
-}
-
-const resetImage = () => {
-
-    containerRect = toImageRectangle(Dom.imageArea.getBoundingClientRect());
-
-    resetPosition();
-
-    imgBoundRect = toImageRectangle(Dom.img.getBoundingClientRect());
-
-    ImagePadding.x = (containerRect.width - imgBoundRect.width) / 2;
-    ImagePadding.y = (containerRect.height - imgBoundRect.height) / 2;
-
-    Current.orgX = imgBoundRect.width / 2;
-    Current.orgY = imgBoundRect.height / 2;
-
-    calculateBound();
-
-    changeTransform();
-
-    scaleForActualSize = Math.max(currentImageFile.detail.width / imgBoundRect.width, currentImageFile.detail.height / imgBoundRect.height);
-}
-
-const toImageRectangle = (rect:DOMRect):Pic.ImageRectangle => {
-
-    return {
-        width:rect.width,
-        height:rect.height,
-        top:rect.top,
-        left:rect.left,
-        right:rect.right,
-        bottom:rect.bottom
-    }
-}
-
-const onZoom = (e:WheelEvent) => {
-
-    if(!currentImageFile.exists){
-        return;
-    }
-
-    e.preventDefault();
-
-    previousScale = scale;
-    scale += e.deltaY * -0.002;
-
-    if(e.deltaY < 0){
-        scale = Math.max(.125, scale);
-        scaleDirection = 1;
-    }else{
-        scale = Math.max(Math.max(.125, scale), MIN_SCALE);
-        scaleDirection = -1;
-    }
-
-    zoom(e, scaleDirection);
-
-}
-
-const zoom = (e:WheelEvent, _scaleDirection:number) => {
-
-    if(scale == MIN_SCALE){
-        setScale(MIN_SCALE);
-        resetImage();
-        return;
-    }
-
-    calculateBound(scale);
-
-    calc(e);
-
-    //if(scaleDirection < 0){
-        adjustCalc();
-    //}
-
-    changeTransform();
-}
-
-const calc = (e:WheelEvent) => {
-
-    const rect = Dom.img.getBoundingClientRect();
-
-    const left = rect.left
-    const top = rect.top
-
-    const mouseX = e.pageX - left;
-    const mouseY = e.pageY - top;
-
-    const prevOrigX = Current.orgX*previousScale
-    const prevOrigY = Current.orgY*previousScale
-
-    let translateX = Current.x;
-    let translateY = Current.y;
-
-    let newOrigX = mouseX/previousScale
-    let newOrigY = mouseY/previousScale
-
-    if ((Math.abs(mouseX-prevOrigX)>1 || Math.abs(mouseY-prevOrigY)>1)) {
-        translateX = translateX + (mouseX-prevOrigX)*(1-1/previousScale);
-        translateY = translateY + (mouseY-prevOrigY)*(1-1/previousScale);
-    }else if(previousScale != 1 || (mouseX != prevOrigX && mouseY != prevOrigY)) {
-        newOrigX = prevOrigX/previousScale;
-        newOrigY = prevOrigY/previousScale;
-    }
-
-    if(imgBoundRect.top == 0){
-        translateY = 0;
-        newOrigY =  imgBoundRect.height / 2;
-    }
-
-    if(imgBoundRect.left == 0){
-        translateX = 0;
-        newOrigX = imgBoundRect.width / 2;
-    }
-
-    Current.x = translateX;
-    Current.y = translateY;
-    Current.orgX = newOrigX;
-    Current.orgY = newOrigY;
-
-    ImagePosition.y = ImagePadding.y + (newOrigY - newOrigY*scale)+translateY ;
-    ImagePosition.x = ImagePadding.x + (newOrigX - newOrigX*scale)+translateX;
-
-}
-
-const adjustCalc = () => {
-
-    if(imgBoundRect.top == 0){
-        Current.y = 0;
-    } else if(ImagePosition.y > 0){
-        Current.y -= ImagePosition.y;
-    } else if(ImagePosition.y < imgBoundRect.top * -1){
-        Current.y += Math.abs(ImagePosition.y) - imgBoundRect.top;
-    }
-
-    if(imgBoundRect.left == 0 ){
-        Current.x = 0;
-    }else if(ImagePosition.x > 0){
-        Current.x -= ImagePosition.x;
-    } else if(ImagePosition.x < imgBoundRect.left * -1){
-        Current.x += Math.abs(ImagePosition.x) - imgBoundRect.left;
-    }
-
-}
-
-const calculateBound = (applicableScale?:number) => {
-
-    const newScale = applicableScale ? applicableScale : 1;
-    const newHeight = Math.floor(imgBoundRect.height * newScale)
-    const newWidth = Math.floor(imgBoundRect.width * newScale)
-
-    imgBoundRect.top = Math.max(Math.floor((newHeight - containerRect.height) / 1),0);
-    imgBoundRect.left = Math.max(Math.floor((newWidth - containerRect.width) / 1),0);
-}
-
-const resetMousePosition = (e:MouseEvent) => {
-    MousePosition.x = e.x;
-    MousePosition.y = e.y;
-}
-
-const moveImage = (e:MouseEvent) => {
-
-    const mouseMoveX = e.x - MousePosition.x;
-    MousePosition.x = e.x;
-
-    const mouseMoveY = e.y - MousePosition.y;
-    MousePosition.y = e.y;
-
-    if(ImagePosition.y + mouseMoveY > 0 || ImagePosition.y + mouseMoveY < imgBoundRect.top * -1){
-        //
-    }else{
-        ImagePosition.y += mouseMoveY;
-        Current.y += mouseMoveY
-    }
-
-    if(ImagePosition.x + mouseMoveX > 0 || ImagePosition.x + mouseMoveX < imgBoundRect.left * -1){
-        //
-    }else{
-        ImagePosition.x += mouseMoveX;
-        Current.x += mouseMoveX
-    }
-
-    changeTransform();
-
-}
 
 const rotateLeft = () => {
-    angleIndex--;
-    if(angleIndex < 0){
-        angleIndex = ORIENTATIONS.length - 1;
+    orientationIndex--;
+    if(orientationIndex < 0){
+        orientationIndex = Orientations.length - 1;
     }
 
     rotate();
 }
 
 const rotateRight = () => {
-    angleIndex++;
-    if(angleIndex > ORIENTATIONS.length - 1){
-        angleIndex = 0;
+    orientationIndex++;
+    if(orientationIndex > Orientations.length - 1){
+        orientationIndex = 0;
     }
 
     rotate();
 }
 
 const rotate = () => {
-    request("rotate", {orientation:ORIENTATIONS[angleIndex]});
+    request("rotate", {orientation:Orientations[orientationIndex]});
 }
 
-const setScale = (newScale:number) => {
-    previousScale = scale;
-    scale = newScale;
-}
-
-const changeTransform = () => {
-
-    Dom.img.style.transformOrigin = `${Current.orgX}px ${Current.orgY}px`;
-    Dom.img.style.transform = `matrix(${scale},0,0,${scale}, ${Current.x},${Current.y})`;
-
-    changeInfoTexts();
-}
 
 const prepare = () => {
 
@@ -740,17 +507,19 @@ const setCategory = (category:number) => {
     }
 }
 
-const onShowActualSize = () => {
-
-    if(scaleForActualSize == MIN_SCALE) return;
-
-    scale = scaleForActualSize
-    changeTransform();
-
-}
-
 const openFileDialog = () => {
     window.api.send("open-file-dialog")
+}
+
+const onAfterPin = (data:Pic.PinResult) => {
+    State.isPinned = data.success;
+    changePinStatus();
+    changeFileList(data.history)
+}
+
+const onAfterToggleMaximize = (data:Pic.Config) => {
+    State.isMaximized = data.isMaximized;
+    changeMaximizeIcon()
 }
 
 const request = <T extends Pic.Args>(channel:MainChannel, data:T) => {
@@ -759,36 +528,29 @@ const request = <T extends Pic.Args>(channel:MainChannel, data:T) => {
     }
 }
 
-window.api.receive<Pic.Config>("config-loaded", data => {
-    applyConfig(data);
-})
-
-window.api.receive<Pic.FetchResult>("after-fetch", data => loadImage(data))
-
-window.api.receive<Pic.PinResult>("after-pin", data => {
-    State.isPinned = data.success;
-    changePinStatus();
-    changeFileList(data.history)
-});
-
-window.api.receive("show-actual-size", onShowActualSize);
-
-window.api.receive<Pic.ChangePreferenceArgs>("toggle-mode", (data) => changeMode(data.preference.mode))
-window.api.receive<Pic.ChangePreferenceArgs>("toggle-theme", (data) => applyTheme(data.preference.theme))
-
-window.api.receive("open-history", toggleHistory);
-window.api.receive<Pic.RemoveHistoryResult>("after-remove-history", data => {
-    changeFileList(data.history);
-})
-
-window.api.receive<Pic.Config>("after-toggle-maximize", data => {
-    State.isMaximized = data.isMaximized;
-    changeMaximizeIcon()
-})
-
-window.api.receive<Pic.ErrorArgs>("error", data => {
-    alert(data.message);
+const onResponse = (callback:() => void) => {
     unlock();
-})
+    callback();
+}
+
+window.api.receive<Pic.Config>("config-loaded", data => onResponse(() => applyConfig(data)))
+
+window.api.receive<Pic.FetchResult>("after-fetch", data => onResponse(() => loadImage(data)))
+
+window.api.receive<Pic.PinResult>("after-pin", data => onResponse(() => onAfterPin(data)))
+
+window.api.receive("show-actual-size", () => onResponse(() => imageTransform.showActualSize()));
+
+window.api.receive<Pic.ChangePreferenceArgs>("toggle-mode", (data) => onResponse(() => changeMode(data.preference.mode)))
+
+window.api.receive<Pic.ChangePreferenceArgs>("toggle-theme", (data) => onResponse(() => applyTheme(data.preference.theme)))
+
+window.api.receive("open-history", () => onResponse(() => toggleHistory()));
+
+window.api.receive<Pic.RemoveHistoryResult>("after-remove-history", data => onResponse(() => changeFileList(data.history)))
+
+window.api.receive<Pic.Config>("after-toggle-maximize", data => onResponse(() => onAfterToggleMaximize(data)))
+
+window.api.receive<Pic.ErrorArgs>("error", data => onResponse(() => alert(data.message)))
 
 export {}

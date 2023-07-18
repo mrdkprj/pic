@@ -208,20 +208,33 @@ body{
     background-color: #6b676775;
 }
 
+#resize{
+    color: #524e4e;
+    pointer-events: none;
+}
+
+.resized #resize{
+    color: #c3bebe;
+    pointer-events:auto;
+}
+
 #undo,
 #redo,
 #cancel{
     color: #524e4e;
+    pointer-events: none;
 }
 
 .can-undo #undo,
 .can-undo #cancel{
     color: #c3bebe;
+    pointer-events:auto;
 }
 
 .can-redo #redo,
 .can-redo #cancel{
     color: #c3bebe;
+    pointer-events:auto;
 }
 
 #shrink{
@@ -230,6 +243,18 @@ body{
 
 .shrink #shrink{
     background-color: #6b676775;
+}
+
+#saveCopy,
+#save{
+    color: #524e4e;
+    pointer-events: none;
+}
+
+.edited #saveCopy,
+.edited #save{
+    color: #c3bebe;
+    pointer-events:auto;
 }
 
 .scale-text{

@@ -37,13 +37,6 @@ declare global {
     const EDIT_WINDOW_WEBPACK_ENTRY:string;
     const EDIT_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
-    type Rect = {
-        top: number;
-        left: number;
-        width: number;
-        height: number;
-    }
-
     namespace Pic {
 
         type Bounds = {
@@ -57,7 +50,8 @@ declare global {
         type Orientaion = "Normal" | "Flip"
         type Theme = "Dark" | "Light";
         type SortType = "NameAsc" | "NameDesc" | "DateAsc" | "DateDesc"
-
+        type ImageTransformEvent = "transformchange" | "dragstart" | "dragend"
+        type ImageSroucetype = "path" | "buffer" | "undefined"
         type Options = Mode | Orientaion | Theme | SortType
 
         type Config = {
@@ -73,15 +67,17 @@ declare global {
             fullPath:string;
             directory:string;
             fileName:string;
-            exists:boolean;
+            type:ImageSroucetype;
             timestamp:number;
             detail:ImageDetail;
         }
 
         type ImageDetail = {
-            width?:number;
-            height?:number;
-            orientation?:number;
+            width:number;
+            height:number;
+            renderedWidth:number;
+            renderedHeight:number;
+            orientation:number;
             category?:number;
         }
 
@@ -167,7 +163,7 @@ declare global {
 
         type ResizeRequest = {
             image:ImageFile;
-            scale:number;
+            size:ImageSize;
         }
 
         type EditResult = {

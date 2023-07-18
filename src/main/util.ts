@@ -14,16 +14,18 @@ const EXTENSIONS = [
     ".ico",
 ]
 
-export const EmptyImageFile = {
+export const EmptyImageFile:Pic.ImageFile = {
     fullPath:"",
     directory:"",
     fileName:"",
-    exists:false,
+    type:"undefined",
     timestamp: 0,
     detail:{
         orientation:0,
         width:0,
         height:0,
+        renderedWidth:0,
+        renderedHeight:0
     }
 }
 
@@ -49,12 +51,14 @@ export default class Util{
             fullPath,
             directory:path.dirname(fullPath),
             fileName:path.basename(fullPath),
-            exists:true,
+            type: "path",
             timestamp: fs.statSync(fullPath).mtimeMs,
             detail:{
                 orientation:0,
                 width:0,
                 height:0,
+                renderedWidth:0,
+                renderedHeight:0
             }
         }
 
@@ -66,10 +70,6 @@ export default class Util{
 
         await sharp(buffer).withMetadata().toFile(fullPath);
 
-    }
-
-    async resize(fullPath:string, size:{width:number, height:number}, destPath:string){
-        await sharp(fullPath).resize(size).toFile(destPath)
     }
 
     async resizeBuffer(fullPath:string | Buffer, size:Pic.ImageSize){
