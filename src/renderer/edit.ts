@@ -49,6 +49,8 @@ window.onload = () => {
 
     imageTransform.init(Dom.imageArea, Dom.img)
     imageTransform.on("transformchange", onTransformChange)
+    imageTransform.on("dragstart", onImageDragStart)
+    imageTransform.on("dragend", onImageDragEnd)
 }
 
 window.addEventListener("resize", _e => onResize())
@@ -196,6 +198,14 @@ const onMouseup = (e:MouseEvent) => {
 
     Dom.viewport.classList.remove("dragging")
     imageTransform.onMouseup(e);
+}
+
+const onImageDragStart = () => {
+    Dom.viewport.classList.add("dragging");
+}
+
+const onImageDragEnd = () => {
+    Dom.viewport.classList.remove("dragging");
 }
 
 const loadImage = (data:Pic.ImageFile) => {

@@ -150,8 +150,7 @@ export class ImageTransform{
 
     private zoom(e:WheelEvent){
 
-        if(this.scale == this.defaultScale){
-            this.resetImage();
+        if(this.scale == this.previousScale){
             return;
         }
 
