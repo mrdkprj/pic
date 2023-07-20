@@ -161,6 +161,10 @@ export class ImageTransform{
         this.adjustTransform();
 
         this.changeTransform();
+
+        if(this.scale == this.defaultScale){
+            this.resetScale();
+        }
     }
 
     private calculateTransform(e:WheelEvent){
