@@ -162,9 +162,6 @@ export class ImageTransform{
 
         this.changeTransform();
 
-        if(this.scale == this.defaultScale){
-            this.resetScale();
-        }
     }
 
     private calculateTransform(e:WheelEvent){
@@ -243,11 +240,6 @@ export class ImageTransform{
         this.imgBoundRect.left = Math.max(Math.floor((newWidth - this.containerRect.width) / 1),0);
     }
 
-    private resetMousePosition(e:MouseEvent){
-        this.mousePosition.x = e.x;
-        this.mousePosition.y = e.y;
-    }
-
     private moveImage(e:MouseEvent){
 
         const mouseMoveX = e.x - this.mousePosition.x;
@@ -282,6 +274,16 @@ export class ImageTransform{
         this.eventHandlers.onTransformChange();
     }
 
+    private clearTransform(){
+        this.img.style.transformOrigin = "";
+        this.img.style.transform = "";
+    }
+
+    private resetMousePosition(e:MouseEvent){
+        this.mousePosition.x = e.x;
+        this.mousePosition.y = e.y;
+    }
+
     private resetPosition(){
         this.imagePosition.y = 0;
         this.imagePosition.x = 0;
@@ -294,6 +296,8 @@ export class ImageTransform{
     private resetImage(){
 
         this.resetScale();
+
+        this.clearTransform();
 
         this.containerRect = this.toImageRectangle(this.container.getBoundingClientRect());
 
