@@ -474,6 +474,8 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
 
     try{
         await fs.writeFile(savePath, request.image.fullPath, "base64");
+        const modifiedDate = new Date(request.image.timestamp);
+        await fs.utimes(savePath, modifiedDate, modifiedDate);
         const image = request.image;
         image.fullPath = savePath;
         image.directory = path.dirname(savePath);
