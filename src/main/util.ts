@@ -73,11 +73,11 @@ export default class Util{
     }
 
     async resizeBuffer(fullPath:string | Buffer, size:Pic.ImageSize){
-        return await sharp(fullPath).resize(size).withMetadata().jpeg().toBuffer();
+        return await sharp(fullPath).withMetadata().resize(size).withMetadata().jpeg().toBuffer();
     }
 
     async clipBuffer(fullPath:string | Buffer, size:Pic.ClipRectangle){
-        return await sharp(fullPath).extract(size).withMetadata().jpeg().toBuffer();
+        return await sharp(fullPath).withMetadata().extract(size).withMetadata().jpeg().toBuffer();
     }
 
     async getMetadata(fullPath:string){

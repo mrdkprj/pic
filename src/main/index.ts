@@ -178,9 +178,15 @@ const onReady = () => {
 
 const getCurrentImageFile = ():Pic.ImageFile => {
 
-    if(targetfiles[currentIndex]) return targetfiles[currentIndex];
+    if(!targetfiles.length || currentIndex >= targetfiles.length){
+        return EmptyImageFile;
+    }
 
-    return EmptyImageFile;
+    if(!util.exists(targetfiles[currentIndex].fullPath)){
+        return EmptyImageFile;
+    }
+
+    return targetfiles[currentIndex];
 }
 
 const loadImage = async (fullPath:string) => {
