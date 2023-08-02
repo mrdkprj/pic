@@ -98,6 +98,10 @@ export default class Helper{
             },
             { type: 'separator' },
             {
+                label:"Timestamp",
+                submenu: this.timestampSubMenu(config, onclick)
+            },
+            {
                 label: "Mode",
                 submenu: this.modeSubMenu(config, onclick)
             },
@@ -155,6 +159,27 @@ export default class Helper{
         return Menu.buildFromTemplate(sortMenuTemplate);
     }
 
+    private timestampSubMenu(config:Pic.Config, onclick: (menu:MainContextMenuTypes, args?:Pic.Options) => void){
+
+        const contextTemplate:Electron.MenuItemConstructorOptions[] = [
+            {
+                id: "TimestampNormal",
+                label:"Normal",
+                type:"checkbox",
+                checked: config.preference.timestamp === "Normal",
+                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Timestamp, "Normal"))
+            },
+            {
+                id: "TimestampUnchanged",
+                label:"Unchanged",
+                type:"checkbox",
+                checked: config.preference.timestamp === "Unchanged",
+                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Timestamp, "Unchanged"))
+            },
+        ]
+
+        return Menu.buildFromTemplate(contextTemplate);
+    }
 
     private modeSubMenu(config:Pic.Config, onclick: (menu:MainContextMenuTypes, args?:Pic.Options) => void){
 

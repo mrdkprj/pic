@@ -4,9 +4,9 @@ import fs from "fs/promises"
 import proc from "child_process";
 import url from "url"
 import Config from "./config";
-import Util, { EmptyImageFile } from "./util";
+import Util from "./util";
 import Helper from "./helper";
-import { OrientationName, MainContextMenuTypes } from "../constants";
+import { OrientationName, MainContextMenuTypes, EmptyImageFile } from "../constants";
 
 const Renderers:Renderer = {
     Main:null,
@@ -48,6 +48,9 @@ const mainContextMenuCallback = (menu:MainContextMenuTypes, args?:any) => {
             break;
         case MainContextMenuTypes.Sort:
             sortImageFiles(args, getCurrentImageFile().fileName);
+            break;
+        case MainContextMenuTypes.Timestamp:
+            changeTimestampMode(args);
             break;
         case MainContextMenuTypes.Mode:
             toggleMode(args);
@@ -146,8 +149,8 @@ const respond = <T extends Pic.Args>(rendererName:RendererName, channel:Renderer
     Renderers[rendererName].webContents.send(channel, data);
 }
 
-const sendError = (ex:Error) => {
-    respond<Pic.ErrorArgs>("Main", "error", {message:ex.message});
+const showErrorMessage = (ex:Error) => {
+    dialog.showMessageBox({type:"error", message:ex.message})
 }
 
 const onReady = () => {
@@ -236,7 +239,7 @@ const sendImageData = async () => {
 
     const metadata = await util.getMetadata(imageFile.fullPath);
 
-    imageFile.detail.orientation = metadata.orientation;
+    imageFile.detail.orientation = metadata.orientation ?? 1;
 
     if(config.data.preference.orientation === "Flip" && imageFile.detail.orientation != OrientationName.Clock180deg){
         await rotate(OrientationName.Clock180deg);
@@ -322,12 +325,16 @@ const rotate = async (orientation:number) => {
 
     try{
 
-        await util.rotate(imageFile.fullPath, orientation)
-
+        const buffer = await util.rotate(imageFile.fullPath, imageFile.detail.orientation, orientation)
+        if(config.data.preference.timestamp == "Normal"){
+            await util.saveImage(imageFile.fullPath, util.toBase64(buffer))
+        }else{
+            await util.saveImage(imageFile.fullPath, util.toBase64(buffer), imageFile.timestamp)
+        }
         imageFile.detail.orientation = orientation;
 
     }catch(ex:any){
-        sendError(ex);
+        showErrorMessage(ex);
     }
 
 }
@@ -358,7 +365,7 @@ const deleteFile = async () => {
         sendImageData();
 
     }catch(ex:any){
-        sendError(ex);
+        showErrorMessage(ex);
     }
 }
 
@@ -409,10 +416,10 @@ const clip = async (request:Pic.ClipRequest) => {
     try{
 
         const imageFile = request.image;
-        const input = imageFile.type === "path" ? imageFile.fullPath : Buffer.from(imageFile.fullPath, "base64")
+        const input = imageFile.type === "path" ? imageFile.fullPath : util.fromBase64(imageFile.fullPath)
         const result = await util.clipBuffer(input, request.rect);
 
-        imageFile.fullPath = result.toString('base64'),
+        imageFile.fullPath = util.toBase64(result),
         imageFile.type = "buffer",
         imageFile.detail.width = request.rect.width,
         imageFile.detail.height = request.rect.height
@@ -431,11 +438,11 @@ const resize = async (request:Pic.ResizeRequest) => {
     try{
 
         const imageFile = request.image;
-        const input = imageFile.type === "path" ? imageFile.fullPath : Buffer.from(imageFile.fullPath, "base64")
+        const input = imageFile.type === "path" ? imageFile.fullPath : util.fromBase64(imageFile.fullPath)
 
         const result = await util.resizeBuffer(input, request.size);
 
-        imageFile.fullPath = result.toString('base64'),
+        imageFile.fullPath = util.toBase64(result),
         imageFile.type = "buffer",
         imageFile.detail.width = request.size.width,
         imageFile.detail.height = request.size.height
@@ -473,9 +480,11 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
     }
 
     try{
-        await fs.writeFile(savePath, request.image.fullPath, "base64");
-        const modifiedDate = new Date(request.image.timestamp);
-        await fs.utimes(savePath, modifiedDate, modifiedDate);
+        if(config.data.preference.timestamp == "Normal"){
+            util.saveImage(savePath, request.image.fullPath)
+        }else{
+            util.saveImage(savePath, request.image.fullPath, request.image.timestamp)
+        }
         const image = request.image;
         image.fullPath = savePath;
         image.directory = path.dirname(savePath);
@@ -501,7 +510,7 @@ const save = () => {
         config.save();
 
     }catch(ex:any){
-        return sendError(ex);
+        return showErrorMessage(ex);
     }
 }
 
@@ -648,6 +657,10 @@ const changeOrientaionMode = async (orientationName:Pic.Orientaion) => {
 
     sendImageData();
 
+}
+
+const changeTimestampMode = (timestampMode:Pic.Timestamp) => {
+    config.data.preference.timestamp = timestampMode
 }
 
 const toggleMode = (mode:Pic.Mode) => {

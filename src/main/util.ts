@@ -1,33 +1,9 @@
 import fs, { Dirent } from "fs"
 import path from "path";
 import sharp from "sharp";
+import { RotateDegree, Extensions, Jpegs } from "../constants"
 
 sharp.cache(false);
-
-const EXTENSIONS = [
-    ".jpeg",
-    ".jpg",
-    ".png",
-    ".gif",
-    ".svg",
-    ".webp",
-    ".ico",
-]
-
-export const EmptyImageFile:Pic.ImageFile = {
-    fullPath:"",
-    directory:"",
-    fileName:"",
-    type:"undefined",
-    timestamp: 0,
-    detail:{
-        orientation:0,
-        width:0,
-        height:0,
-        renderedWidth:0,
-        renderedHeight:0
-    }
-}
 
 export default class Util{
 
@@ -64,12 +40,27 @@ export default class Util{
 
     }
 
-    async rotate(fullPath:string, orientation:number){
+    toBase64(data:Buffer){
+        return data.toString("base64")
+    }
 
+    fromBase64(data:string){
+        return Buffer.from(data, "base64")
+    }
+
+    async rotate(fullPath:string, currenOrientation:number, nextOrientation:number){
+        /*
         const buffer = await sharp(fullPath).withMetadata({orientation}).toBuffer();
 
         await sharp(buffer).withMetadata().toFile(fullPath);
+        */
 
+        if(Jpegs.includes(path.extname(fullPath))){
+            return await sharp(fullPath).withMetadata({orientation:nextOrientation}).toBuffer();
+        }
+
+        const degree = currenOrientation === 1 || currenOrientation === 8 ? RotateDegree[nextOrientation] - RotateDegree[currenOrientation] : RotateDegree[currenOrientation] - RotateDegree[nextOrientation]
+        return await sharp(fullPath).withMetadata().rotate(degree).withMetadata().toBuffer()
     }
 
     async resizeBuffer(fullPath:string | Buffer, size:Pic.ImageSize){
@@ -84,11 +75,19 @@ export default class Util{
         return await sharp(fullPath).metadata();
     }
 
+    saveImage(destPath:string, data:string, mtime?:number){
+        fs.writeFileSync(destPath, data, "base64");
+        if(mtime){
+            const modifiedDate = new Date(mtime);
+            fs.utimesSync(destPath, modifiedDate, modifiedDate);
+        }
+    }
+
     isImageFile(dirent:Dirent){
 
         if(!dirent.isFile()) return false;
 
-        if(!EXTENSIONS.includes(path.extname(dirent.name).toLowerCase())) return false;
+        if(!Extensions.includes(path.extname(dirent.name).toLowerCase())) return false;
 
         return true;
     }

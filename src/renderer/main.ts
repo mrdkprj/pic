@@ -551,6 +551,4 @@ window.api.receive<Pic.RemoveHistoryResult>("after-remove-history", data => onRe
 
 window.api.receive<Pic.Config>("after-toggle-maximize", data => onResponse(() => onAfterToggleMaximize(data)))
 
-window.api.receive<Pic.ErrorArgs>("error", data => onResponse(() => alert(data.message)))
-
 export {}

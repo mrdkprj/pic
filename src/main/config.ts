@@ -7,6 +7,7 @@ const DEFAULT_CONFIG :Pic.Config = {
     directory:"",
     fullPath:"",
     preference: {
+        timestamp:"Unchanged",
         sort:"NameAsc",
         mode:"Keyboard",
         theme:"Dark",
@@ -49,7 +50,7 @@ export default class Config{
         }
     }
 
-    createConfig(rawConfig:any):Pic.Config{
+    private createConfig(rawConfig:any):Pic.Config{
 
         const config = {...DEFAULT_CONFIG} as any;
 

@@ -11,7 +11,7 @@ declare global {
                         "save-image";
     type MainRendererChannel = "config-loaded" | "after-fetch" | "after-remove-history" | "after-pin" | "after-toggle-maximize" |
                             "toggle-mode" | "toggle-theme" | "toggle-orientaion" | "open-history" | "toggle-clipmode" |
-                            "prepare-file-dialog" | "show-actual-size" | "error";
+                            "prepare-file-dialog" | "show-actual-size";
     type FileRendererChannel = "";
     type EditRendererChannel = "edit-dialog-opened" | "after-edit" | "after-save-image" | "after-toggle-maximize";
     type RendererChannel = MainRendererChannel | FileRendererChannel | EditRendererChannel;
@@ -39,6 +39,15 @@ declare global {
 
     namespace Pic {
 
+        type Timestamp = "Normal" | "Unchanged"
+        type Mode = "Keyboard" | "Mouse";
+        type Orientaion = "Normal" | "Flip"
+        type Theme = "Dark" | "Light";
+        type SortType = "NameAsc" | "NameDesc" | "DateAsc" | "DateDesc"
+        type Options = Mode | Orientaion | Theme | SortType | Mtime
+        type ImageTransformEvent = "transformchange" | "dragstart" | "dragend"
+        type ImageSroucetype = "path" | "buffer" | "undefined"
+
         type Bounds = {
             width:number;
             height:number;
@@ -46,13 +55,13 @@ declare global {
             y:number;
         }
 
-        type Mode = "Keyboard" | "Mouse";
-        type Orientaion = "Normal" | "Flip"
-        type Theme = "Dark" | "Light";
-        type SortType = "NameAsc" | "NameDesc" | "DateAsc" | "DateDesc"
-        type ImageTransformEvent = "transformchange" | "dragstart" | "dragend"
-        type ImageSroucetype = "path" | "buffer" | "undefined"
-        type Options = Mode | Orientaion | Theme | SortType
+        type Preference = {
+            timestamp: Timestamp;
+            sort:SortType;
+            mode:Mode;
+            theme:Theme;
+            orientation:Orientaion;
+        }
 
         type Config = {
             directory:string;
@@ -122,13 +131,6 @@ declare global {
             history:{[key: string]: string};
         }
 
-        type Preference = {
-            sort:SortType;
-            mode:Mode;
-            theme:Theme;
-            orientation:Orientaion;
-        }
-
         type ChangePreferenceArgs = {
             preference: Preference;
         }
@@ -189,10 +191,6 @@ declare global {
             files:ImageFile[]
         }
 
-        type ErrorArgs = {
-            message:string;
-        }
-
         type Request = {
             renderer:RendererName
         }
@@ -200,7 +198,7 @@ declare global {
         type Args = FetchRequest | FetchResult | PinResult | ChangePreferenceArgs | EditResult |
                     RotateRequest | DropRequest | RemoveHistoryRequest | RemoveHistoryResult | OpenEditArg |
                     ClipRequest | ResizeRequest | SaveImageRequest | SaveImageResult | CategoryArgs | OpenFileDialogArgs |
-                    Config | ErrorArgs | Request
+                    Config | Request
 
     }
 
