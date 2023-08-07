@@ -1,4 +1,4 @@
-import {app, ipcMain, dialog, shell, protocol, IpcMainEvent} from "electron"
+import {app, ipcMain, dialog, shell, protocol} from "electron"
 import path from "path";
 import fs from "fs/promises"
 import proc from "child_process";
@@ -8,12 +8,6 @@ import Util from "./util";
 import Helper from "./helper";
 import { OrientationName, MainContextMenuTypes, EmptyImageFile } from "../constants";
 
-const Renderers:Renderer = {
-    Main:null,
-    File:null,
-    Edit:null,
-}
-
 protocol.registerSchemesAsPrivileged([
     { scheme: "app", privileges: { bypassCSP: true } }
 ])
@@ -22,9 +16,15 @@ const targetfiles:Pic.ImageFile[] = [];
 const util = new Util();
 const config = new Config(app.getPath("userData"));
 const helper = new Helper();
+
+const Renderers:Renderer = {
+    Main:null,
+    File:null,
+    Edit:null,
+}
+
 let topRendererName:RendererName = "Main"
 let currentIndex = 0;
-let directLaunch = false;
 
 const mainContextMenuCallback = (menu:MainContextMenuTypes, args?:any) => {
     switch(menu){
@@ -70,8 +70,6 @@ const mainContextMenuCallback = (menu:MainContextMenuTypes, args?:any) => {
 const mainContext = helper.createMainContextMenu(config.data, mainContextMenuCallback)
 
 app.on("ready", () => {
-
-    directLaunch = process.argv.length > 1 && process.argv[1] != ".";
 
     currentIndex = 0;
 
@@ -124,7 +122,7 @@ const registerIpcChannels = () => {
         {channel:"open-main-context", handle:onOpenMainContext},
         {channel:"close", handle:onClose},
         {channel:"drop-file", handle:onDropFile},
-        {channel:"fetch-image", handle:onFetchImage},
+        {channel:"fetch-image", handle:onFetchRequest},
         {channel:"delete", handle:onDelete},
         {channel:"pin", handle:onPin},
         {channel:"rotate", handle:onRotate},
@@ -142,7 +140,7 @@ const registerIpcChannels = () => {
         {channel:"restart", handle:restart},
     ]
 
-    handlers.forEach(handler => ipcMain.on(handler.channel, (event, request) => handler.handle(event, request)));
+    handlers.forEach(handler => ipcMain.on(handler.channel, (_event, request) => handler.handle(request)));
 }
 
 const respond = <T extends Pic.Args>(rendererName:RendererName, channel:RendererChannel, data:T) => {
@@ -157,25 +155,15 @@ const onReady = () => {
 
     Renderers.Main.show();
 
-    respond<Pic.Config>("Main", "config-loaded", config.data)
+    respond("Main", "config-loaded", config.data)
 
-    if(directLaunch && targetfiles.length == 0){
+    if(process.argv.length > 1 && process.argv[1] != "."){
         loadImage(process.argv[1]);
         return;
     }
 
-    if(targetfiles.length > 0){
-        sendImageData();
-        return;
-    }
-
-    if(config.data.fullPath){
-
-        const fileExists = util.exists(config.data.fullPath);
-
-        if(fileExists){
-            loadImage(config.data.fullPath);
-        }
+    if(config.data.fullPath && util.exists(config.data.fullPath)){
+        loadImage(config.data.fullPath);
     }
 }
 
@@ -544,12 +532,12 @@ const minimize = () => {
     renderer.minimize();
 }
 
-const onUnmaximize:handler<Pic.Request> = () => {
+const onUnmaximize = () => {
     config.data.isMaximized = false;
     respond<Pic.Config>(topRendererName, "after-toggle-maximize", config.data)
 }
 
-const onMaximize:handler<Pic.Request> = () => {
+const onMaximize = () => {
     config.data.isMaximized = true;
     respond<Pic.Config>(topRendererName, "after-toggle-maximize", config.data)
 }
@@ -576,7 +564,7 @@ const changeTopRenderer = (name:RendererName) => {
 
 }
 
-const onClose:handler<Pic.Request> = async () => {
+const onClose = async () => {
 
     const imageFile = getCurrentImageFile();
 
@@ -590,11 +578,11 @@ const onClose:handler<Pic.Request> = async () => {
     Renderers.Main.close();
 }
 
-const onDropFile:handler<Pic.DropRequest> = async (_event:IpcMainEvent, data:Pic.DropRequest) => await loadImage(data.fullPath)
+const onDropFile = async (data:Pic.DropRequest) => await loadImage(data.fullPath)
 
-const onFetchImage:handler<Pic.FetchRequest> = (_event:IpcMainEvent, data:any) => fetchImage(data);
+const onFetchRequest = (data:Pic.FetchRequest) => fetchImage(data);
 
-const onDelete:handler<Pic.Request> = async () => await deleteFile()
+const onDelete = async () => await deleteFile()
 
 const onReveal = () => {
 
@@ -625,7 +613,7 @@ const onOpen = async () => {
 
 }
 
-const onPin:handler<Pic.Request> = () => {
+const onPin = () => {
 
     const imageFile = getCurrentImageFile();
 
@@ -636,9 +624,9 @@ const onPin:handler<Pic.Request> = () => {
 
 }
 
-const onRestore = (_event:IpcMainEvent, data:Pic.RestoreRequest) => restoreFile(data)
+const onRestore = (data:Pic.RestoreRequest) => restoreFile(data)
 
-const onRotate:handler<Pic.RotateRequest> = async (_event:IpcMainEvent, data:Pic.RotateRequest) => {
+const onRotate = async (data:Pic.RotateRequest) => {
 
     await rotate(data.orientation);
     sendImageData();
@@ -673,9 +661,9 @@ const toggleTheme = (theme:Pic.Theme) => {
     respond<Pic.ChangePreferenceArgs>("Main", "toggle-theme", {preference:config.data.preference})
 }
 
-const onRemoveHistory:handler<Pic.RemoveHistoryRequest> = (_event:IpcMainEvent, data:Pic.RemoveHistoryRequest) => removeHistory(data.fullPath)
+const onRemoveHistory = (data:Pic.RemoveHistoryRequest) => removeHistory(data.fullPath)
 
-const onToggleFullscreen:handler<Pic.Request> = () => {
+const onToggleFullscreen = () => {
 
     if(Renderers.Main.isFullScreen()){
         Renderers.Main.setFullScreen(false)
@@ -684,25 +672,25 @@ const onToggleFullscreen:handler<Pic.Request> = () => {
     }
 }
 
-const onClipRequest:handler<Pic.ClipRequest> = (_event:IpcMainEvent, data:Pic.ClipRequest) => clip(data)
-const onResizeRequest:handler<Pic.ResizeRequest> = (_event:IpcMainEvent, data:Pic.ResizeRequest) => resize(data)
-const onSaveImageRequest:handler<Pic.SaveImageRequest> = async (_event:IpcMainEvent, data:Pic.SaveImageRequest) => await saveImage(data);
+const onClipRequest = (data:Pic.ClipRequest) => clip(data)
+const onResizeRequest = (data:Pic.ResizeRequest) => resize(data)
+const onSaveImageRequest = async (data:Pic.SaveImageRequest) => await saveImage(data);
 
-const openEditDialog:handler<Pic.Request> = () => {
+const openEditDialog = () => {
 
     respond<Pic.OpenEditArg>("Edit", "edit-dialog-opened", {file:getCurrentImageFile(), config:config.data})
 
     changeTopRenderer("Edit")
 }
 
-const onCloseEditDialog:handler<Pic.Request> = () => changeTopRenderer("Main");
+const onCloseEditDialog = () => changeTopRenderer("Main");
 
-const restart:handler<Pic.Request> = () => {
+const restart = () => {
     Renderers.Main.reload();
     respond<Pic.OpenEditArg>("Edit", "edit-dialog-opened", {file:getCurrentImageFile(), config:config.data})
 }
 
-const onSetCategory:handler<Pic.CategoryArgs> = (_event:IpcMainEvent, data:Pic.CategoryArgs) => {
+const onSetCategory = (data:Pic.CategoryArgs) => {
     if(data.category){
         targetfiles[currentIndex].detail.category = data.category;
     }else{
@@ -710,7 +698,7 @@ const onSetCategory:handler<Pic.CategoryArgs> = (_event:IpcMainEvent, data:Pic.C
     }
 }
 
-const onOpenFileDialog:handler<any> = () => {
+const onOpenFileDialog = () => {
     const files = targetfiles.filter(file => file.detail.category);
     if(files.length > 0){
         respond<Pic.OpenFileDialogArgs>("File", "prepare-file-dialog", {files});
@@ -718,4 +706,4 @@ const onOpenFileDialog:handler<any> = () => {
     }
 }
 
-const onCloseFileDialog:handler<any> = () => Renderers.File.hide();
+const onCloseFileDialog = () => Renderers.File.hide();

@@ -1,5 +1,3 @@
-import { IpcMainEvent } from "electron";
-
 declare global {
     interface Window {
         api: Api;
@@ -18,11 +16,9 @@ declare global {
     type RendererName = "Main" | "File" | "Edit";
     type Renderer = {[key in RendererName] : Electron.BrowserWindow}
 
-    type handler<T extends Pic.Args> = (event: IpcMainEvent, data:T) => (void | Promise<void>)
-
     interface IpcMainHandler {
         channel: MainChannel;
-        handle: handler;
+        handle: (data?:Pic.Args) => void | Promise<void>;
     }
 
     interface Api {
@@ -203,3 +199,5 @@ declare global {
     }
 
 }
+
+export {}
