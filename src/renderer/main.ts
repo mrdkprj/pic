@@ -1,14 +1,10 @@
 import { ImageTransform } from "./imageTransform";
-import { Orientations } from "../constants"
-
-const BACKWARD = -1;
-const FORWARD = 1;
+import { Orientations, FORWARD, BACKWARD } from "../constants"
 
 const State = {
     isMaximized:false,
     isPinned: false,
     mouseOnly: false,
-    contextMenuOpening:false,
 }
 
 const Dom = {
@@ -29,49 +25,6 @@ const imageTransform = new ImageTransform()
 let currentImageFile:Pic.ImageFile;
 let fileCount = 0;
 let orientationIndex = 0;
-
-window.onload = () => {
-
-    Dom.title = document.getElementById("title");
-    Dom.resizeBtn = document.getElementById("resizeBtn");
-    Dom.viewport = document.getElementById("viewport");
-    Dom.img = (document.getElementById("img") as HTMLImageElement);
-    Dom.imageArea = document.getElementById("imageArea");
-    Dom.loader = document.getElementById("loader");
-    Dom.history = document.getElementById("history")
-    Dom.scaleRate = document.getElementById("scaleRate")
-    Dom.counter = document.getElementById("counter");
-    Dom.category = document.getElementById("category");
-
-    Dom.img.addEventListener("load", onImageLoaded)
-
-    Dom.img.addEventListener("mousedown", onImageMousedown)
-
-    Dom.imageArea.addEventListener("mousedown", () => {
-        if(isHistoryOpen()){
-            closeHistory();
-        }
-    })
-
-    Dom.imageArea.addEventListener("wheel", imageTransform.onWheel);
-
-    document.getElementById("imageContainer").addEventListener("dragover", e => e.preventDefault())
-
-    document.getElementById("imageContainer").addEventListener("drop", onDrop);
-
-    imageTransform.init(Dom.imageArea, Dom.img)
-    imageTransform.on("transformchange", changeInfoTexts)
-    imageTransform.on("dragstart", onImageDragStart)
-    imageTransform.on("dragend", onImageDragEnd)
-
-}
-
-window.addEventListener("resize", imageTransform.onWindowResize)
-document.addEventListener("keydown", e => onKeydown(e))
-document.addEventListener("click", e => onClick(e))
-document.addEventListener("mousemove", e => imageTransform.onMousemove(e))
-document.addEventListener("mouseup", e => onMouseup(e))
-document.addEventListener("mouseup", e => onMouseup(e))
 
 const onKeydown = (e:KeyboardEvent) => {
 
@@ -213,15 +166,7 @@ const onMouseup = (e:MouseEvent) => {
 
     if(!e.target || !(e.target instanceof HTMLElement)) return;
 
-    if(State.contextMenuOpening){
-        e.preventDefault();
-        State.contextMenuOpening = false;
-        return;
-    }
-
-    if(e.button == 2 && e.buttons == 1){
-        e.preventDefault();
-        State.contextMenuOpening = true;
+    if(e.button == 2 && !State.mouseOnly){
         request("open-main-context", null)
         return;
     }
@@ -265,6 +210,7 @@ const onDrop = (e:DragEvent) => {
 }
 
 const loadImage = (result:Pic.FetchResult) => {
+
     currentImageFile = result.image;
 
     const src = currentImageFile.type === "path" ? `app://${result.image.fullPath}?${new Date().getTime()}` : "";
@@ -534,21 +480,57 @@ const onResponse = (callback:() => void) => {
 }
 
 window.api.receive("config-loaded", data => onResponse(() => applyConfig(data)))
-
 window.api.receive("after-fetch", data => onResponse(() => loadImage(data)))
-
 window.api.receive("after-pin", data => onResponse(() => onAfterPin(data)))
-
 window.api.receive("show-actual-size", () => onResponse(() => imageTransform.showActualSize()));
-
 window.api.receive("toggle-mode", (data) => onResponse(() => changeMode(data.preference.mode)))
-
 window.api.receive("toggle-theme", (data) => onResponse(() => applyTheme(data.preference.theme)))
-
 window.api.receive("open-history", () => onResponse(() => toggleHistory()));
-
 window.api.receive("after-remove-history", data => onResponse(() => changeFileList(data.history)))
-
 window.api.receive("after-toggle-maximize", data => onResponse(() => onAfterToggleMaximize(data)))
+
+
+window.onload = () => {
+
+    Dom.title = document.getElementById("title");
+    Dom.resizeBtn = document.getElementById("resizeBtn");
+    Dom.viewport = document.getElementById("viewport");
+    Dom.img = (document.getElementById("img") as HTMLImageElement);
+    Dom.imageArea = document.getElementById("imageArea");
+    Dom.loader = document.getElementById("loader");
+    Dom.history = document.getElementById("history")
+    Dom.scaleRate = document.getElementById("scaleRate")
+    Dom.counter = document.getElementById("counter");
+    Dom.category = document.getElementById("category");
+
+    Dom.img.addEventListener("load", onImageLoaded)
+
+    Dom.img.addEventListener("mousedown", onImageMousedown)
+
+    Dom.imageArea.addEventListener("mousedown", () => {
+        if(isHistoryOpen()){
+            closeHistory();
+        }
+    })
+
+    Dom.imageArea.addEventListener("wheel", imageTransform.onWheel);
+
+    document.getElementById("imageContainer").addEventListener("dragover", e => e.preventDefault())
+
+    document.getElementById("imageContainer").addEventListener("drop", onDrop);
+
+    imageTransform.init(Dom.imageArea, Dom.img)
+    imageTransform.on("transformchange", changeInfoTexts)
+    imageTransform.on("dragstart", onImageDragStart)
+    imageTransform.on("dragend", onImageDragEnd)
+
+}
+
+window.addEventListener("resize", imageTransform.onWindowResize)
+document.addEventListener("keydown", onKeydown)
+document.addEventListener("click", onClick)
+document.addEventListener("mousemove", imageTransform.onMousemove)
+document.addEventListener("mouseup", onMouseup)
+document.addEventListener("mouseup", onMouseup)
 
 export {}

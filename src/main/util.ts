@@ -54,7 +54,12 @@ export default class Util{
             return await sharp(fullPath).withMetadata({orientation:nextOrientation}).toBuffer();
         }
 
-        const degree = currenOrientation === 1 || currenOrientation === 8 ? RotateDegree[nextOrientation] - RotateDegree[currenOrientation] : RotateDegree[currenOrientation] - RotateDegree[nextOrientation]
+        let degree = RotateDegree[currenOrientation] - RotateDegree[nextOrientation];
+
+        if(currenOrientation === 1 || currenOrientation === 8){
+            degree = RotateDegree[nextOrientation] - RotateDegree[currenOrientation]
+        }
+
         return await sharp(fullPath).withMetadata().rotate(degree).withMetadata().toBuffer()
     }
 

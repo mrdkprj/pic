@@ -6,10 +6,12 @@ const State = {
     editMode: "Resize" as Pic.EditMode,
     isClipping:false,
 }
+
 const clipState = {
     startX:0,
     startY:0,
 }
+
 const undoStack:Pic.ImageFile[] = []
 const redoStack:Pic.ImageFile[] = []
 
@@ -419,7 +421,7 @@ const showEditResult = (data:Pic.EditResult) => {
 
 }
 
-const onResize = () => {
+const onWindowResize = () => {
     if(Dom.img.src){
         imageTransform.onWindowResize();
         celarClip();
@@ -579,7 +581,7 @@ window.onload = () => {
     imageTransform.on("dragend", onImageDragEnd)
 }
 
-window.addEventListener("resize", onResize)
+window.addEventListener("resize", onWindowResize)
 
 document.addEventListener("keydown", onKeydown)
 document.addEventListener("click", onClick)

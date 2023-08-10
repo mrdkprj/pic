@@ -28,6 +28,9 @@ export const EmptyImageFile:Pic.ImageFile = {
     }
 }
 
+export const BACKWARD = -1;
+export const FORWARD = 1;
+
 export const Orientations = [1,6,3,8];
 
 export const OrientationName = {
