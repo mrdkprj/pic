@@ -106,7 +106,7 @@ const onKeydown = (e:KeyboardEvent) => {
     }
 
     if(e.key == "F5"){
-        window.api.send("restart")
+        request("restart", null)
     }
 
     if(e.ctrlKey && e.key == "r"){
@@ -139,7 +139,7 @@ const onKeydown = (e:KeyboardEvent) => {
     }
 
     if(isFinite(Number(e.key))){
-        request<Pic.CategoryArgs>("set-category", {category:Number(e.key)})
+        request("set-category", {category:Number(e.key)})
         setCategory(Number(e.key));
     }
 
@@ -185,7 +185,7 @@ const onClick = (e:MouseEvent) => {
     }
 
     if(e.target.id == "setting"){
-        window.api.send("open-main-context")
+        request("open-main-context", null)
     }
 
     if(e.target.id == "previous"){
@@ -222,7 +222,7 @@ const onMouseup = (e:MouseEvent) => {
     if(e.button == 2 && e.buttons == 1){
         e.preventDefault();
         State.contextMenuOpening = true;
-        window.api.send("open-main-context")
+        request("open-main-context", null)
         return;
     }
 
@@ -343,13 +343,13 @@ const prepare = () => {
 
 const dropFile = (file:File | null) => {
     if(prepare()){
-        window.api.send<Pic.DropRequest>("drop-file", {fullPath:file?.path});
+        request("drop-file", {fullPath:file?.path});
     }
 }
 
 const startFetch = (index:number) => {
     if(prepare()){
-        request<Pic.FetchRequest>("fetch-image", {index});
+        request("fetch-image", {index});
     }
 }
 
@@ -439,12 +439,12 @@ const changeFileList = (history:{[key:string]:string}) => {
 }
 
 const onFileListItemClicked = (e:MouseEvent) => {
-    window.api.send<Pic.RestoreRequest>("restore", {fullPath: (e.target as HTMLElement).textContent});
+    request("restore", {fullPath: (e.target as HTMLElement).textContent});
 }
 
 const removeHistory = (e:MouseEvent) => {
     if(confirm("Remove history?")){
-        window.api.send<Pic.RemoveHistoryRequest>("remove-history", {fullPath: (e.target as HTMLElement).nextElementSibling.textContent});
+        request("remove-history", {fullPath: (e.target as HTMLElement).nextElementSibling.textContent});
     }
 }
 
@@ -465,11 +465,11 @@ const closeHistory = () => {
 }
 
 const minimize = () => {
-    window.api.send("minimize")
+    request("minimize", null)
 }
 
 const toggleMaximize = () => {
-    window.api.send("toggle-maximize")
+    request("toggle-maximize", null)
 }
 
 const isFullScreen = () => {
@@ -483,11 +483,11 @@ const toggleFullscreen = () => {
         Dom.viewport.classList.add("full")
     }
 
-    window.api.send("toggle-fullscreen")
+    request("toggle-fullscreen", null)
 }
 
 const close = () => {
-    window.api.send("close");
+    request("close", null);
 }
 
 const lock = () => {
@@ -508,7 +508,7 @@ const setCategory = (category:number) => {
 }
 
 const openFileDialog = () => {
-    window.api.send("open-file-dialog")
+    request("open-file-dialog", null)
 }
 
 const onAfterPin = (data:Pic.PinResult) => {
@@ -522,7 +522,7 @@ const onAfterToggleMaximize = (data:Pic.Config) => {
     changeMaximizeIcon()
 }
 
-const request = <T extends Pic.Args>(channel:MainChannel, data:T) => {
+const request = <K extends keyof MainChannelEventMap>(channel:K, data:MainChannelEventMap[K]) => {
     if(Dom.img.src){
         window.api.send(channel, data);
     }
@@ -533,22 +533,22 @@ const onResponse = (callback:() => void) => {
     callback();
 }
 
-window.api.receive<Pic.Config>("config-loaded", data => onResponse(() => applyConfig(data)))
+window.api.receive("config-loaded", data => onResponse(() => applyConfig(data)))
 
-window.api.receive<Pic.FetchResult>("after-fetch", data => onResponse(() => loadImage(data)))
+window.api.receive("after-fetch", data => onResponse(() => loadImage(data)))
 
-window.api.receive<Pic.PinResult>("after-pin", data => onResponse(() => onAfterPin(data)))
+window.api.receive("after-pin", data => onResponse(() => onAfterPin(data)))
 
 window.api.receive("show-actual-size", () => onResponse(() => imageTransform.showActualSize()));
 
-window.api.receive<Pic.ChangePreferenceArgs>("toggle-mode", (data) => onResponse(() => changeMode(data.preference.mode)))
+window.api.receive("toggle-mode", (data) => onResponse(() => changeMode(data.preference.mode)))
 
-window.api.receive<Pic.ChangePreferenceArgs>("toggle-theme", (data) => onResponse(() => applyTheme(data.preference.theme)))
+window.api.receive("toggle-theme", (data) => onResponse(() => applyTheme(data.preference.theme)))
 
 window.api.receive("open-history", () => onResponse(() => toggleHistory()));
 
-window.api.receive<Pic.RemoveHistoryResult>("after-remove-history", data => onResponse(() => changeFileList(data.history)))
+window.api.receive("after-remove-history", data => onResponse(() => changeFileList(data.history)))
 
-window.api.receive<Pic.Config>("after-toggle-maximize", data => onResponse(() => onAfterToggleMaximize(data)))
+window.api.receive("after-toggle-maximize", data => onResponse(() => onAfterToggleMaximize(data)))
 
 export {}

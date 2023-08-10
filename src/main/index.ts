@@ -29,10 +29,10 @@ let currentIndex = 0;
 const mainContextMenuCallback = (menu:MainContextMenuTypes, args?:any) => {
     switch(menu){
         case MainContextMenuTypes.OpenFile:
-            onOpen();
+            openFile();
             break;
         case MainContextMenuTypes.Reveal:
-            onReveal();
+            reveal();
             break;
         case MainContextMenuTypes.History:
             respond("Main", "open-history", null);
@@ -116,34 +116,38 @@ app.on("ready", () => {
 
 const registerIpcChannels = () => {
 
-    const handlers:IpcMainHandler[] = [
-        {channel:"minimize", handle:minimize},
-        {channel:"toggle-maximize", handle:toggleMaximize},
-        {channel:"open-main-context", handle:onOpenMainContext},
-        {channel:"close", handle:onClose},
-        {channel:"drop-file", handle:onDropFile},
-        {channel:"fetch-image", handle:onFetchRequest},
-        {channel:"delete", handle:onDelete},
-        {channel:"pin", handle:onPin},
-        {channel:"rotate", handle:onRotate},
-        {channel:"restore", handle:onRestore},
-        {channel:"remove-history", handle:onRemoveHistory},
-        {channel:"toggle-fullscreen", handle:onToggleFullscreen},
-        {channel:"open-edit-dialog", handle:openEditDialog},
-        {channel:"close-edit-dialog", handle:onCloseEditDialog},
-        {channel:"resize", handle:onResizeRequest},
-        {channel:"clip", handle:onClipRequest},
-        {channel:"save-image", handle:onSaveImageRequest},
-        {channel:"set-category", handle:onSetCategory},
-        {channel:"open-file-dialog", handle:onOpenFileDialog},
-        {channel:"close-file-dialog", handle:onCloseFileDialog},
-        {channel:"restart", handle:restart},
-    ]
+    const addEventHandler = <K extends keyof MainChannelEventMap>(
+        channel:K,
+        handler: (data: MainChannelEventMap[K]) => void | Promise<void>
+    ) => {
+        ipcMain.on(channel, (_event, request) => handler(request))
+    }
 
-    handlers.forEach(handler => ipcMain.on(handler.channel, (_event, request) => handler.handle(request)));
+    addEventHandler("minimize", minimize)
+    addEventHandler("toggle-maximize", toggleMaximize)
+    addEventHandler("open-main-context", openMainContext)
+    addEventHandler("close", onClose)
+    addEventHandler("drop-file", onDropRequest)
+    addEventHandler("fetch-image", fetchImage)
+    addEventHandler("delete", deleteFile)
+    addEventHandler("pin", pin)
+    addEventHandler("rotate", onRotateRequest)
+    addEventHandler("restore", restoreFile)
+    addEventHandler("remove-history", removeHistory)
+    addEventHandler("toggle-fullscreen", onToggleFullscreen)
+    addEventHandler("open-edit-dialog", openEditDialog)
+    addEventHandler("close-edit-dialog", onCloseEditDialog)
+    addEventHandler("resize", resize)
+    addEventHandler("clip", clip)
+    addEventHandler("save-image", saveImage)
+    addEventHandler("set-category", onSetCategory)
+    addEventHandler("open-file-dialog", openFileFileDialog)
+    addEventHandler("close-file-dialog", onCloseFileDialog)
+    addEventHandler("restart", onRestartRequest)
+
 }
 
-const respond = <T extends Pic.Args>(rendererName:RendererName, channel:RendererChannel, data:T) => {
+const respond = <K extends keyof RendererChannelEventMap>(rendererName:RendererName, channel:K, data:RendererChannelEventMap[K]) => {
     Renderers[rendererName].webContents.send(channel, data);
 }
 
@@ -222,7 +226,7 @@ const sendImageData = async () => {
     }
 
     if(imageFile.type === "undefined"){
-        return respond<Pic.FetchResult>("Main", "after-fetch", result);
+        return respond("Main", "after-fetch", result);
     }
 
     const metadata = await util.getMetadata(imageFile.fullPath);
@@ -239,7 +243,7 @@ const sendImageData = async () => {
     imageFile.detail.renderedWidth = metadata.orientation % 2 === 0 ? metadata.height : metadata.width;
     imageFile.detail.renderedHeight = metadata.orientation % 2 === 0 ? metadata.width : metadata.height;
 
-    respond<Pic.FetchResult>("Main", "after-fetch", result);
+    respond("Main", "after-fetch", result);
 
 }
 
@@ -301,7 +305,7 @@ const sortImageFiles = (sortType:Pic.SortType, currentFileName?:string) => {
     config.data.preference.sort = sortType;
 }
 
-const onOpenMainContext = () => {
+const openMainContext = () => {
     mainContext.popup({window:Renderers.Main})
 }
 
@@ -394,9 +398,9 @@ const reconstructHistory = (directory:string) => {
 
 }
 
-const removeHistory = (file:string) => {
-    reconstructHistory(path.dirname(file));
-    respond<Pic.RemoveHistoryResult>("Main", "after-remove-history", {history:config.data.history});
+const removeHistory = (data:Pic.RemoveHistoryRequest) => {
+    reconstructHistory(path.dirname(data.fullPath));
+    respond("Main", "after-remove-history", {history:config.data.history});
 }
 
 const clip = async (request:Pic.ClipRequest) => {
@@ -414,10 +418,10 @@ const clip = async (request:Pic.ClipRequest) => {
         imageFile.detail.renderedWidth = imageFile.detail.orientation % 2 === 0 ? request.rect.height : request.rect.width;
         imageFile.detail.renderedHeight = imageFile.detail.orientation % 2 === 0 ? request.rect.width : request.rect.height;
 
-        respond<Pic.EditResult>("Edit", "after-edit", {image:imageFile})
+        respond("Edit", "after-edit", {image:imageFile})
 
     }catch(ex:any){
-        respond<Pic.EditResult>("Edit", "after-edit", {image:null, message:ex.message})
+        respond("Edit", "after-edit", {image:null, message:ex.message})
     }
 }
 
@@ -437,10 +441,10 @@ const resize = async (request:Pic.ResizeRequest) => {
         imageFile.detail.renderedWidth = imageFile.detail.orientation % 2 === 0 ? request.size.height : request.size.width;
         imageFile.detail.renderedHeight = imageFile.detail.orientation % 2 === 0 ? request.size.width : request.size.height;
 
-        respond<Pic.EditResult>("Edit", "after-edit", {image:imageFile})
+        respond("Edit", "after-edit", {image:imageFile})
 
     }catch(ex:any){
-        respond<Pic.EditResult>("Edit", "after-edit", {image:null, message:ex.message})
+        respond("Edit", "after-edit", {image:null, message:ex.message})
     }
 
 
@@ -464,7 +468,7 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
             ],
         })
 
-        if(!savePath) return respond<Pic.SaveImageResult>("Edit", "after-save-image", {image:request.image});
+        if(!savePath) return respond("Edit", "after-save-image", {image:request.image});
     }
 
     try{
@@ -478,10 +482,10 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
         image.directory = path.dirname(savePath);
         image.fileName = path.basename(savePath);
         image.type = "path"
-        respond<Pic.SaveImageResult>("Edit", "after-save-image", {image:request.image})
+        respond("Edit", "after-save-image", {image:request.image})
         loadImage(targetfiles[currentIndex].fullPath)
     }catch(ex:any){
-        respond<Pic.SaveImageResult>("Edit", "after-save-image", {image:request.image, message:ex.message})
+        respond("Edit", "after-save-image", {image:request.image, message:ex.message})
     }
 
 }
@@ -534,12 +538,12 @@ const minimize = () => {
 
 const onUnmaximize = () => {
     config.data.isMaximized = false;
-    respond<Pic.Config>(topRendererName, "after-toggle-maximize", config.data)
+    respond(topRendererName, "after-toggle-maximize", config.data)
 }
 
 const onMaximize = () => {
     config.data.isMaximized = true;
-    respond<Pic.Config>(topRendererName, "after-toggle-maximize", config.data)
+    respond(topRendererName, "after-toggle-maximize", config.data)
 }
 
 const changeTopRenderer = (name:RendererName) => {
@@ -578,13 +582,9 @@ const onClose = async () => {
     Renderers.Main.close();
 }
 
-const onDropFile = async (data:Pic.DropRequest) => await loadImage(data.fullPath)
+const onDropRequest = async (data:Pic.DropRequest) => await loadImage(data.fullPath)
 
-const onFetchRequest = (data:Pic.FetchRequest) => fetchImage(data);
-
-const onDelete = async () => await deleteFile()
-
-const onReveal = () => {
+const reveal = () => {
 
     const imageFile = getCurrentImageFile();
 
@@ -594,7 +594,7 @@ const onReveal = () => {
 
 }
 
-const onOpen = async () => {
+const openFile = async () => {
 
     const result = await dialog.showOpenDialog(Renderers.Main, {
         properties: ["openFile"],
@@ -613,20 +613,18 @@ const onOpen = async () => {
 
 }
 
-const onPin = () => {
+const pin = () => {
 
     const imageFile = getCurrentImageFile();
 
     if(!imageFile.fullPath) return;
 
     saveHistory()
-    respond<Pic.PinResult>("Main", "after-pin", {success:true, history:config.data.history});
+    respond("Main", "after-pin", {success:true, history:config.data.history});
 
 }
 
-const onRestore = (data:Pic.RestoreRequest) => restoreFile(data)
-
-const onRotate = async (data:Pic.RotateRequest) => {
+const onRotateRequest = async (data:Pic.RotateRequest) => {
 
     await rotate(data.orientation);
     sendImageData();
@@ -653,15 +651,13 @@ const changeTimestampMode = (timestampMode:Pic.Timestamp) => {
 
 const toggleMode = (mode:Pic.Mode) => {
     config.data.preference.mode = mode;
-    respond<Pic.ChangePreferenceArgs>("Main", "toggle-mode", {preference:config.data.preference})
+    respond("Main", "toggle-mode", {preference:config.data.preference})
 }
 
 const toggleTheme = (theme:Pic.Theme) => {
     config.data.preference.theme = theme;
-    respond<Pic.ChangePreferenceArgs>("Main", "toggle-theme", {preference:config.data.preference})
+    respond("Main", "toggle-theme", {preference:config.data.preference})
 }
-
-const onRemoveHistory = (data:Pic.RemoveHistoryRequest) => removeHistory(data.fullPath)
 
 const onToggleFullscreen = () => {
 
@@ -672,25 +668,21 @@ const onToggleFullscreen = () => {
     }
 }
 
-const onClipRequest = (data:Pic.ClipRequest) => clip(data)
-const onResizeRequest = (data:Pic.ResizeRequest) => resize(data)
-const onSaveImageRequest = async (data:Pic.SaveImageRequest) => await saveImage(data);
-
 const openEditDialog = () => {
 
-    respond<Pic.OpenEditArg>("Edit", "edit-dialog-opened", {file:getCurrentImageFile(), config:config.data})
+    respond("Edit", "edit-dialog-opened", {file:getCurrentImageFile(), config:config.data})
 
     changeTopRenderer("Edit")
 }
 
 const onCloseEditDialog = () => changeTopRenderer("Main");
 
-const restart = () => {
+const onRestartRequest = () => {
     Renderers.Main.reload();
-    respond<Pic.OpenEditArg>("Edit", "edit-dialog-opened", {file:getCurrentImageFile(), config:config.data})
+    respond("Edit", "edit-dialog-opened", {file:getCurrentImageFile(), config:config.data})
 }
 
-const onSetCategory = (data:Pic.CategoryArgs) => {
+const onSetCategory = (data:Pic.CategoryChangeEvent) => {
     if(data.category){
         targetfiles[currentIndex].detail.category = data.category;
     }else{
@@ -698,10 +690,10 @@ const onSetCategory = (data:Pic.CategoryArgs) => {
     }
 }
 
-const onOpenFileDialog = () => {
+const openFileFileDialog = () => {
     const files = targetfiles.filter(file => file.detail.category);
     if(files.length > 0){
-        respond<Pic.OpenFileDialogArgs>("File", "prepare-file-dialog", {files});
+        respond("File", "prepare-file-dialog", {files});
         Renderers.File.show()
     }
 }

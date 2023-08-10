@@ -29,38 +29,6 @@ const Dom = {
 const imageTransform = new ImageTransform
 let currentImageFile:Pic.ImageFile;
 
-window.onload = () => {
-
-    Dom.title = document.getElementById("title");
-    Dom.resizeBtn = document.getElementById("resizeBtn")
-    Dom.viewport = document.getElementById("viewport");
-    Dom.titleBar = document.getElementById("titleBar")
-    Dom.img = (document.getElementById("img") as HTMLImageElement);
-    Dom.imageArea = document.getElementById("imageArea");
-    Dom.loader = document.getElementById("loader");
-    Dom.scaleText = document.getElementById("scaleText")
-    Dom.clipArea = document.getElementById("clipArea")
-    Dom.canvas = document.getElementById("clipCanvas")
-
-    Dom.img.addEventListener("mousedown", e => onImageMousedown(e))
-    Dom.img.addEventListener("load", onImageLoaded)
-
-    Dom.imageArea.addEventListener("wheel", imageTransform.onWheel)
-
-    imageTransform.init(Dom.imageArea, Dom.img)
-    imageTransform.on("transformchange", onTransformChange)
-    imageTransform.on("dragstart", onImageDragStart)
-    imageTransform.on("dragend", onImageDragEnd)
-}
-
-window.addEventListener("resize", _e => onResize())
-
-document.addEventListener("keydown", e => onKeydown(e))
-document.addEventListener("click", e => onClick(e))
-document.addEventListener("mousedown", e => onmousedown(e))
-document.addEventListener("mousemove", e => onMousemove(e))
-document.addEventListener("mouseup", e => onMouseup(e))
-
 const onKeydown = (e:KeyboardEvent) => {
 
     if(e.key == "Escape"){
@@ -68,7 +36,7 @@ const onKeydown = (e:KeyboardEvent) => {
     }
 
     if(e.key == "F5"){
-        window.api.send("restart")
+        window.api.send("restart", null)
     }
 
     if(e.ctrlKey && e.key == "r"){
@@ -414,7 +382,7 @@ const requestEdit = () => {
 
         if(!clipInfo) return celarClip();
 
-        request<Pic.ClipRequest>("clip",  clipInfo)
+        request("clip",  clipInfo)
     }
 
     if(State.editMode === "Resize" && imageTransform.isResized()){
@@ -426,7 +394,7 @@ const requestEdit = () => {
             height: Math.floor(currentImageFile.detail.height * scale),
         }
 
-        request<Pic.ResizeRequest>("resize", {image:currentImageFile, size} )
+        request("resize", {image:currentImageFile, size} )
     }
 
 }
@@ -452,18 +420,18 @@ const showEditResult = (data:Pic.EditResult) => {
 }
 
 const onResize = () => {
-    imageTransform.onWindowResize();
     if(Dom.img.src){
+        imageTransform.onWindowResize();
         celarClip();
     }
 }
 
 const minimize = () => {
-    window.api.send("minimize")
+    window.api.send("minimize", null)
 }
 
 const toggleMaximize = () => {
-    window.api.send("toggle-maximize")
+    window.api.send("toggle-maximize", null)
 }
 
 const onTransformChange = () => {
@@ -492,7 +460,7 @@ const saveImage = (saveCopy:boolean) => {
 
     const executeSave = saveCopy ? true : window.confirm("Overwrite image?")
     if(executeSave){
-        request<Pic.SaveImageRequest>("save-image", {image:currentImageFile, saveCopy})
+        request("save-image", {image:currentImageFile, saveCopy})
     }
 
 }
@@ -542,7 +510,7 @@ const clear = () => {
 
 const close = () => {
     clear();
-    window.api.send("close-edit-dialog");
+    window.api.send("close-edit-dialog", null);
 }
 
 const lock = () => {
@@ -553,7 +521,7 @@ const unlock = () => {
     Dom.loader.style.display = "none";
 }
 
-const onOpen = (data:Pic.OpenEditArg) => {
+const onOpen = (data:Pic.OpenEditEvent) => {
     applyConfig(data.config);
     loadImage(data.file)
 }
@@ -571,7 +539,7 @@ const onAfterToggleMaximize = (data:Pic.Config) => {
     changeMaximizeIcon()
 }
 
-const request = <T extends Pic.Args>(channel:MainChannel, data:T) => {
+const request = <K extends keyof MainChannelEventMap>(channel:K, data:MainChannelEventMap[K]) => {
     if(prepare()){
         window.api.send(channel, data);
     }
@@ -582,12 +550,41 @@ const onResponse = (callback:() => void) => {
     callback();
 }
 
-window.api.receive<Pic.OpenEditArg>("edit-dialog-opened", data => onResponse(() => onOpen(data)))
+window.api.receive("edit-dialog-opened", data => onResponse(() => onOpen(data)))
+window.api.receive("after-edit", data => onResponse(() => onAfterEdit(data)))
+window.api.receive("after-save-image", data => onResponse(() => afterSaveImage(data)))
+window.api.receive("after-toggle-maximize", data => onResponse(() => onAfterToggleMaximize(data)))
 
-window.api.receive<Pic.EditResult>("after-edit", data => onResponse(() => onAfterEdit(data)))
+window.onload = () => {
 
-window.api.receive<Pic.SaveImageResult>("after-save-image", data => onResponse(() => afterSaveImage(data)))
+    Dom.title = document.getElementById("title");
+    Dom.resizeBtn = document.getElementById("resizeBtn")
+    Dom.viewport = document.getElementById("viewport");
+    Dom.titleBar = document.getElementById("titleBar")
+    Dom.img = (document.getElementById("img") as HTMLImageElement);
+    Dom.imageArea = document.getElementById("imageArea");
+    Dom.loader = document.getElementById("loader");
+    Dom.scaleText = document.getElementById("scaleText")
+    Dom.clipArea = document.getElementById("clipArea")
+    Dom.canvas = document.getElementById("clipCanvas")
 
-window.api.receive<Pic.Config>("after-toggle-maximize", data => onResponse(() => onAfterToggleMaximize(data)))
+    Dom.img.addEventListener("mousedown", onImageMousedown)
+    Dom.img.addEventListener("load", onImageLoaded)
+
+    Dom.imageArea.addEventListener("wheel", imageTransform.onWheel)
+
+    imageTransform.init(Dom.imageArea, Dom.img)
+    imageTransform.on("transformchange", onTransformChange)
+    imageTransform.on("dragstart", onImageDragStart)
+    imageTransform.on("dragend", onImageDragEnd)
+}
+
+window.addEventListener("resize", onResize)
+
+document.addEventListener("keydown", onKeydown)
+document.addEventListener("click", onClick)
+document.addEventListener("mousedown", onmousedown)
+document.addEventListener("mousemove", onMousemove)
+document.addEventListener("mouseup", onMouseup)
 
 export {}

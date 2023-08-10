@@ -3,27 +3,52 @@ declare global {
         api: Api;
     }
 
-    type MainChannel = "minimize" | "toggle-maximize" | "close" | "drop-file" | "fetch-image" | "delete" | "pin" | "restore" |
-                        "rotate" | "remove-history" | "toggle-fullscreen" | "set-category" | "open-file-dialog" | "clip" |
-                        "resize" | "close-edit-dialog" | "close-file-dialog" | "open-main-context" | "restart" | "open-edit-dialog" |
-                        "save-image";
-    type MainRendererChannel = "config-loaded" | "after-fetch" | "after-remove-history" | "after-pin" | "after-toggle-maximize" |
-                            "toggle-mode" | "toggle-theme" | "toggle-orientaion" | "open-history" | "toggle-clipmode" |
-                            "prepare-file-dialog" | "show-actual-size";
-    type FileRendererChannel = "";
-    type EditRendererChannel = "edit-dialog-opened" | "after-edit" | "after-save-image" | "after-toggle-maximize";
-    type RendererChannel = MainRendererChannel | FileRendererChannel | EditRendererChannel;
     type RendererName = "Main" | "File" | "Edit";
     type Renderer = {[key in RendererName] : Electron.BrowserWindow}
 
-    interface IpcMainHandler {
-        channel: MainChannel;
-        handle: (data?:Pic.Args) => void | Promise<void>;
+    type MainChannelEventMap = {
+        "minimize": Pic.Event;
+        "toggle-maximize": Pic.Event;
+        "close": Pic.Event;
+        "drop-file": Pic.DropRequest;
+        "fetch-image": Pic.FetchRequest;
+        "delete": Pic.Event;
+        "pin": Pic.Event;
+        "restore": Pic.RestoreRequest;
+        "rotate": Pic.RotateRequest;
+        "remove-history": Pic.RemoveHistoryRequest;
+        "toggle-fullscreen": Pic.Event;
+        "set-category": Pic.CategoryChangeEvent;
+        "open-file-dialog": Pic.Event;
+        "clip": Pic.ClipRequest;
+        "resize": Pic.ResizeRequest;
+        "close-edit-dialog": Pic.Event;
+        "close-file-dialog": Pic.Event;
+        "open-main-context": Pic.Event;
+        "restart": Pic.Event;
+        "open-edit-dialog": Pic.Event;
+        "save-image": Pic.SaveImageRequest;
+    }
+
+    type RendererChannelEventMap = {
+        "config-loaded": Pic.Config;
+        "after-fetch": Pic.FetchResult;
+        "after-remove-history": Pic.RemoveHistoryResult;
+        "after-pin": Pic.PinResult;
+        "after-toggle-maximize": Pic.Config;
+        "toggle-mode": Pic.ChangePreferenceEvent;
+        "toggle-theme": Pic.ChangePreferenceEvent;
+        "open-history": Pic.Event;
+        "prepare-file-dialog": Pic.OpenFileDialogEvent;
+        "show-actual-size": Pic.Event;
+        "edit-dialog-opened": Pic.OpenEditEvent;
+        "after-edit": Pic.EditResult;
+        "after-save-image": Pic.SaveImageResult;
     }
 
     interface Api {
-        send: <T extends Pic.Args>(channel: MainChannel, data?:T) => void;
-        receive: <T extends Pic.Args>(channel:RendererChannel, listener: (data?: T) => void) => () => void;
+        send: <K extends keyof MainChannelEventMap>(channel: K, data:MainChannelEventMap[K]) => void;
+        receive: <K extends keyof RendererChannelEventMap>(channel:K, listener: (data: RendererChannelEventMap[K]) => void) => () => void;
     }
 
     const MAIN_WINDOW_WEBPACK_ENTRY: string;
@@ -43,6 +68,7 @@ declare global {
         type Options = Mode | Orientaion | Theme | SortType | Mtime
         type ImageTransformEvent = "transformchange" | "dragstart" | "dragend"
         type ImageSroucetype = "path" | "buffer" | "undefined"
+        type EditMode = "Clip" | "Resize"
 
         type Bounds = {
             width:number;
@@ -57,6 +83,27 @@ declare global {
             mode:Mode;
             theme:Theme;
             orientation:Orientaion;
+        }
+
+        type ImageRectangle = {
+            left:number;
+            right:number;
+            top:number;
+            bottom:number;
+            width:number;
+            height:number;
+        }
+
+        type ClipRectangle = {
+            left:number;
+            top:number;
+            width:number;
+            height:number;
+        }
+
+        type ImageSize = {
+            width:number;
+            height:number;
         }
 
         type Config = {
@@ -86,7 +133,7 @@ declare global {
             category?:number;
         }
 
-        type OpenEditArg = {
+        type OpenEditEvent = {
             file:ImageFile;
             config:Config;
         }
@@ -127,31 +174,8 @@ declare global {
             history:{[key: string]: string};
         }
 
-        type ChangePreferenceArgs = {
+        type ChangePreferenceEvent = {
             preference: Preference;
-        }
-
-        type EditMode = "Clip" | "Resize"
-
-        type ImageRectangle = {
-            left:number;
-            right:number;
-            top:number;
-            bottom:number;
-            width:number;
-            height:number;
-        }
-
-        type ClipRectangle = {
-            left:number;
-            top:number;
-            width:number;
-            height:number;
-        }
-
-        type ImageSize = {
-            width:number;
-            height:number;
         }
 
         type ClipRequest = {
@@ -179,22 +203,17 @@ declare global {
             message?:string;
         }
 
-        type CategoryArgs = {
+        type CategoryChangeEvent = {
             category:number;
         }
 
-        type OpenFileDialogArgs = {
+        type OpenFileDialogEvent = {
             files:ImageFile[]
         }
 
-        type Request = {
-            renderer:RendererName
+        type Event = {
+            args:any
         }
-
-        type Args = FetchRequest | FetchResult | PinResult | ChangePreferenceArgs | EditResult |
-                    RotateRequest | DropRequest | RemoveHistoryRequest | RemoveHistoryResult | OpenEditArg |
-                    ClipRequest | ResizeRequest | SaveImageRequest | SaveImageResult | CategoryArgs | OpenFileDialogArgs |
-                    Config | Request
 
     }
 

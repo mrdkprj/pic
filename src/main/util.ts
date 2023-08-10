@@ -49,11 +49,6 @@ export default class Util{
     }
 
     async rotate(fullPath:string, currenOrientation:number, nextOrientation:number){
-        /*
-        const buffer = await sharp(fullPath).withMetadata({orientation}).toBuffer();
-
-        await sharp(buffer).withMetadata().toFile(fullPath);
-        */
 
         if(Jpegs.includes(path.extname(fullPath))){
             return await sharp(fullPath).withMetadata({orientation:nextOrientation}).toBuffer();

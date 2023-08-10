@@ -97,7 +97,7 @@ export class ImageTransform{
     }
 
     onWindowResize = () => {
-        if(this.img && this.img.src){
+        if(this.imageFile){
             this.resetImage();
         }
     }
