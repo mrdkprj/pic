@@ -117,6 +117,7 @@ declare global {
 
         type ImageFile = {
             fullPath:string;
+            src:string;
             directory:string;
             fileName:string;
             type:ImageSroucetype;

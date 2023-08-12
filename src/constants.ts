@@ -18,6 +18,7 @@ export const EmptyImageFile:Pic.ImageFile = {
     directory:"",
     fileName:"",
     type:"undefined",
+    src:"",
     timestamp: 0,
     detail:{
         orientation:0,

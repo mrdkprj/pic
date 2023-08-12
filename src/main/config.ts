@@ -22,25 +22,23 @@ export default class Config{
 
     data:Pic.Config;
 
-    private _file:string;
-    private _directory:string;
-    private _util = new Util();
+    private file:string;
+    private util = new Util();
 
     constructor(workingDirectory:string){
-        this._directory = process.env.NODE_ENV === "development" ? path.join(__dirname, "..", "..", "temp") : path.join(workingDirectory, "temp");
-        this._file = path.join(this._directory, CONFIG_FILE_NAME)
+        const directory = process.env.NODE_ENV === "development" ? path.join(__dirname, "..", "..", "temp") : path.join(workingDirectory, "temp");
+        this.util.exists(directory, true);
+        this.file = path.join(directory, CONFIG_FILE_NAME)
         this.init();
     }
 
     private init(){
 
-        this._util.exists(this._directory, true);
-
-        const fileExists = this._util.exists(this._file, false);
+        const fileExists = this.util.exists(this.file, false);
 
         if(fileExists){
 
-            const rawData = fs.readFileSync(this._file, {encoding:"utf8"});
+            const rawData = fs.readFileSync(this.file, {encoding:"utf8"});
             this.data = this.createConfig(JSON.parse(rawData))
 
         }else{
@@ -76,7 +74,7 @@ export default class Config{
     }
 
     save(){
-        fs.writeFileSync(this._file, JSON.stringify(this.data));
+        fs.writeFileSync(this.file, JSON.stringify(this.data));
     }
 
 }

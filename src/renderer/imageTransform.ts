@@ -2,18 +2,18 @@ export class ImageTransform{
 
     private container:HTMLElement;
     private img:HTMLImageElement;
-    private state = {
+    private dragState = {
         isDragging:false,
         isImageMoved:false,
     }
     private mousePosition = {x:0, y:0};
     private imagePosition = {x:0, y:0};
     private imagePadding = {x:0, y:0};
-    private currentTransform= {x:0, y:0, orgX:0, orgY:1}
+    private currentTransform = {x:0, y:0, orgX:0, orgY:1}
     private defaultScale = 1;
     private imageFile:Pic.ImageFile
     private containerRect :Pic.ImageRectangle;
-    private imgBoundRect :Pic.ImageRectangle;
+    private imageRect :Pic.ImageRectangle;
     private scale = 1;
     private previousScale = 0;
     private scaleForActualSize = 1;
@@ -34,11 +34,11 @@ export class ImageTransform{
     setImage(imageFile:Pic.ImageFile){
         this.imageFile = imageFile;
         this.resetImage();
-        this.scaleForActualSize = Math.max(this.imageFile.detail.width / this.imgBoundRect.width, this.imageFile.detail.height / this.imgBoundRect.height);
+        this.scaleForActualSize = Math.max(this.imageFile.detail.width / this.imageRect.width, this.imageFile.detail.height / this.imageRect.height);
     }
 
     getImageRatio(){
-        return Math.max(this.imgBoundRect.width * this.scale / this.imageFile.detail.width, this.imgBoundRect.height * this.scale / this.imageFile.detail.height);
+        return Math.max(this.imageRect.width * this.scale / this.imageFile.detail.width, this.imageRect.height * this.scale / this.imageFile.detail.height);
     }
 
     showActualSize(){
@@ -46,11 +46,11 @@ export class ImageTransform{
         if(this.scaleForActualSize == this.defaultScale) return;
 
         this.scale = this.scaleForActualSize
-        this.changeTransform();
+        this.zoom(this.imageRect.width / 2, this.imageRect.height / 2);
     }
 
     isImageMoved(){
-        return this.state.isImageMoved
+        return this.dragState.isImageMoved
     }
 
     getScale(){
@@ -103,8 +103,8 @@ export class ImageTransform{
     }
 
     onMousedown = (e:MouseEvent) => {
-        this.state.isImageMoved = false;
-        this.state.isDragging = true;
+        this.dragState.isImageMoved = false;
+        this.dragState.isDragging = true;
 
         if(this.scale != this.defaultScale){
             this.eventHandlers.onDragstart()
@@ -117,8 +117,8 @@ export class ImageTransform{
 
         if(e.button != 0) return;
 
-        if(this.state.isDragging){
-            this.state.isImageMoved = true;
+        if(this.dragState.isDragging){
+            this.dragState.isImageMoved = true;
             e.preventDefault();
             this.moveImage(e);
         }
@@ -126,7 +126,8 @@ export class ImageTransform{
 
     onMouseup = (_e:MouseEvent) => {
         this.eventHandlers.onDragend();
-        this.state.isDragging = false;
+        this.dragState.isDragging = false;
+        this.dragState.isImageMoved = false;
     }
 
     onWheel = (e:WheelEvent) => {
@@ -145,10 +146,10 @@ export class ImageTransform{
             this.scale = this.shrinkable ? Math.max(.125, this.scale) : Math.max(Math.max(.125, this.scale), this.defaultScale)
         }
 
-        this.zoom(e);
+        this.zoom(e.pageX, e.pageY);
     }
 
-    private zoom(e:WheelEvent){
+    private zoom(x:number, y:number){
 
         if(this.scale == this.previousScale){
             return;
@@ -156,7 +157,7 @@ export class ImageTransform{
 
         this.calculateBound();
 
-        this.calculateTransform(e);
+        this.calculateTransform(x, y);
 
         this.adjustTransform();
 
@@ -164,15 +165,15 @@ export class ImageTransform{
 
     }
 
-    private calculateTransform(e:WheelEvent){
+    private calculateTransform(x:number, y:number){
 
         const rect = this.img.getBoundingClientRect();
 
         const left = rect.left
         const top = rect.top
 
-        const mouseX = e.pageX - left;
-        const mouseY = e.pageY - top;
+        const mouseX = x - left;
+        const mouseY = y - top;
 
         const prevOrigX = this.currentTransform.orgX * this.previousScale
         const prevOrigY = this.currentTransform.orgY * this.previousScale
@@ -191,14 +192,14 @@ export class ImageTransform{
             newOrigY = prevOrigY / this.previousScale;
         }
 
-        if(this.imgBoundRect.top == 0){
+        if(this.imageRect.top == 0){
             translateY = 0;
-            newOrigY =  this.imgBoundRect.height / 2;
+            newOrigY =  this.imageRect.height / 2;
         }
 
-        if(this.imgBoundRect.left == 0){
+        if(this.imageRect.left == 0){
             translateX = 0;
-            newOrigX = this.imgBoundRect.width / 2;
+            newOrigX = this.imageRect.width / 2;
         }
 
         this.currentTransform.x = translateX;
@@ -213,31 +214,32 @@ export class ImageTransform{
 
     private adjustTransform(){
 
-        if(this.imgBoundRect.top == 0){
+        if(this.imageRect.top == 0){
             this.currentTransform.y = 0;
         } else if(this.imagePosition.y > 0){
             this.currentTransform.y -= this.imagePosition.y;
-        } else if(this.imagePosition.y < this.imgBoundRect.top * -1){
-            this.currentTransform.y += Math.abs(this.imagePosition.y) - this.imgBoundRect.top;
+        } else if(this.imagePosition.y < this.imageRect.top * -1){
+            this.currentTransform.y += Math.abs(this.imagePosition.y) - this.imageRect.top;
         }
 
-        if(this.imgBoundRect.left == 0 ){
+        if(this.imageRect.left == 0 ){
             this.currentTransform.x = 0;
         }else if(this.imagePosition.x > 0){
             this.currentTransform.x -= this.imagePosition.x;
-        } else if(this.imagePosition.x < this.imgBoundRect.left * -1){
-            this.currentTransform.x += Math.abs(this.imagePosition.x) - this.imgBoundRect.left;
+        } else if(this.imagePosition.x < this.imageRect.left * -1){
+            this.currentTransform.x += Math.abs(this.imagePosition.x) - this.imageRect.left;
         }
 
     }
 
     private calculateBound(){
 
-        const newHeight = Math.floor(this.imgBoundRect.height * this.scale)
-        const newWidth = Math.floor(this.imgBoundRect.width * this.scale)
+        const newHeight = Math.floor(this.imageRect.height * this.scale)
+        const newWidth = Math.floor(this.imageRect.width * this.scale)
 
-        this.imgBoundRect.top = Math.max(Math.floor((newHeight - this.containerRect.height) / 1),0);
-        this.imgBoundRect.left = Math.max(Math.floor((newWidth - this.containerRect.width) / 1),0);
+        this.imageRect.top = Math.max(Math.floor((newHeight - this.containerRect.height) / 1),0);
+        this.imageRect.left = Math.max(Math.floor((newWidth - this.containerRect.width) / 1),0);
+
     }
 
     private moveImage(e:MouseEvent){
@@ -248,14 +250,14 @@ export class ImageTransform{
         const mouseMoveY = e.y - this.mousePosition.y;
         this.mousePosition.y = e.y;
 
-        if(this.imagePosition.y + mouseMoveY > 0 || this.imagePosition.y + mouseMoveY < this.imgBoundRect.top * -1){
+        if(this.imagePosition.y + mouseMoveY > 0 || this.imagePosition.y + mouseMoveY < this.imageRect.top * -1){
             //
         }else{
             this.imagePosition.y += mouseMoveY;
             this.currentTransform.y += mouseMoveY
         }
 
-        if(this.imagePosition.x + mouseMoveX > 0 || this.imagePosition.x + mouseMoveX < this.imgBoundRect.left * -1){
+        if(this.imagePosition.x + mouseMoveX > 0 || this.imagePosition.x + mouseMoveX < this.imageRect.left * -1){
             //
         }else{
             this.imagePosition.x += mouseMoveX;
@@ -303,19 +305,19 @@ export class ImageTransform{
 
         this.resetPosition();
 
-        this.imgBoundRect = this.toImageRectangle(this.img.getBoundingClientRect());
+        this.imageRect = this.toImageRectangle(this.img.getBoundingClientRect());
 
-        this.imagePadding.x = (this.containerRect.width - this.imgBoundRect.width) / 2;
-        this.imagePadding.y = (this.containerRect.height - this.imgBoundRect.height) / 2;
+        this.imagePadding.x = (this.containerRect.width - this.imageRect.width) / 2;
+        this.imagePadding.y = (this.containerRect.height - this.imageRect.height) / 2;
 
-        this.currentTransform.orgX = this.imgBoundRect.width / 2;
-        this.currentTransform.orgY = this.imgBoundRect.height / 2;
+        this.currentTransform.orgX = this.imageRect.width / 2;
+        this.currentTransform.orgY = this.imageRect.height / 2;
 
         this.calculateBound();
 
         this.changeTransform();
 
-        this.scaleForActualSize = Math.max(this.imageFile.detail.width / this.imgBoundRect.width, this.imageFile.detail.height / this.imgBoundRect.height);
+        this.scaleForActualSize = Math.max(this.imageFile.detail.width / this.imageRect.width, this.imageFile.detail.height / this.imageRect.height);
     }
 
     private toImageRectangle(rect:DOMRect):Pic.ImageRectangle{

@@ -59,7 +59,7 @@ const onKeydown = (e:KeyboardEvent) => {
     }
 
     if(e.key == "F5"){
-        request("restart", null)
+        window.api.send("restart", null)
     }
 
     if(e.ctrlKey && e.key == "r"){
@@ -138,7 +138,7 @@ const onClick = (e:MouseEvent) => {
     }
 
     if(e.target.id == "setting"){
-        request("open-main-context", null)
+        window.api.send("open-main-context", null)
     }
 
     if(e.target.id == "previous"){
@@ -155,8 +155,14 @@ const onClick = (e:MouseEvent) => {
 
 }
 
-const onImageMousedown = (e:MouseEvent) => {
-    imageTransform.onMousedown(e);
+const onMousedown = (e:MouseEvent) => {
+
+    if(!e.target || !(e.target instanceof HTMLElement)) return;
+
+    if(e.target.classList.contains("clickable")){
+        imageTransform.onMousedown(e);
+    }
+
     if(isHistoryOpen()){
         closeHistory();
     }
@@ -167,7 +173,7 @@ const onMouseup = (e:MouseEvent) => {
     if(!e.target || !(e.target instanceof HTMLElement)) return;
 
     if(e.button == 2 && !State.mouseOnly){
-        request("open-main-context", null)
+        window.api.send("open-main-context", null)
         return;
     }
 
@@ -212,14 +218,15 @@ const onDrop = (e:DragEvent) => {
 const loadImage = (result:Pic.FetchResult) => {
 
     currentImageFile = result.image;
+    console.log(currentImageFile)
 
-    const src = currentImageFile.type === "path" ? `app://${result.image.fullPath}?${new Date().getTime()}` : "";
+    const src = currentImageFile.type === "path" ? `${result.image.src}?${new Date().getTime()}` : "";
     Dom.img.src = src
 
-    if(src){
-        Dom.imageArea.classList.remove("no-image")
-    }else{
+    if(currentImageFile.type == "undefined"){
         Dom.imageArea.classList.add("no-image")
+    }else{
+        Dom.imageArea.classList.remove("no-image")
     }
 
     State.isPinned = result.pinned;
@@ -318,7 +325,7 @@ const applyConfig = (data:Pic.Config) => {
 
     applyTheme(data.preference.theme);
 
-    changeFileList(data.history);
+    changeHistory(data.history);
 }
 
 const changePinStatus = () => {
@@ -359,7 +366,11 @@ const applyTheme = (theme:Pic.Theme) => {
     }
 }
 
-const changeFileList = (history:{[key:string]:string}) => {
+const showActualSize = () => {
+    imageTransform.showActualSize()
+}
+
+const changeHistory = (history:{[key:string]:string}) => {
 
     Dom.history.innerHTML = "";
 
@@ -376,7 +387,7 @@ const changeFileList = (history:{[key:string]:string}) => {
         const fullPath = `${key}\\${history[key]}`;
         text.textContent = fullPath
         text.title = fullPath;
-        text.addEventListener("dblclick", onFileListItemClicked);
+        text.addEventListener("dblclick", onHistoryItemClick);
         item.append(remIcon, text);
         fragment.appendChild(item);
     });
@@ -384,13 +395,13 @@ const changeFileList = (history:{[key:string]:string}) => {
     Dom.history.appendChild(fragment)
 }
 
-const onFileListItemClicked = (e:MouseEvent) => {
-    request("restore", {fullPath: (e.target as HTMLElement).textContent});
+const onHistoryItemClick = (e:MouseEvent) => {
+    window.api.send("restore", {fullPath: (e.target as HTMLElement).textContent});
 }
 
 const removeHistory = (e:MouseEvent) => {
     if(confirm("Remove history?")){
-        request("remove-history", {fullPath: (e.target as HTMLElement).nextElementSibling.textContent});
+        window.api.send("remove-history", {fullPath: (e.target as HTMLElement).nextElementSibling.textContent});
     }
 }
 
@@ -411,11 +422,11 @@ const closeHistory = () => {
 }
 
 const minimize = () => {
-    request("minimize", null)
+    window.api.send("minimize", null)
 }
 
 const toggleMaximize = () => {
-    request("toggle-maximize", null)
+    window.api.send("toggle-maximize", null)
 }
 
 const isFullScreen = () => {
@@ -429,11 +440,11 @@ const toggleFullscreen = () => {
         Dom.viewport.classList.add("full")
     }
 
-    request("toggle-fullscreen", null)
+    window.api.send("toggle-fullscreen", null)
 }
 
 const close = () => {
-    request("close", null);
+    window.api.send("close", null);
 }
 
 const lock = () => {
@@ -454,13 +465,13 @@ const setCategory = (category:number) => {
 }
 
 const openFileDialog = () => {
-    request("open-file-dialog", null)
+    window.api.send("open-file-dialog", null)
 }
 
 const onAfterPin = (data:Pic.PinResult) => {
     State.isPinned = data.success;
     changePinStatus();
-    changeFileList(data.history)
+    changeHistory(data.history)
 }
 
 const onAfterToggleMaximize = (data:Pic.Config) => {
@@ -482,11 +493,11 @@ const onResponse = (callback:() => void) => {
 window.api.receive("config-loaded", data => onResponse(() => applyConfig(data)))
 window.api.receive("after-fetch", data => onResponse(() => loadImage(data)))
 window.api.receive("after-pin", data => onResponse(() => onAfterPin(data)))
-window.api.receive("show-actual-size", () => onResponse(() => imageTransform.showActualSize()));
+window.api.receive("show-actual-size", () => onResponse(() => showActualSize()));
 window.api.receive("toggle-mode", (data) => onResponse(() => changeMode(data.preference.mode)))
 window.api.receive("toggle-theme", (data) => onResponse(() => applyTheme(data.preference.theme)))
 window.api.receive("open-history", () => onResponse(() => toggleHistory()));
-window.api.receive("after-remove-history", data => onResponse(() => changeFileList(data.history)))
+window.api.receive("after-remove-history", data => onResponse(() => changeHistory(data.history)))
 window.api.receive("after-toggle-maximize", data => onResponse(() => onAfterToggleMaximize(data)))
 
 
@@ -505,15 +516,9 @@ window.onload = () => {
 
     Dom.img.addEventListener("load", onImageLoaded)
 
-    Dom.img.addEventListener("mousedown", onImageMousedown)
-
-    Dom.imageArea.addEventListener("mousedown", () => {
-        if(isHistoryOpen()){
-            closeHistory();
-        }
-    })
-
     Dom.imageArea.addEventListener("wheel", imageTransform.onWheel);
+
+    Dom.imageArea.addEventListener("mousedown", onMousedown)
 
     document.getElementById("imageContainer").addEventListener("dragover", e => e.preventDefault())
 
@@ -529,8 +534,8 @@ window.onload = () => {
 window.addEventListener("resize", imageTransform.onWindowResize)
 document.addEventListener("keydown", onKeydown)
 document.addEventListener("click", onClick)
+//document.addEventListener("mousedown", onMousedown)
 document.addEventListener("mousemove", imageTransform.onMousemove)
-document.addEventListener("mouseup", onMouseup)
 document.addEventListener("mouseup", onMouseup)
 
 export {}

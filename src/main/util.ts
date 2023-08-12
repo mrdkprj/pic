@@ -5,6 +5,8 @@ import { RotateDegree, Extensions, Jpegs } from "../constants"
 
 sharp.cache(false);
 
+const isDev = process.env.NODE_ENV === "development";
+
 export default class Util{
 
     exists(target:string, createIfNotFound = false){
@@ -25,6 +27,7 @@ export default class Util{
 
         return {
             fullPath,
+            src: isDev ? `app://${fullPath}` : fullPath,
             directory:path.dirname(fullPath),
             fileName:path.basename(fullPath),
             type: "path",
