@@ -18,9 +18,9 @@ const config = new Config(app.getPath("userData"));
 const helper = new Helper();
 
 const Renderers:Renderer = {
-    Main:null,
-    File:null,
-    Edit:null,
+    Main:undefined,
+    File:undefined,
+    Edit:undefined,
 }
 
 let topRendererName:RendererName = "Main"
@@ -35,10 +35,10 @@ const mainContextMenuCallback = (menu:MainContextMenuTypes, args?:any) => {
             reveal();
             break;
         case MainContextMenuTypes.History:
-            respond("Main", "open-history", null);
+            respond("Main", "open-history", {});
             break;
         case MainContextMenuTypes.ShowActualSize:
-            respond("Main", "show-actual-size", null);
+            respond("Main", "show-actual-size", {});
             break;
         case MainContextMenuTypes.ToFirst:
             fetchFirst();
@@ -92,9 +92,9 @@ app.on("ready", () => {
 
     Renderers.Main.on("ready-to-show", () => {
         if(config.data.isMaximized){
-            Renderers.Main.maximize();
+            Renderers.Main?.maximize();
         }
-        Renderers.Main.setBounds(config.data.bounds)
+        Renderers.Main?.setBounds(config.data.bounds)
 
         onReady();
     })
@@ -105,11 +105,11 @@ app.on("ready", () => {
     Renderers.Edit.on("unmaximize", onUnmaximize);
 
     Renderers.Main.on("closed", () => {
-        Renderers.Main = null;
+        Renderers.Main = undefined;
     });
 
     Renderers.Edit.on("closed", () => {
-        Renderers.Edit = null;
+        Renderers.Edit = undefined;
     });
 
 });
@@ -148,7 +148,7 @@ const registerIpcChannels = () => {
 }
 
 const respond = <K extends keyof RendererChannelEventMap>(rendererName:RendererName, channel:K, data:RendererChannelEventMap[K]) => {
-    Renderers[rendererName].webContents.send(channel, data);
+    Renderers[rendererName]?.webContents.send(channel, data);
 }
 
 const showErrorMessage = (ex:Error) => {
@@ -157,7 +157,7 @@ const showErrorMessage = (ex:Error) => {
 
 const onReady = () => {
 
-    Renderers.Main.show();
+    Renderers.Main?.show();
 
     respond("Main", "config-loaded", config.data)
 
@@ -222,7 +222,7 @@ const sendImageData = async () => {
         image: imageFile,
         currentIndex: currentIndex + 1,
         fileCount: targetfiles.length,
-        pinned: config.data.history[imageFile.directory] && config.data.history[imageFile.directory] == imageFile.fileName,
+        pinned: !!config.data.history[imageFile.directory] && config.data.history[imageFile.directory] == imageFile.fileName,
     }
 
     if(imageFile.type === "undefined"){
@@ -238,10 +238,11 @@ const sendImageData = async () => {
         imageFile.detail.orientation = OrientationName.Clock180deg;
     }
 
-    imageFile.detail.width = metadata.width;
-    imageFile.detail.height = metadata.height;
-    imageFile.detail.renderedWidth = metadata.orientation % 2 === 0 ? metadata.height : metadata.width;
-    imageFile.detail.renderedHeight = metadata.orientation % 2 === 0 ? metadata.width : metadata.height;
+    imageFile.detail.width = metadata.width ?? 0;
+    imageFile.detail.height = metadata.height ?? 0;
+    const orientation = metadata.orientation ?? 1;
+    imageFile.detail.renderedWidth = orientation % 2 === 0 ? imageFile.detail.height : imageFile.detail.width;
+    imageFile.detail.renderedHeight = orientation % 2 === 0 ? imageFile.detail.width : imageFile.detail.height;
 
     respond("Main", "after-fetch", result);
 
@@ -405,9 +406,10 @@ const removeHistory = (data:Pic.RemoveHistoryRequest) => {
 
 const clip = async (request:Pic.ClipRequest) => {
 
+    const imageFile = request.image;
+
     try{
 
-        const imageFile = request.image;
         const input = imageFile.type === "path" ? imageFile.fullPath : util.fromBase64(imageFile.fullPath)
         const result = await util.clipBuffer(input, request.rect);
 
@@ -421,15 +423,16 @@ const clip = async (request:Pic.ClipRequest) => {
         respond("Edit", "after-edit", {image:imageFile})
 
     }catch(ex:any){
-        respond("Edit", "after-edit", {image:null, message:ex.message})
+        respond("Edit", "after-edit", {image:imageFile, message:ex.message})
     }
 }
 
 const resize = async (request:Pic.ResizeRequest) => {
 
+    const imageFile = request.image;
+
     try{
 
-        const imageFile = request.image;
         const input = imageFile.type === "path" ? imageFile.fullPath : util.fromBase64(imageFile.fullPath)
 
         const result = await util.resizeBuffer(input, request.size);
@@ -444,15 +447,15 @@ const resize = async (request:Pic.ResizeRequest) => {
         respond("Edit", "after-edit", {image:imageFile})
 
     }catch(ex:any){
-        respond("Edit", "after-edit", {image:null, message:ex.message})
+        respond("Edit", "after-edit", {image:imageFile, message:ex.message})
     }
 
 
 }
 
-const saveImage = async (request:Pic.SaveImageRequest) => {
+const getSaveDestPath = (request:Pic.SaveImageRequest) => {
 
-    if(request.image.type === "path") return;
+    if(!Renderers.Edit) return undefined;
 
     let savePath = getCurrentImageFile().fullPath;
 
@@ -466,12 +469,24 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
             filters: [
                 { name: "Image", extensions: ["jpeg", "jpg"] },
             ],
-        })
+        }) ?? ""
 
-        if(!savePath) return respond("Edit", "after-save-image", {image:request.image});
     }
 
+    return savePath;
+
+}
+
+const saveImage = async (request:Pic.SaveImageRequest) => {
+
+    if(request.image.type === "path") return;
+
+    const savePath = getSaveDestPath(request)
+
+    if(!savePath) return respond("Edit", "after-save-image", {image:request.image, status:"Cancel"});
+
     try{
+
         if(config.data.preference.timestamp == "Normal"){
             util.saveImage(savePath, request.image.fullPath)
         }else{
@@ -482,15 +497,18 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
         image.directory = path.dirname(savePath);
         image.fileName = path.basename(savePath);
         image.type = "path"
-        respond("Edit", "after-save-image", {image:request.image})
+        respond("Edit", "after-save-image", {image:request.image, status:"Done"})
         loadImage(targetfiles[currentIndex].fullPath)
+
     }catch(ex:any){
-        respond("Edit", "after-save-image", {image:request.image, message:ex.message})
+        respond("Edit", "after-save-image", {image:request.image, status:"Error", message:ex.message})
     }
 
 }
 
 const save = () => {
+
+    if(!Renderers.Main) return;
 
     config.data.isMaximized = Renderers.Main.isMaximized();
 
@@ -522,6 +540,8 @@ const toggleMaximize = () => {
 
     const renderer = topRendererName === "Main" ? Renderers.Main : Renderers.Edit
 
+    if(!renderer) return;
+
     if(renderer.isMaximized()){
         renderer.unmaximize();
         renderer.setBounds(config.data.bounds)
@@ -532,18 +552,12 @@ const toggleMaximize = () => {
 }
 
 const minimize = () => {
+
     const renderer = topRendererName === "Main" ? Renderers.Main : Renderers.Edit
+
+    if(!renderer) return;
+
     renderer.minimize();
-}
-
-const onUnmaximize = () => {
-    config.data.isMaximized = false;
-    respond(topRendererName, "after-toggle-maximize", config.data)
-}
-
-const onMaximize = () => {
-    config.data.isMaximized = true;
-    respond(topRendererName, "after-toggle-maximize", config.data)
 }
 
 const changeTopRenderer = (name:RendererName) => {
@@ -553,36 +567,20 @@ const changeTopRenderer = (name:RendererName) => {
     const topRenderer = topRendererName === "Main" ? Renderers.Main : Renderers.Edit;
     const hiddenRenderer = topRendererName === "Main" ? Renderers.Edit : Renderers.Main;
 
-    topRenderer.setBounds(config.data.bounds);
+    topRenderer?.setBounds(config.data.bounds);
 
-    if(config.data.isMaximized && !topRenderer.isMaximized()){
-        topRenderer.maximize();
+    if(config.data.isMaximized && !topRenderer?.isMaximized()){
+        topRenderer?.maximize();
     }
 
-    if(!config.data.isMaximized && topRenderer.isMaximized()){
+    if(!config.data.isMaximized && topRenderer?.isMaximized()){
         topRenderer.unmaximize();
     }
 
-    hiddenRenderer.hide()
-    topRenderer.show();
+    hiddenRenderer?.hide()
+    topRenderer?.show();
 
 }
-
-const onClose = async () => {
-
-    const imageFile = getCurrentImageFile();
-
-    if(imageFile.fullPath && config.data.history[imageFile.directory]){
-        saveHistory();
-    }
-
-    save();
-
-    Renderers.Edit.close();
-    Renderers.Main.close();
-}
-
-const onDropRequest = async (data:Pic.DropRequest) => await loadImage(data.fullPath)
 
 const reveal = () => {
 
@@ -595,6 +593,8 @@ const reveal = () => {
 }
 
 const openFile = async () => {
+
+    if(!Renderers.Main) return;
 
     const result = await dialog.showOpenDialog(Renderers.Main, {
         properties: ["openFile"],
@@ -621,13 +621,6 @@ const pin = () => {
 
     saveHistory()
     respond("Main", "after-pin", {success:true, history:config.data.history});
-
-}
-
-const onRotateRequest = async (data:Pic.RotateRequest) => {
-
-    await rotate(data.orientation);
-    sendImageData();
 
 }
 
@@ -661,10 +654,10 @@ const toggleTheme = (theme:Pic.Theme) => {
 
 const onToggleFullscreen = () => {
 
-    if(Renderers.Main.isFullScreen()){
-        Renderers.Main.setFullScreen(false)
+    if(Renderers.Main?.isFullScreen()){
+        Renderers.Main?.setFullScreen(false)
     }else{
-        Renderers.Main.setFullScreen(true)
+        Renderers.Main?.setFullScreen(true)
     }
 }
 
@@ -675,10 +668,43 @@ const openEditDialog = () => {
     changeTopRenderer("Edit")
 }
 
+const onClose = async () => {
+
+    const imageFile = getCurrentImageFile();
+
+    if(imageFile.fullPath && config.data.history[imageFile.directory]){
+        saveHistory();
+    }
+
+    save();
+
+    Renderers.Edit?.close();
+    Renderers.Main?.close();
+}
+
+const onUnmaximize = () => {
+    config.data.isMaximized = false;
+    respond(topRendererName, "after-toggle-maximize", config.data)
+}
+
+const onMaximize = () => {
+    config.data.isMaximized = true;
+    respond(topRendererName, "after-toggle-maximize", config.data)
+}
+
+const onDropRequest = async (data:Pic.DropRequest) => await loadImage(data.fullPath)
+
+const onRotateRequest = async (data:Pic.RotateRequest) => {
+
+    await rotate(data.orientation);
+    sendImageData();
+
+}
+
 const onCloseEditDialog = () => changeTopRenderer("Main");
 
 const onRestartRequest = () => {
-    Renderers.Main.reload();
+    Renderers.Main?.reload();
     respond("Edit", "edit-dialog-opened", {file:getCurrentImageFile(), config:config.data})
 }
 
@@ -686,7 +712,7 @@ const onSetCategory = (data:Pic.CategoryChangeEvent) => {
     if(data.category){
         targetfiles[currentIndex].detail.category = data.category;
     }else{
-        targetfiles[currentIndex].detail.category = null;
+        targetfiles[currentIndex].detail.category = undefined;
     }
 }
 
@@ -694,8 +720,8 @@ const openFileFileDialog = () => {
     const files = targetfiles.filter(file => file.detail.category);
     if(files.length > 0){
         respond("File", "prepare-file-dialog", {files});
-        Renderers.File.show()
+        Renderers.File?.show()
     }
 }
 
-const onCloseFileDialog = () => Renderers.File.hide();
+const onCloseFileDialog = () => Renderers.File?.hide();

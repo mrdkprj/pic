@@ -13,24 +13,24 @@ const config: ForgeConfig = {
           config: rendererConfig,
           entryPoints: [
             {
-              html: "./src/renderer/main.html",
-              js: "./src/renderer/main.ts",
+              html: "./src/renderer/main/main.html",
+              js: "./src/renderer/main/main.ts",
               name: "main_window",
               preload: {
                 js: "./src/renderer/preload.ts",
               },
             },
             {
-              html: "./src/renderer/file.html",
-              js: "./src/renderer/file.ts",
+              html: "./src/renderer/file/file.html",
+              js: "./src/renderer/file/file.ts",
               name: "file_window",
               preload: {
                 js: "./src/renderer/preload.ts",
               },
             },
             {
-              html: "./src/renderer/edit.html",
-              js: "./src/renderer/edit.ts",
+              html: "./src/renderer/edit/edit.html",
+              js: "./src/renderer/edit/edit.ts",
               name: "edit_window",
               preload: {
                 js: "./src/renderer/preload.ts",

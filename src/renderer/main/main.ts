@@ -1,5 +1,6 @@
-import { ImageTransform } from "./imageTransform";
-import { Orientations, FORWARD, BACKWARD } from "../constants"
+import { ImageTransform } from "../imageTransform";
+import { DomElement } from "../dom"
+import { Orientations, FORWARD, BACKWARD } from "../../constants"
 
 const State = {
     isMaximized:false,
@@ -8,16 +9,16 @@ const State = {
 }
 
 const Dom = {
-    title: null as HTMLElement,
-    resizeBtn:null as HTMLElement,
-    img:null as HTMLImageElement,
-    imageArea:null as HTMLElement,
-    loader:null as HTMLElement,
-    viewport:null as HTMLElement,
-    history:null as HTMLElement,
-    scaleRate:null as HTMLElement,
-    counter:null as HTMLElement,
-    category:null as HTMLElement,
+    title: new DomElement("title"),
+    resizeBtn: new DomElement("resizeBtn"),
+    img: new DomElement<HTMLImageElement>("img"),
+    imageArea: new DomElement("imageArea"),
+    loader: new DomElement("loader"),
+    viewport: new DomElement("viewport"),
+    history: new DomElement("history"),
+    scaleRate: new DomElement("scaleRate"),
+    counter: new DomElement("counter"),
+    category: new DomElement("category"),
 }
 
 const imageTransform = new ImageTransform()
@@ -59,7 +60,7 @@ const onKeydown = (e:KeyboardEvent) => {
     }
 
     if(e.key == "F5"){
-        window.api.send("restart", null)
+        window.api.send("restart", {})
     }
 
     if(e.ctrlKey && e.key == "r"){
@@ -118,7 +119,7 @@ const onClick = (e:MouseEvent) => {
     }
 
     if(e.target.id == "edit"){
-        request("open-edit-dialog", null)
+        request("open-edit-dialog", {})
     }
 
     if(e.target.id == "deleteBtn"){
@@ -138,7 +139,7 @@ const onClick = (e:MouseEvent) => {
     }
 
     if(e.target.id == "setting"){
-        window.api.send("open-main-context", null)
+        window.api.send("open-main-context", {})
     }
 
     if(e.target.id == "previous"){
@@ -173,7 +174,7 @@ const onMouseup = (e:MouseEvent) => {
     if(!e.target || !(e.target instanceof HTMLElement)) return;
 
     if(e.button == 2 && !State.mouseOnly){
-        window.api.send("open-main-context", null)
+        window.api.send("open-main-context", {})
         return;
     }
 
@@ -197,11 +198,11 @@ const onMouseup = (e:MouseEvent) => {
 }
 
 const onImageDragStart = () => {
-    Dom.viewport.classList.add("dragging");
+    Dom.viewport.element.classList.add("dragging");
 }
 
 const onImageDragEnd = () => {
-    Dom.viewport.classList.remove("dragging");
+    Dom.viewport.element.classList.remove("dragging");
 }
 
 const onDrop = (e:DragEvent) => {
@@ -211,22 +212,22 @@ const onDrop = (e:DragEvent) => {
     if(!e.dataTransfer) return;
 
     if(e.dataTransfer.items[0].kind === "file" && e.dataTransfer.items[0].type.includes("image")){
-        dropFile(e.dataTransfer.items[0].getAsFile());
+        const fullPath = e.dataTransfer.items[0].getAsFile()?.path ?? ""
+        dropFile(fullPath);
     }
 }
 
 const loadImage = (result:Pic.FetchResult) => {
 
     currentImageFile = result.image;
-    console.log(currentImageFile)
 
     const src = currentImageFile.type === "path" ? `${result.image.src}?${new Date().getTime()}` : "";
-    Dom.img.src = src
+    Dom.img.element.src = src
 
     if(currentImageFile.type == "undefined"){
-        Dom.imageArea.classList.add("no-image")
+        Dom.imageArea.element.classList.add("no-image")
     }else{
-        Dom.imageArea.classList.remove("no-image")
+        Dom.imageArea.element.classList.remove("no-image")
     }
 
     State.isPinned = result.pinned;
@@ -234,7 +235,7 @@ const loadImage = (result:Pic.FetchResult) => {
 
     fileCount = result.fileCount;
 
-    Dom.counter.textContent = `${result.currentIndex} / ${fileCount}`;
+    Dom.counter.element.textContent = `${result.currentIndex} / ${fileCount}`;
 
     setCategory(result.image.detail.category)
 }
@@ -251,9 +252,9 @@ const onImageLoaded = () => {
 
 const changeInfoTexts = () => {
 
-    Dom.title.textContent = `${currentImageFile.fileName} (${currentImageFile.detail.renderedWidth} x ${currentImageFile.detail.renderedHeight})`;
+    Dom.title.element.textContent = `${currentImageFile.fileName} (${currentImageFile.detail.renderedWidth} x ${currentImageFile.detail.renderedHeight})`;
 
-    Dom.scaleRate.textContent = `${Math.floor(imageTransform.getImageRatio() * 100)}%`
+    Dom.scaleRate.element.textContent = `${Math.floor(imageTransform.getImageRatio() * 100)}%`
 }
 
 
@@ -282,7 +283,7 @@ const rotate = () => {
 
 const prepare = () => {
 
-    if(Dom.loader.style.display == "block"){
+    if(Dom.loader.element.style.display == "block"){
         return false;
     }
 
@@ -294,9 +295,9 @@ const prepare = () => {
     return true;
 }
 
-const dropFile = (file:File | null) => {
+const dropFile = (fullPath:string) => {
     if(prepare()){
-        request("drop-file", {fullPath:file?.path});
+        request("drop-file", {fullPath});
     }
 }
 
@@ -308,12 +309,12 @@ const startFetch = (index:number) => {
 
 const deleteFile = () => {
     if(prepare()){
-        request("delete", null);
+        request("delete", {});
     }
 }
 
 const pin = () => {
-    request("pin", null);
+    request("pin", {});
 }
 
 const applyConfig = (data:Pic.Config) => {
@@ -330,19 +331,19 @@ const applyConfig = (data:Pic.Config) => {
 
 const changePinStatus = () => {
     if(State.isPinned){
-        Dom.viewport.classList.add("pinned");
+        Dom.viewport.element.classList.add("pinned");
     }else{
-        Dom.viewport.classList.remove("pinned");
+        Dom.viewport.element.classList.remove("pinned");
     }
 }
 
 const changeMaximizeIcon = () => {
     if(State.isMaximized){
-        Dom.resizeBtn.classList.remove("minbtn");
-        Dom.resizeBtn.classList.add("maxbtn");
+        Dom.resizeBtn.element.classList.remove("minbtn");
+        Dom.resizeBtn.element.classList.add("maxbtn");
     }else{
-        Dom.resizeBtn.classList.remove("maxbtn");
-        Dom.resizeBtn.classList.add("minbtn");
+        Dom.resizeBtn.element.classList.remove("maxbtn");
+        Dom.resizeBtn.element.classList.add("minbtn");
     }
 }
 
@@ -351,18 +352,18 @@ const changeMode = (mode:Pic.Mode) => {
     State.mouseOnly = mode === "Mouse"
 
     if(State.mouseOnly){
-        Dom.viewport.classList.add("mouse");
+        Dom.viewport.element.classList.add("mouse");
     }else{
-        Dom.viewport.classList.remove("mouse");
+        Dom.viewport.element.classList.remove("mouse");
     }
 
 }
 
 const applyTheme = (theme:Pic.Theme) => {
     if(theme === "Light"){
-        Dom.viewport.classList.remove("dark");
+        Dom.viewport.element.classList.remove("dark");
     }else{
-        Dom.viewport.classList.add("dark");
+        Dom.viewport.element.classList.add("dark");
     }
 }
 
@@ -372,7 +373,7 @@ const showActualSize = () => {
 
 const changeHistory = (history:{[key:string]:string}) => {
 
-    Dom.history.innerHTML = "";
+    Dom.history.element.innerHTML = "";
 
     const fragment = document.createDocumentFragment();
 
@@ -392,80 +393,82 @@ const changeHistory = (history:{[key:string]:string}) => {
         fragment.appendChild(item);
     });
 
-    Dom.history.appendChild(fragment)
+    Dom.history.element.appendChild(fragment)
 }
 
 const onHistoryItemClick = (e:MouseEvent) => {
-    window.api.send("restore", {fullPath: (e.target as HTMLElement).textContent});
+    const fullPath = (e.target as HTMLElement).textContent ?? ""
+    window.api.send("restore", {fullPath});
 }
 
 const removeHistory = (e:MouseEvent) => {
     if(confirm("Remove history?")){
-        window.api.send("remove-history", {fullPath: (e.target as HTMLElement).nextElementSibling.textContent});
+        const fullPath = (e.target as HTMLElement).nextElementSibling?.textContent ?? ""
+        window.api.send("remove-history", {fullPath});
     }
 }
 
 const toggleHistory = () => {
     if(isHistoryOpen()){
-        Dom.viewport.classList.remove("history-open");
+        Dom.viewport.element.classList.remove("history-open");
     }else{
-        Dom.viewport.classList.add("history-open");
+        Dom.viewport.element.classList.add("history-open");
     }
 }
 
 const isHistoryOpen = () => {
-    return Dom.viewport.classList.contains("history-open");
+    return Dom.viewport.element.classList.contains("history-open");
 }
 
 const closeHistory = () => {
-    Dom.viewport.classList.remove("history-open");
+    Dom.viewport.element.classList.remove("history-open");
 }
 
 const minimize = () => {
-    window.api.send("minimize", null)
+    window.api.send("minimize", {})
 }
 
 const toggleMaximize = () => {
-    window.api.send("toggle-maximize", null)
+    window.api.send("toggle-maximize", {})
 }
 
 const isFullScreen = () => {
-    return Dom.viewport.classList.contains("full")
+    return Dom.viewport.element.classList.contains("full")
 }
 
 const toggleFullscreen = () => {
     if(isFullScreen()){
-        Dom.viewport.classList.remove("full")
+        Dom.viewport.element.classList.remove("full")
     }else{
-        Dom.viewport.classList.add("full")
+        Dom.viewport.element.classList.add("full")
     }
 
-    window.api.send("toggle-fullscreen", null)
+    window.api.send("toggle-fullscreen", {})
 }
 
 const close = () => {
-    window.api.send("close", null);
+    window.api.send("close", {});
 }
 
 const lock = () => {
-    Dom.loader.style.display = "block";
+    Dom.loader.element.style.display = "block";
 }
 
 const unlock = () => {
-    Dom.loader.style.display = "none";
+    Dom.loader.element.style.display = "none";
 }
 
-const setCategory = (category:number) => {
+const setCategory = (category:number | undefined) => {
 
     if(category){
-        Dom.category.textContent = `- [ @${category} ]`;
+        Dom.category.element.textContent = `- [ @${category} ]`;
     }else{
-        Dom.category.textContent = ""
+        Dom.category.element.textContent = ""
     }
 }
 
 const openFileDialog = () => {
-    window.api.send("open-file-dialog", null)
+    window.api.send("open-file-dialog", {})
 }
 
 const onAfterPin = (data:Pic.PinResult) => {
@@ -480,7 +483,7 @@ const onAfterToggleMaximize = (data:Pic.Config) => {
 }
 
 const request = <K extends keyof MainChannelEventMap>(channel:K, data:MainChannelEventMap[K]) => {
-    if(Dom.img.src){
+    if(Dom.img.element.src){
         window.api.send(channel, data);
     }
 }
@@ -503,28 +506,28 @@ window.api.receive("after-toggle-maximize", data => onResponse(() => onAfterTogg
 
 window.onload = () => {
 
-    Dom.title = document.getElementById("title");
-    Dom.resizeBtn = document.getElementById("resizeBtn");
-    Dom.viewport = document.getElementById("viewport");
-    Dom.img = (document.getElementById("img") as HTMLImageElement);
-    Dom.imageArea = document.getElementById("imageArea");
-    Dom.loader = document.getElementById("loader");
-    Dom.history = document.getElementById("history")
-    Dom.scaleRate = document.getElementById("scaleRate")
-    Dom.counter = document.getElementById("counter");
-    Dom.category = document.getElementById("category");
+    Dom.title.fill();
+    Dom.resizeBtn.fill();
+    Dom.viewport.fill();
+    Dom.img.fill();
+    Dom.imageArea.fill();
+    Dom.loader.fill();
+    Dom.history.fill();
+    Dom.scaleRate.fill();
+    Dom.counter.fill();
+    Dom.category.fill();
 
-    Dom.img.addEventListener("load", onImageLoaded)
+    Dom.img.element.addEventListener("load", onImageLoaded)
 
-    Dom.imageArea.addEventListener("wheel", imageTransform.onWheel);
+    Dom.imageArea.element.addEventListener("wheel", imageTransform.onWheel);
 
-    Dom.imageArea.addEventListener("mousedown", onMousedown)
+    Dom.imageArea.element.addEventListener("mousedown", onMousedown)
 
-    document.getElementById("imageContainer").addEventListener("dragover", e => e.preventDefault())
+    const imageContainer = new DomElement("imageContainer").fill();
+    imageContainer.addEventListener("dragover", e => e.preventDefault())
+    imageContainer.addEventListener("drop", onDrop);
 
-    document.getElementById("imageContainer").addEventListener("drop", onDrop);
-
-    imageTransform.init(Dom.imageArea, Dom.img)
+    imageTransform.init(Dom.imageArea.element, Dom.img.element)
     imageTransform.on("transformchange", changeInfoTexts)
     imageTransform.on("dragstart", onImageDragStart)
     imageTransform.on("dragend", onImageDragEnd)
@@ -534,7 +537,6 @@ window.onload = () => {
 window.addEventListener("resize", imageTransform.onWindowResize)
 document.addEventListener("keydown", onKeydown)
 document.addEventListener("click", onClick)
-//document.addEventListener("mousedown", onMousedown)
 document.addEventListener("mousemove", imageTransform.onMousemove)
 document.addEventListener("mouseup", onMouseup)
 

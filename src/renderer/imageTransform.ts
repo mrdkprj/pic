@@ -115,9 +115,7 @@ export class ImageTransform{
 
     onMousemove = (e:MouseEvent) => {
 
-        if(e.button != 0) return;
-
-        if(this.dragState.isDragging){
+        if(this.dragState.isDragging && e.buttons == 1){
             this.dragState.isImageMoved = true;
             e.preventDefault();
             this.moveImage(e);

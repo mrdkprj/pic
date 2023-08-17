@@ -112,8 +112,4 @@ export default class Util{
                 break;
         }
     }
-
-    sortByName(a:string, b:string){
-        return a.replace(path.extname(a), "").localeCompare(b.replace(path.extname(b), ""))
-    }
 }

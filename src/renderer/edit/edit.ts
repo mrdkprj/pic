@@ -1,34 +1,33 @@
-import { ImageTransform } from "./imageTransform";
-import { OrientationName } from "../constants"
+import { ImageTransform } from "../imageTransform";
+import { DomElement } from "../dom";
+import { OrientationName } from "../../constants"
 
+const Dom = {
+    title: new DomElement("title"),
+    resizeBtn: new DomElement("resizeBtn"),
+    img: new DomElement<HTMLImageElement>("img"),
+    imageArea: new DomElement("imageArea"),
+    loader: new DomElement("loader"),
+    viewport: new DomElement("viewport"),
+    titleBar: new DomElement("titleBar"),
+    scaleText: new DomElement("scaleText"),
+    clipArea: new DomElement("clipArea"),
+    canvas: new DomElement("clipCanvas"),
+}
+
+const imageTransform = new ImageTransform
 const State = {
     isMaximized:false,
     editMode: "Resize" as Pic.EditMode,
     isClipping:false,
 }
-
 const clipState = {
     startX:0,
     startY:0,
 }
-
 const undoStack:Pic.ImageFile[] = []
 const redoStack:Pic.ImageFile[] = []
 
-const Dom = {
-    title: null as HTMLElement,
-    resizeBtn:null as HTMLElement,
-    img:null as HTMLImageElement,
-    imageArea:null as HTMLElement,
-    loader:null as HTMLElement,
-    viewport:null as HTMLElement,
-    titleBar:null as HTMLElement,
-    scaleText:null as HTMLElement,
-    clipArea:null as HTMLElement,
-    canvas:null as HTMLElement,
-}
-
-const imageTransform = new ImageTransform
 let currentImageFile:Pic.ImageFile;
 
 const onKeydown = (e:KeyboardEvent) => {
@@ -38,7 +37,7 @@ const onKeydown = (e:KeyboardEvent) => {
     }
 
     if(e.key == "F5"){
-        window.api.send("restart", null)
+        window.api.send("restart", {})
     }
 
     if(e.ctrlKey && e.key == "r"){
@@ -124,15 +123,15 @@ const onmousedown  = (e:MouseEvent) => {
 
     if(State.editMode == "Clip"){
         prepareClip();
-        Dom.clipArea.style.transform = ""
-        Dom.clipArea.style.width = "0px"
-        Dom.clipArea.style.height = "0px"
+        Dom.clipArea.element.style.transform = ""
+        Dom.clipArea.element.style.width = "0px"
+        Dom.clipArea.element.style.height = "0px"
         clipState.startX = e.clientX
         clipState.startY = e.clientY
-        Dom.clipArea.style.top = clipState.startY + "px"
-        Dom.clipArea.style.left = clipState.startX + "px"
+        Dom.clipArea.element.style.top = clipState.startY + "px"
+        Dom.clipArea.element.style.left = clipState.startX + "px"
         State.isClipping = true;
-        Dom.canvas.style.display = "block"
+        Dom.canvas.element.style.display = "block"
     }
 }
 
@@ -148,9 +147,9 @@ const onMousemove = (e:MouseEvent) => {
         const scaleX = moveX >= 0 ? 1 : -1
         const scaleY = moveY >=0 ? 1 : -1
 
-        Dom.clipArea.style.transform = `scale(${scaleX}, ${scaleY})`
-        Dom.clipArea.style.width = Math.abs(moveX) + "px"
-        Dom.clipArea.style.height = Math.abs(moveY) + "px"
+        Dom.clipArea.element.style.transform = `scale(${scaleX}, ${scaleY})`
+        Dom.clipArea.element.style.width = Math.abs(moveX) + "px"
+        Dom.clipArea.element.style.height = Math.abs(moveY) + "px"
     }
 
     imageTransform.onMousemove(e);
@@ -166,16 +165,16 @@ const onMouseup = (e:MouseEvent) => {
         return;
     }
 
-    Dom.viewport.classList.remove("dragging")
+    Dom.viewport.element.classList.remove("dragging")
     imageTransform.onMouseup(e);
 }
 
 const onImageDragStart = () => {
-    Dom.viewport.classList.add("dragging");
+    Dom.viewport.element.classList.add("dragging");
 }
 
 const onImageDragEnd = () => {
-    Dom.viewport.classList.remove("dragging");
+    Dom.viewport.element.classList.remove("dragging");
 }
 
 const loadImage = (data:Pic.ImageFile) => {
@@ -183,7 +182,7 @@ const loadImage = (data:Pic.ImageFile) => {
     currentImageFile = data;
 
     const src = currentImageFile.type === "path" ? `app://${data.fullPath}?${new Date().getTime()}` : `data:image/jpeg;base64,${data.fullPath}`;
-    Dom.img.src = src
+    Dom.img.element.src = src
 
 }
 
@@ -199,9 +198,9 @@ const changeTitle = () => {
         width: Math.floor(currentImageFile.detail.renderedWidth * imageTransform.getScale()),
         height: Math.floor(currentImageFile.detail.renderedHeight * imageTransform.getScale()),
     }
-    Dom.title.textContent = `${currentImageFile.fileName} (${size.width} x ${size.height})`;
+    Dom.title.element.textContent = `${currentImageFile.fileName} (${size.width} x ${size.height})`;
 
-    Dom.scaleText.textContent = `${Math.floor(imageTransform.getImageRatio() * 100)}%`
+    Dom.scaleText.element.textContent = `${Math.floor(imageTransform.getImageRatio() * 100)}%`
 
 }
 
@@ -219,10 +218,10 @@ const changeEditMode = (mode:Pic.EditMode) => {
 const afterToggleMode = () => {
 
     celarClip();
-    Dom.titleBar.classList.remove("clipping")
+    Dom.titleBar.element.classList.remove("clipping")
 
     if(State.editMode == "Clip"){
-        Dom.titleBar.classList.add("clipping")
+        Dom.titleBar.element.classList.add("clipping")
     }
 
 }
@@ -231,24 +230,24 @@ const changeResizeMode = (shrinkable:boolean) => {
 
     imageTransform.enableShrink(shrinkable);
     if(shrinkable){
-        Dom.titleBar.classList.add("shrink")
+        Dom.titleBar.element.classList.add("shrink")
     }else{
-        Dom.titleBar.classList.remove("shrink")
+        Dom.titleBar.element.classList.remove("shrink")
     }
 }
 
 const prepareClip = () => {
     const padding = 15;
     const titlebarHeight = 30 + padding;
-    const rect = Dom.img.getBoundingClientRect();
-    Dom.canvas.style.width = rect.width + "px"
-    Dom.canvas.style.height = rect.height + "px"
-    Dom.canvas.style.top = (rect.top - titlebarHeight) + "px"
-    Dom.canvas.style.left = (rect.left - padding) + "px"
+    const rect = Dom.img.element.getBoundingClientRect();
+    Dom.canvas.element.style.width = rect.width + "px"
+    Dom.canvas.element.style.height = rect.height + "px"
+    Dom.canvas.element.style.top = (rect.top - titlebarHeight) + "px"
+    Dom.canvas.element.style.left = (rect.left - padding) + "px"
 }
 
 const celarClip = () => {
-    Dom.canvas.style.display = "none"
+    Dom.canvas.element.style.display = "none"
 }
 
 const resizeImage = () => {
@@ -257,40 +256,46 @@ const resizeImage = () => {
 }
 
 const changeButtonState = () =>{
-    Dom.titleBar.classList.remove("can-undo", "can-redo", "resized", "edited");
+    Dom.titleBar.element.classList.remove("can-undo", "can-redo", "resized", "edited");
 
     if(undoStack.length){
-        Dom.titleBar.classList.add("can-undo");
+        Dom.titleBar.element.classList.add("can-undo");
     }
 
     if(redoStack.length){
-        Dom.titleBar.classList.add("can-redo");
+        Dom.titleBar.element.classList.add("can-redo");
     }
 
     if(imageTransform.isResized()){
-        Dom.titleBar.classList.add("resized");
+        Dom.titleBar.element.classList.add("resized");
     }
 
     if(currentImageFile.type === "buffer"){
-        Dom.titleBar.classList.add("edited");
+        Dom.titleBar.element.classList.add("edited");
     }
 }
 
 const undo = () => {
-    if(undoStack.length){
-        const stack = undoStack.pop()
+
+    const stack = undoStack.pop()
+
+    if(stack){
         redoStack.push(currentImageFile);
         loadImage(stack);
     }
+
     changeButtonState();
 }
 
 const redo = () => {
-    if(redoStack.length){
-        const stack = redoStack.pop()
+
+    const stack = redoStack.pop()
+
+    if(stack){
         undoStack.push(currentImageFile);
         loadImage(stack);
     }
+
     changeButtonState();
 }
 
@@ -330,11 +335,11 @@ const getActualRect = (rect:Pic.ImageRectangle) => {
 
 const getClipInfo = () => {
 
-    const clip = Dom.clipArea.getBoundingClientRect()
+    const clip = Dom.clipArea.element.getBoundingClientRect()
 
     if(clip.width < 5 || clip.height < 5) return null;
 
-    const imageRect = Dom.img.getBoundingClientRect()
+    const imageRect = Dom.img.element.getBoundingClientRect()
 
     if(clip.left > imageRect.right || clip.right < imageRect.left) return null
 
@@ -422,18 +427,18 @@ const showEditResult = (data:Pic.EditResult) => {
 }
 
 const onWindowResize = () => {
-    if(Dom.img.src){
+    if(Dom.img.element.src){
         imageTransform.onWindowResize();
         celarClip();
     }
 }
 
 const minimize = () => {
-    window.api.send("minimize", null)
+    window.api.send("minimize", {})
 }
 
 const toggleMaximize = () => {
-    window.api.send("toggle-maximize", null)
+    window.api.send("toggle-maximize", {})
 }
 
 const onTransformChange = () => {
@@ -449,7 +454,7 @@ const onTransformChange = () => {
 
 const prepare = () => {
 
-    if(Dom.loader.style.display == "block"){
+    if(Dom.loader.element.style.display == "block"){
         return false;
     }
     lock();
@@ -468,13 +473,17 @@ const saveImage = (saveCopy:boolean) => {
 }
 
 const afterSaveImage = (data:Pic.SaveImageResult) => {
-    if(data.message){
+
+    if(data.status == "Error"){
         alert(data.message)
-    }else{
+    }
+
+    if(data.status == "Done"){
         close();
     }
 
 }
+
 const applyConfig = (data:Pic.Config) => {
 
     State.isMaximized = data.isMaximized;
@@ -488,39 +497,39 @@ const applyConfig = (data:Pic.Config) => {
 
 const applyTheme = (theme:Pic.Theme) => {
     if(theme === "Light"){
-        Dom.viewport.classList.remove("dark");
+        Dom.viewport.element.classList.remove("dark");
     }else{
-        Dom.viewport.classList.add("dark");
+        Dom.viewport.element.classList.add("dark");
     }
 }
 
 const changeMaximizeIcon = () => {
     if(State.isMaximized){
-        Dom.resizeBtn.classList.remove("minbtn");
-        Dom.resizeBtn.classList.add("maxbtn");
+        Dom.resizeBtn.element.classList.remove("minbtn");
+        Dom.resizeBtn.element.classList.add("maxbtn");
     }else{
-        Dom.resizeBtn.classList.remove("maxbtn");
-        Dom.resizeBtn.classList.add("minbtn");
+        Dom.resizeBtn.element.classList.remove("maxbtn");
+        Dom.resizeBtn.element.classList.add("minbtn");
     }
 }
 
 const clear = () => {
     unlock();
-    Dom.img.src = "";
+    Dom.img.element.src = "";
     changeEditMode(State.editMode)
 }
 
 const close = () => {
     clear();
-    window.api.send("close-edit-dialog", null);
+    window.api.send("close-edit-dialog", {});
 }
 
 const lock = () => {
-    Dom.loader.style.display = "block";
+    Dom.loader.element.style.display = "block";
 }
 
 const unlock = () => {
-    Dom.loader.style.display = "none";
+    Dom.loader.element.style.display = "none";
 }
 
 const onOpen = (data:Pic.OpenEditEvent) => {
@@ -559,23 +568,23 @@ window.api.receive("after-toggle-maximize", data => onResponse(() => onAfterTogg
 
 window.onload = () => {
 
-    Dom.title = document.getElementById("title");
-    Dom.resizeBtn = document.getElementById("resizeBtn")
-    Dom.viewport = document.getElementById("viewport");
-    Dom.titleBar = document.getElementById("titleBar")
-    Dom.img = (document.getElementById("img") as HTMLImageElement);
-    Dom.imageArea = document.getElementById("imageArea");
-    Dom.loader = document.getElementById("loader");
-    Dom.scaleText = document.getElementById("scaleText")
-    Dom.clipArea = document.getElementById("clipArea")
-    Dom.canvas = document.getElementById("clipCanvas")
+    Dom.title.fill();
+    Dom.resizeBtn.fill();
+    Dom.viewport.fill();
+    Dom.titleBar.fill();
+    Dom.img.fill();
+    Dom.imageArea.fill();
+    Dom.loader.fill();
+    Dom.scaleText.fill();
+    Dom.clipArea.fill();
+    Dom.canvas.fill();
 
-    Dom.img.addEventListener("mousedown", onImageMousedown)
-    Dom.img.addEventListener("load", onImageLoaded)
+    Dom.img.element.addEventListener("mousedown", onImageMousedown)
+    Dom.img.element.addEventListener("load", onImageLoaded)
 
-    Dom.imageArea.addEventListener("wheel", imageTransform.onWheel)
+    Dom.imageArea.element.addEventListener("wheel", imageTransform.onWheel)
 
-    imageTransform.init(Dom.imageArea, Dom.img)
+    imageTransform.init(Dom.imageArea.element, Dom.img.element)
     imageTransform.on("transformchange", onTransformChange)
     imageTransform.on("dragstart", onImageDragStart)
     imageTransform.on("dragend", onImageDragEnd)

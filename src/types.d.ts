@@ -4,7 +4,7 @@ declare global {
     }
 
     type RendererName = "Main" | "File" | "Edit";
-    type Renderer = {[key in RendererName] : Electron.BrowserWindow}
+    type Renderer = {[key in RendererName] : Electron.BrowserWindow | undefined}
 
     type MainChannelEventMap = {
         "minimize": Pic.Event;
@@ -201,6 +201,7 @@ declare global {
 
         type SaveImageResult = {
             image:ImageFile;
+            status: "Done" | "Cancel" | "Error"
             message?:string;
         }
 
@@ -213,7 +214,7 @@ declare global {
         }
 
         type Event = {
-            args:any
+            args?:any
         }
 
     }
