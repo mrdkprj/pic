@@ -95,20 +95,24 @@ export default class Util{
         return true;
     }
 
+    private localCompareName(a:Pic.ImageFile, b:Pic.ImageFile){
+        return a.fileName.replace(path.extname(a.fileName),"").localeCompare(b.fileName.replace(path.extname(a.fileName),""))
+    }
+
     sort(imageFiles:Pic.ImageFile[], sortType:Pic.SortType){
 
         switch(sortType){
             case "NameAsc":
-                imageFiles.sort((a,b) => a.fileName.replace(path.extname(a.fileName), "").localeCompare(b.fileName.replace(path.extname(b.fileName), "")))
+                imageFiles.sort((a,b) => this.localCompareName(a,b))
                 break;
             case "NameDesc":
-                imageFiles.sort((a,b) => b.fileName.replace(path.extname(b.fileName), "").localeCompare(a.fileName.replace(path.extname(a.fileName), "")))
+                imageFiles.sort((a,b) => this.localCompareName(b, a))
                 break;
             case "DateAsc":
-                imageFiles.sort((a,b) => a.timestamp - b.timestamp)
+                imageFiles.sort((a,b) => a.timestamp - b.timestamp || this.localCompareName(a,b))
                 break;
             case "DateDesc":
-                imageFiles.sort((a,b) => b.timestamp - a.timestamp)
+                imageFiles.sort((a,b) => b.timestamp - a.timestamp || this.localCompareName(a,b))
                 break;
         }
     }
