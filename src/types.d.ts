@@ -17,7 +17,7 @@ declare global {
         "restore": Pic.RestoreRequest;
         "rotate": Pic.RotateRequest;
         "remove-history": Pic.RemoveHistoryRequest;
-        "toggle-fullscreen": Pic.Event;
+        "toggle-fullscreen": Pic.FullscreenChangeEvent;
         "set-category": Pic.CategoryChangeEvent;
         "open-file-dialog": Pic.Event;
         "clip": Pic.ClipRequest;
@@ -131,7 +131,7 @@ declare global {
             renderedWidth:number;
             renderedHeight:number;
             orientation:number;
-            category?:number;
+            category?:number | undefined;
         }
 
         type OpenEditEvent = {
@@ -148,6 +148,10 @@ declare global {
             currentIndex:number;
             fileCount:number;
             pinned:boolean;
+        }
+
+        type FullscreenChangeEvent = {
+            fullscreen:boolean;
         }
 
         type RestoreRequest = {

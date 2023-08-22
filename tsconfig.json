@@ -2,7 +2,11 @@
   "compilerOptions": {
     "target": "ES6",
     "allowJs": true,
+    "alwaysStrict":true,
+    "exactOptionalPropertyTypes":true,
     "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noStrictGenericChecks": false,
     "module": "commonjs",
     "skipLibCheck": true,
     "esModuleInterop": true,

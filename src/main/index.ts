@@ -6,13 +6,13 @@ import url from "url"
 import Config from "./config";
 import Util from "./util";
 import Helper from "./helper";
-import { OrientationName, MainContextMenuTypes, EmptyImageFile } from "../constants";
+import { OrientationName, MainContextMenuTypes, EmptyImageFile, Extensions } from "../constants";
 
 protocol.registerSchemesAsPrivileged([
     { scheme: "app", privileges: { bypassCSP: true } }
 ])
 
-const targetfiles:Pic.ImageFile[] = [];
+const imageFiles:Pic.ImageFile[] = [];
 const util = new Util();
 const config = new Config(app.getPath("userData"));
 const helper = new Helper();
@@ -73,7 +73,7 @@ app.on("ready", () => {
 
     currentIndex = 0;
 
-    targetfiles.length = 0;
+    imageFiles.length = 0;
 
     registerIpcChannels();
 
@@ -173,15 +173,15 @@ const onReady = () => {
 
 const getCurrentImageFile = ():Pic.ImageFile => {
 
-    if(!targetfiles.length || currentIndex >= targetfiles.length){
+    if(!imageFiles.length){
         return EmptyImageFile;
     }
 
-    if(!util.exists(targetfiles[currentIndex].fullPath)){
+    if(!util.exists(imageFiles[currentIndex].fullPath)){
         return EmptyImageFile;
     }
 
-    return targetfiles[currentIndex];
+    return imageFiles[currentIndex];
 }
 
 const loadImage = async (fullPath:string) => {
@@ -189,11 +189,11 @@ const loadImage = async (fullPath:string) => {
     const targetFile = path.basename(fullPath);
     const directory = path.dirname(fullPath);
 
-    targetfiles.length = 0;
+    imageFiles.length = 0;
 
     const allDirents = await fs.readdir(directory, {withFileTypes: true});
 
-    allDirents.filter(dirent => util.isImageFile(dirent)).forEach(({ name }) => targetfiles.push(util.toImageFile(path.join(directory, name))));
+    allDirents.filter(dirent => util.isImageFile(dirent)).forEach(({ name }) => imageFiles.push(util.toImageFile(path.join(directory, name))));
 
     sortImageFiles(config.data.preference.sort, targetFile)
 
@@ -202,12 +202,12 @@ const loadImage = async (fullPath:string) => {
 
 const loadImages = async (directory:string) => {
 
-    targetfiles.length = 0;
+    imageFiles.length = 0;
     currentIndex = 0;
 
     const allDirents = await fs.readdir(directory, {withFileTypes: true});
 
-    allDirents.filter(dirent => util.isImageFile(dirent)).forEach(({ name }) => targetfiles.push(util.toImageFile(path.join(directory, name))));
+    allDirents.filter(dirent => util.isImageFile(dirent)).forEach(({ name }) => imageFiles.push(util.toImageFile(path.join(directory, name))));
 
     sortImageFiles(config.data.preference.sort)
 
@@ -221,7 +221,7 @@ const sendImageData = async () => {
     const result:Pic.FetchResult = {
         image: imageFile,
         currentIndex: currentIndex + 1,
-        fileCount: targetfiles.length,
+        fileCount: imageFiles.length,
         pinned: !!config.data.history[imageFile.directory] && config.data.history[imageFile.directory] == imageFile.fileName,
     }
 
@@ -238,11 +238,13 @@ const sendImageData = async () => {
         imageFile.detail.orientation = OrientationName.Clock180deg;
     }
 
-    imageFile.detail.width = metadata.width ?? 0;
-    imageFile.detail.height = metadata.height ?? 0;
+    const {width = 0, height = 0} = metadata;
+
+    imageFile.detail.width = width;
+    imageFile.detail.height = height;
     const orientation = metadata.orientation ?? 1;
-    imageFile.detail.renderedWidth = orientation % 2 === 0 ? imageFile.detail.height : imageFile.detail.width;
-    imageFile.detail.renderedHeight = orientation % 2 === 0 ? imageFile.detail.width : imageFile.detail.height;
+    imageFile.detail.renderedWidth = orientation % 2 === 0 ? height : width;
+    imageFile.detail.renderedHeight = orientation % 2 === 0 ? width : height;
 
     respond("Main", "after-fetch", result);
 
@@ -250,11 +252,11 @@ const sendImageData = async () => {
 
 const fetchImage = (data:Pic.FetchRequest) => {
 
-    if(!targetfiles.length){
+    if(!imageFiles.length){
         return sendImageData();
     }
 
-    if(data.index == 1 && targetfiles.length - 1 <= currentIndex){
+    if(data.index == 1 && imageFiles.length - 1 <= currentIndex){
         return sendImageData();
     }
 
@@ -262,20 +264,14 @@ const fetchImage = (data:Pic.FetchRequest) => {
         return sendImageData();
     }
 
-    if(data.index == 0){
-        currentIndex = 0;
-    }else{
-        currentIndex += data.index;
-    }
+    currentIndex += data.index;
 
     sendImageData();
 }
 
 const fetchFirst = () => {
 
-    if(!targetfiles.length){
-        return;
-    }
+    if(!imageFiles.length) return
 
     currentIndex = 0;
 
@@ -284,29 +280,30 @@ const fetchFirst = () => {
 
 const fetchLast = () => {
 
-    if(!targetfiles.length){
-        return;
-    }
+    if(!imageFiles.length) return
 
-    currentIndex = targetfiles.length - 1;
+    currentIndex = imageFiles.length - 1;
 
     sendImageData();
 }
 
 const sortImageFiles = (sortType:Pic.SortType, currentFileName?:string) => {
 
-    if(!targetfiles.length) return;
+    config.data.preference.sort = sortType;
 
-    util.sort(targetfiles, sortType);
+    if(!imageFiles.length) return;
+
+    util.sort(imageFiles, sortType);
 
     if(currentFileName){
-        currentIndex = targetfiles.findIndex(imageFile => imageFile.fileName === currentFileName);
+        currentIndex = imageFiles.findIndex(imageFile => imageFile.fileName === currentFileName);
     }
 
-    config.data.preference.sort = sortType;
 }
 
 const openMainContext = () => {
+    if(!Renderers.Main) return;
+
     mainContext.popup({window:Renderers.Main})
 }
 
@@ -345,13 +342,13 @@ const deleteFile = async () => {
 
         await shell.trashItem(getCurrentImageFile().fullPath)
 
-        targetfiles.splice(currentIndex, 1);
+        imageFiles.splice(currentIndex, 1);
 
         if(currentIndex > 0){
             currentIndex--;
         }
 
-        if(targetfiles.length - 1 > currentIndex){
+        if(imageFiles.length - 1 > currentIndex){
             currentIndex++;
         }
 
@@ -404,23 +401,31 @@ const removeHistory = (data:Pic.RemoveHistoryRequest) => {
     respond("Main", "after-remove-history", {history:config.data.history});
 }
 
+const startEditImage = (imageFile:Pic.ImageFile) => {
+    return imageFile.type === "path" ? imageFile.fullPath : util.fromBase64(imageFile.fullPath)
+}
+
+const endEditImage = (result:Buffer, imageFile:Pic.ImageFile, width:number, height:number) => {
+    imageFile.fullPath = util.toBase64(result),
+    imageFile.type = "buffer",
+    imageFile.detail.width = width,
+    imageFile.detail.height = height
+    imageFile.detail.renderedWidth = imageFile.detail.orientation % 2 === 0 ? height : width;
+    imageFile.detail.renderedHeight = imageFile.detail.orientation % 2 === 0 ? width : height;
+    return imageFile;
+}
+
 const clip = async (request:Pic.ClipRequest) => {
 
     const imageFile = request.image;
 
     try{
 
-        const input = imageFile.type === "path" ? imageFile.fullPath : util.fromBase64(imageFile.fullPath)
+        const input = startEditImage(imageFile)
         const result = await util.clipBuffer(input, request.rect);
+        const image = endEditImage(result, imageFile, request.rect.width, request.rect.height)
 
-        imageFile.fullPath = util.toBase64(result),
-        imageFile.type = "buffer",
-        imageFile.detail.width = request.rect.width,
-        imageFile.detail.height = request.rect.height
-        imageFile.detail.renderedWidth = imageFile.detail.orientation % 2 === 0 ? request.rect.height : request.rect.width;
-        imageFile.detail.renderedHeight = imageFile.detail.orientation % 2 === 0 ? request.rect.width : request.rect.height;
-
-        respond("Edit", "after-edit", {image:imageFile})
+        respond("Edit", "after-edit", {image})
 
     }catch(ex:any){
         respond("Edit", "after-edit", {image:imageFile, message:ex.message})
@@ -433,23 +438,15 @@ const resize = async (request:Pic.ResizeRequest) => {
 
     try{
 
-        const input = imageFile.type === "path" ? imageFile.fullPath : util.fromBase64(imageFile.fullPath)
-
+        const input = startEditImage(imageFile)
         const result = await util.resizeBuffer(input, request.size);
+        const image = endEditImage(result, imageFile, request.size.width, request.size.height)
 
-        imageFile.fullPath = util.toBase64(result),
-        imageFile.type = "buffer",
-        imageFile.detail.width = request.size.width,
-        imageFile.detail.height = request.size.height
-        imageFile.detail.renderedWidth = imageFile.detail.orientation % 2 === 0 ? request.size.height : request.size.width;
-        imageFile.detail.renderedHeight = imageFile.detail.orientation % 2 === 0 ? request.size.width : request.size.height;
-
-        respond("Edit", "after-edit", {image:imageFile})
+        respond("Edit", "after-edit", {image})
 
     }catch(ex:any){
         respond("Edit", "after-edit", {image:imageFile, message:ex.message})
     }
-
 
 }
 
@@ -498,7 +495,7 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
         image.fileName = path.basename(savePath);
         image.type = "path"
         respond("Edit", "after-save-image", {image:request.image, status:"Done"})
-        loadImage(targetfiles[currentIndex].fullPath)
+        loadImage(imageFiles[currentIndex].fullPath)
 
     }catch(ex:any){
         respond("Edit", "after-save-image", {image:request.image, status:"Error", message:ex.message})
@@ -506,7 +503,7 @@ const saveImage = async (request:Pic.SaveImageRequest) => {
 
 }
 
-const save = () => {
+const saveConfig = () => {
 
     if(!Renderers.Main) return;
 
@@ -601,7 +598,7 @@ const openFile = async () => {
         title: "Select image",
         defaultPath: config.data.directory ? config.data.directory :".",
         filters: [
-            {name: "Image file", extensions: ["jpeg","jpg","png","ico","gif"]}
+            {name: "Image file", extensions: Extensions}
         ]
     });
 
@@ -628,7 +625,7 @@ const changeOrientaionMode = async (orientationName:Pic.Orientaion) => {
 
     config.data.preference.orientation = orientationName;
 
-    if(!targetfiles.length) return;
+    if(!imageFiles.length) return;
 
     const orientation = orientationName === "Flip" ? OrientationName.Clock180deg : OrientationName.None;
 
@@ -652,12 +649,13 @@ const toggleTheme = (theme:Pic.Theme) => {
     respond("Main", "toggle-theme", {preference:config.data.preference})
 }
 
-const onToggleFullscreen = () => {
+const onToggleFullscreen = (e:Pic.FullscreenChangeEvent) => {
 
-    if(Renderers.Main?.isFullScreen()){
-        Renderers.Main?.setFullScreen(false)
-    }else{
+    if(e.fullscreen){
         Renderers.Main?.setFullScreen(true)
+    }else{
+        Renderers.Main?.setFullScreen(false)
+        Renderers.Main?.focus();
     }
 }
 
@@ -676,7 +674,7 @@ const onClose = async () => {
         saveHistory();
     }
 
-    save();
+    saveConfig();
 
     Renderers.Edit?.close();
     Renderers.Main?.close();
@@ -710,14 +708,14 @@ const onRestartRequest = () => {
 
 const onSetCategory = (data:Pic.CategoryChangeEvent) => {
     if(data.category){
-        targetfiles[currentIndex].detail.category = data.category;
+        imageFiles[currentIndex].detail.category = data.category;
     }else{
-        targetfiles[currentIndex].detail.category = undefined;
+        imageFiles[currentIndex].detail.category = undefined;
     }
 }
 
 const openFileFileDialog = () => {
-    const files = targetfiles.filter(file => file.detail.category);
+    const files = imageFiles.filter(file => file.detail.category);
     if(files.length > 0){
         respond("File", "prepare-file-dialog", {files});
         Renderers.File?.show()

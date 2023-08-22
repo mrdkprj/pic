@@ -26,6 +26,7 @@ const imageTransform = new ImageTransform()
 let currentImageFile:Pic.ImageFile;
 let fileCount = 0;
 let orientationIndex = 0;
+let isFullscreen = false;
 
 const onKeydown = (e:KeyboardEvent) => {
 
@@ -53,31 +54,33 @@ const onKeydown = (e:KeyboardEvent) => {
             return;
         }
 
+        if(e.key == "r"){
+            e.preventDefault();
+        }
+
+        if(e.key == "h"){
+            toggleHistory();
+        }
+
+        if(e.key == "s"){
+            e.preventDefault();
+            pin();
+        }
+
+
     }
 
-    if(e.key == "F1" || e.key == "Escape"){
+    if(e.key == "F11"){
+        e.preventDefault();
         toggleFullscreen();
+    }
+
+    if(e.key == "Escape"){
+        exitFullscreen();
     }
 
     if(e.key == "F5"){
         window.api.send("restart", {})
-    }
-
-    if(e.ctrlKey && e.key == "r"){
-        e.preventDefault();
-    }
-
-    if(e.ctrlKey && e.key == "h"){
-        toggleHistory();
-    }
-
-    if(e.ctrlKey && e.key == "s"){
-        e.preventDefault();
-        pin();
-    }
-
-    if(e.key === "Escape"){
-        closeHistory();
     }
 
     if(e.key === "Delete"){
@@ -432,18 +435,23 @@ const toggleMaximize = () => {
     window.api.send("toggle-maximize", {})
 }
 
-const isFullScreen = () => {
-    return Dom.viewport.element.classList.contains("full")
+const exitFullscreen = () => {
+    isFullscreen = false;
+    Dom.viewport.element.classList.remove("full")
+    window.api.send("toggle-fullscreen", {fullscreen:isFullscreen})
 }
 
 const toggleFullscreen = () => {
-    if(isFullScreen()){
-        Dom.viewport.element.classList.remove("full")
-    }else{
+
+    isFullscreen = !isFullscreen;
+
+    if(isFullscreen){
         Dom.viewport.element.classList.add("full")
+    }else{
+        Dom.viewport.element.classList.remove("full")
     }
 
-    window.api.send("toggle-fullscreen", {})
+    window.api.send("toggle-fullscreen", {fullscreen:isFullscreen})
 }
 
 const close = () => {
