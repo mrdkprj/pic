@@ -497,9 +497,11 @@ const applyConfig = (data:Pic.Config) => {
 
 const applyTheme = (theme:Pic.Theme) => {
     if(theme === "Light"){
-        Dom.viewport.element.classList.remove("dark");
+        document.documentElement.removeAttribute("dark")
+        document.documentElement.setAttribute("light", "");
     }else{
-        Dom.viewport.element.classList.add("dark");
+        document.documentElement.removeAttribute("light")
+        document.documentElement.setAttribute("dark", "");
     }
 }
 

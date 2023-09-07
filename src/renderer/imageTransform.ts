@@ -103,6 +103,9 @@ export class ImageTransform{
     }
 
     onMousedown = (e:MouseEvent) => {
+
+        if(!this.imageFile) return;
+
         this.dragState.isImageMoved = false;
         this.dragState.isDragging = true;
 
@@ -115,6 +118,8 @@ export class ImageTransform{
 
     onMousemove = (e:MouseEvent) => {
 
+        if(!this.imageFile) return;
+
         if(this.dragState.isDragging && e.buttons == 1){
             this.dragState.isImageMoved = true;
             e.preventDefault();
@@ -123,6 +128,9 @@ export class ImageTransform{
     }
 
     onMouseup = (_e:MouseEvent) => {
+
+        if(!this.imageFile) return;
+
         this.eventHandlers.onDragend();
         this.dragState.isDragging = false;
         this.dragState.isImageMoved = false;

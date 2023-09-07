@@ -183,7 +183,7 @@ const onMouseup = (e:MouseEvent) => {
 
     if(!imageTransform.isImageMoved() && e.target.classList.contains("clickable")){
 
-        if(State.mouseOnly){
+        if(State.mouseOnly && Dom.img.element.src){
 
             e.preventDefault();
             if(e.button == 0){
@@ -300,7 +300,7 @@ const prepare = () => {
 
 const dropFile = (fullPath:string) => {
     if(prepare()){
-        request("drop-file", {fullPath});
+        window.api.send("drop-file", {fullPath});
     }
 }
 
@@ -364,9 +364,11 @@ const changeMode = (mode:Pic.Mode) => {
 
 const applyTheme = (theme:Pic.Theme) => {
     if(theme === "Light"){
-        Dom.viewport.element.classList.remove("dark");
+        document.documentElement.removeAttribute("dark")
+        document.documentElement.setAttribute("light", "");
     }else{
-        Dom.viewport.element.classList.add("dark");
+        document.documentElement.removeAttribute("light")
+        document.documentElement.setAttribute("dark", "");
     }
 }
 
