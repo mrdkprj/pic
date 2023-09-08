@@ -62,3 +62,34 @@ export const Jpegs = [
     ".jpeg",
     ".jpg",
 ]
+
+export const Messages = {
+    OverwriteImage:"Overwrite image?"
+}
+
+export const Labels = {
+    OpenFile:"Open File",
+    Reveal:"Reveal In Explorer",
+    History:"History",
+    ShowActualSize:"Show Actual Size",
+    MoveFirst:"Move To First",
+    MoveLast:"Move To Last",
+    SortBy:"Sort By",
+    Timestamp:"Timestamp",
+    Mode:"Mode",
+    Orientation:"Orientation",
+    Theme:"Theme",
+    Reload:"Reload",
+    NameAsc:"Name(Asc)",
+    NameDesc:"Name(Desc)",
+    DateAsc:"Date(Asc)",
+    DateDesc:"Date(Desc)",
+    TimestampNormal:"Normal",
+    TimestampUnchanged:"Unchanged",
+    ModeMouse:"Mouse",
+    ModeKeyboard:"Keyboard",
+    OrientationNormal:"Normal",
+    OrientationFlip:"Flip",
+    ThemeLight:"Light",
+    ThemeDark:"Dark"
+}

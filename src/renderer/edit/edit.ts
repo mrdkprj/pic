@@ -1,6 +1,6 @@
 import { ImageTransform } from "../imageTransform";
 import { DomElement } from "../dom";
-import { OrientationName } from "../../constants"
+import { OrientationName, Messages } from "../../constants"
 
 const IMAGE_AREA_MARGIN = 15;
 const TITLEBAR_HEIGHT = 35
@@ -243,10 +243,10 @@ const changeResizeMode = (shrinkable:boolean) => {
 
 const prepareClip = () => {
     const rect = Dom.img.element.getBoundingClientRect();
-    Dom.canvas.element.style.width = rect.width + "px"
-    Dom.canvas.element.style.height = rect.height + "px"
-    Dom.canvas.element.style.top = (rect.top - (TITLEBAR_HEIGHT + IMAGE_AREA_MARGIN)) + "px"
-    Dom.canvas.element.style.left = (rect.left - IMAGE_AREA_MARGIN) + "px"
+    Dom.canvas.element.style.width = `${rect.width}px`
+    Dom.canvas.element.style.height = `${rect.height}px`
+    Dom.canvas.element.style.top = `${(rect.top - (TITLEBAR_HEIGHT + IMAGE_AREA_MARGIN))}px`
+    Dom.canvas.element.style.left = `${(rect.left - IMAGE_AREA_MARGIN)}px`
 }
 
 const celarClip = () => {
@@ -468,7 +468,7 @@ const saveImage = (saveCopy:boolean) => {
 
     if(!undoStack.length) return;
 
-    const executeSave = saveCopy ? true : window.confirm("Overwrite image?")
+    const executeSave = saveCopy ? true : window.confirm(Messages.OverwriteImage)
     if(executeSave){
         request("save-image", {image:currentImageFile, saveCopy})
     }

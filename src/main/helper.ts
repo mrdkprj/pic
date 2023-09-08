@@ -1,6 +1,6 @@
 import {  Menu, BrowserWindow } from "electron"
 import path from "path"
-import { MainContextMenuTypes } from "../constants";
+import { MainContextMenuTypes, Labels } from "../constants";
 
 export default class Helper{
 
@@ -68,54 +68,54 @@ export default class Helper{
     createMainContextMenu(config:Pic.Config, onclick: (menu:MainContextMenuTypes, args?:any) => void){
         const mainContextTemplate:Electron.MenuItemConstructorOptions[] = [
             {
-                label: "Open File",
+                label: Labels.OpenFile,
                 click: () => onclick(MainContextMenuTypes.OpenFile)
             },
             {
-                label: "Reveal In Explorer",
+                label: Labels.Reveal,
                 click: () => onclick(MainContextMenuTypes.Reveal)
             },
             {
-                label: "History",
+                label: Labels.History,
                 click: () => onclick(MainContextMenuTypes.History)
             },
             {
-                label: "Show Actual Size",
+                label: Labels.ShowActualSize,
                 click: () => onclick(MainContextMenuTypes.ShowActualSize)
             },
             { type: 'separator' },
             {
-                label: "Move To First",
+                label: Labels.MoveFirst,
                 click: () => onclick(MainContextMenuTypes.ToFirst)
             },
             {
-                label: "Move To Last",
+                label: Labels.MoveLast,
                 click: () => onclick(MainContextMenuTypes.ToLast)
             },
             {
-                label: "Sort by",
+                label: Labels.SortBy,
                 submenu: this.createSortMenu(config, onclick)
             },
             { type: 'separator' },
             {
-                label:"Timestamp",
+                label:Labels.Timestamp,
                 submenu: this.timestampSubMenu(config, onclick)
             },
             {
-                label: "Mode",
+                label: Labels.Mode,
                 submenu: this.modeSubMenu(config, onclick)
             },
             {
-                label: "Orientaion",
+                label: Labels.Orientation,
                 submenu: this.orientationSubMenu(config, onclick)
             },
             {
-                label: "Theme",
+                label: Labels.Theme,
                 submenu: this.themeSubMenu(config, onclick)
             },
             { type: 'separator' },
             {
-                label: "Reload",
+                label: Labels.Reload,
                 click: () => onclick(MainContextMenuTypes.Reload)
             },
         ]
@@ -128,28 +128,28 @@ export default class Helper{
         const sortMenuTemplate:Electron.MenuItemConstructorOptions[] = [
             {
                 id: "NameAsc",
-                label: "Name Asc",
+                label: Labels.NameAsc,
                 type: "checkbox",
                 checked: config.preference.sort === "NameAsc",
                 click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Sort, "NameAsc"))
             },
             {
                 id: "NameDesc",
-                label: "Name Desc",
+                label: Labels.NameDesc,
                 type: "checkbox",
                 checked: config.preference.sort === "NameDesc",
                 click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Sort, "NameDesc"))
             },
             {
                 id: "DateAsc",
-                label: "Date Asc",
+                label: Labels.DateAsc,
                 type: "checkbox",
                 checked: config.preference.sort === "DateAsc",
                 click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Sort, "DateAsc"))
             },
             {
                 id: "DateDesc",
-                label: "Date Desc",
+                label: Labels.DateDesc,
                 type: "checkbox",
                 checked: config.preference.sort === "DateDesc",
                 click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Sort, "DateDesc"))
@@ -164,14 +164,14 @@ export default class Helper{
         const contextTemplate:Electron.MenuItemConstructorOptions[] = [
             {
                 id: "TimestampNormal",
-                label:"Normal",
+                label:Labels.TimestampNormal,
                 type:"checkbox",
                 checked: config.preference.timestamp === "Normal",
                 click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Timestamp, "Normal"))
             },
             {
                 id: "TimestampUnchanged",
-                label:"Unchanged",
+                label:Labels.TimestampUnchanged,
                 type:"checkbox",
                 checked: config.preference.timestamp === "Unchanged",
                 click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Timestamp, "Unchanged"))
@@ -186,14 +186,14 @@ export default class Helper{
         const contextTemplate:Electron.MenuItemConstructorOptions[] = [
             {
                 id: "Mouse",
-                label:"Mouse",
+                label:Labels.ModeMouse,
                 type:"checkbox",
                 checked: config.preference.mode == "Mouse",
                 click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Mode, "Mouse"))
             },
             {
                 id: "Keyboard",
-                label:"Keyboard",
+                label:Labels.ModeKeyboard,
                 type:"checkbox",
                 checked: config.preference.mode == "Keyboard",
                 click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Mode, "Keyboard"))
@@ -208,14 +208,14 @@ export default class Helper{
         const contextTemplate:Electron.MenuItemConstructorOptions[] = [
             {
                 id: "Normal",
-                label:"Normal",
+                label:Labels.OrientationNormal,
                 type:"checkbox",
                 checked:true,
                 click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Orientaion, "Normal"))
             },
             {
                 id: "Flip",
-                label:"Flip",
+                label:Labels.OrientationFlip,
                 type:"checkbox",
                 click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Orientaion, "Flip"))
             },
@@ -229,14 +229,14 @@ export default class Helper{
         const contextTemplate:Electron.MenuItemConstructorOptions[] = [
             {
                 id: "Light",
-                label:"Light",
+                label:Labels.ThemeLight,
                 type:"checkbox",
                 checked: config.preference.theme == "Light",
                 click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Theme, "Light"))
             },
             {
                 id: "Dark",
-                label:"Dark",
+                label:Labels.ThemeDark,
                 type:"checkbox",
                 checked: config.preference.theme == "Dark",
                 click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Theme, "Dark"))
