@@ -185,7 +185,7 @@ const getCurrentImageFile = ():Pic.ImageFile => {
 }
 
 const loadImage = async (fullPath:string) => {
-console.log(fullPath)
+
     const targetFile = path.basename(fullPath);
     const directory = path.dirname(fullPath);
 

@@ -11,13 +11,13 @@ html[light]{
     --edit-menu-bgcolor:#fff;
     --edit-menu-separator-color: #5c5a5a;
     --clip-bgcolor:#00000012;
-    --clip-canvas-bgcolor:#000;
-    --clip-area-bgcolor:#fff;
+    --clip-canvas-bgcolor:#fff;
+    --clip-area-bgcolor:#000;
 
     --primary-button-hover-color:#00000012;
     --primary-button-hover-color2:#ededed;
     --secondary-button-hover-color:#00000012;
-    --button-disabled:#524e4e;
+    --button-disabled:#c1aeae;
     --button-selected:#6b676775;
     --next-prev-bgcolor:#d0caca12;
 

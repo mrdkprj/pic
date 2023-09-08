@@ -138,10 +138,10 @@
 
 .remove-history-btn{
     width: 20px;
-    cursor: auto;
     padding: 5px 0;
     display: flex;
     justify-content: center;
+    cursor: pointer;
 }
 
 .remove-history-btn:hover{

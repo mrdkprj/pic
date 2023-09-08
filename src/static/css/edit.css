@@ -27,6 +27,7 @@
 }
 
 .resized #resize{
+    color: var(--menu-color);
     pointer-events:auto;
 }
 
@@ -39,11 +40,13 @@
 
 .can-undo #undo,
 .can-undo #cancel{
+    color: var(--menu-color);
     pointer-events:auto;
 }
 
 .can-redo #redo,
 .can-redo #cancel{
+    color: var(--menu-color);
     pointer-events:auto;
 }
 
@@ -63,6 +66,7 @@
 
 .edited #saveCopy,
 .edited #save{
+    color: var(--menu-color);
     pointer-events:auto;
 }
 

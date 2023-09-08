@@ -2,6 +2,9 @@ import { ImageTransform } from "../imageTransform";
 import { DomElement } from "../dom";
 import { OrientationName } from "../../constants"
 
+const IMAGE_AREA_MARGIN = 15;
+const TITLEBAR_HEIGHT = 35
+
 const Dom = {
     title: new DomElement("title"),
     resizeBtn: new DomElement("resizeBtn"),
@@ -15,13 +18,13 @@ const Dom = {
     canvas: new DomElement("clipCanvas"),
 }
 
-const imageTransform = new ImageTransform
+const imageTransform = new ImageTransform();
 const State = {
     isMaximized:false,
     editMode: "Resize" as Pic.EditMode,
-    isClipping:false,
 }
-const clipState = {
+const ClipState = {
+    clipping:false,
     startX:0,
     startY:0,
 }
@@ -115,7 +118,7 @@ const onImageMousedown = (e:MouseEvent) => {
     imageTransform.onMousedown(e)
 }
 
-const onmousedown  = (e:MouseEvent) => {
+const onMouseDown  = (e:MouseEvent) => {
 
     if(!e.target || !(e.target instanceof HTMLElement)) return;
 
@@ -126,11 +129,11 @@ const onmousedown  = (e:MouseEvent) => {
         Dom.clipArea.element.style.transform = ""
         Dom.clipArea.element.style.width = "0px"
         Dom.clipArea.element.style.height = "0px"
-        clipState.startX = e.clientX
-        clipState.startY = e.clientY
-        Dom.clipArea.element.style.top = clipState.startY + "px"
-        Dom.clipArea.element.style.left = clipState.startX + "px"
-        State.isClipping = true;
+        ClipState.startX = e.clientX
+        ClipState.startY = e.clientY
+        Dom.clipArea.element.style.top = ClipState.startY + "px"
+        Dom.clipArea.element.style.left = ClipState.startX + "px"
+        ClipState.clipping = true;
         Dom.canvas.element.style.display = "block"
     }
 }
@@ -141,9 +144,9 @@ const onMousemove = (e:MouseEvent) => {
 
     if(e.button != 0) return;
 
-    if(State.isClipping){
-        const moveX = e.clientX - clipState.startX;
-        const moveY = e.clientY - clipState.startY
+    if(ClipState.clipping){
+        const moveX = e.clientX - ClipState.startX;
+        const moveY = e.clientY - ClipState.startY
         const scaleX = moveX >= 0 ? 1 : -1
         const scaleY = moveY >=0 ? 1 : -1
 
@@ -159,8 +162,8 @@ const onMouseup = (e:MouseEvent) => {
 
     if(!e.target || !(e.target instanceof HTMLElement)) return;
 
-    if(State.isClipping){
-        State.isClipping = false;
+    if(ClipState.clipping){
+        ClipState.clipping = false;
         requestEdit();
         return;
     }
@@ -188,7 +191,9 @@ const loadImage = (data:Pic.ImageFile) => {
 
 const onImageLoaded = () => {
 
-    imageTransform.setImage(currentImageFile)
+    if(Dom.img.element.src){
+        imageTransform.setImage(currentImageFile)
+    }
 
 }
 
@@ -237,13 +242,11 @@ const changeResizeMode = (shrinkable:boolean) => {
 }
 
 const prepareClip = () => {
-    const padding = 15;
-    const titlebarHeight = 30 + padding;
     const rect = Dom.img.element.getBoundingClientRect();
     Dom.canvas.element.style.width = rect.width + "px"
     Dom.canvas.element.style.height = rect.height + "px"
-    Dom.canvas.element.style.top = (rect.top - titlebarHeight) + "px"
-    Dom.canvas.element.style.left = (rect.left - padding) + "px"
+    Dom.canvas.element.style.top = (rect.top - (TITLEBAR_HEIGHT + IMAGE_AREA_MARGIN)) + "px"
+    Dom.canvas.element.style.left = (rect.left - IMAGE_AREA_MARGIN) + "px"
 }
 
 const celarClip = () => {
@@ -596,7 +599,7 @@ window.addEventListener("resize", onWindowResize)
 
 document.addEventListener("keydown", onKeydown)
 document.addEventListener("click", onClick)
-document.addEventListener("mousedown", onmousedown)
+document.addEventListener("mousedown", onMouseDown)
 document.addEventListener("mousemove", onMousemove)
 document.addEventListener("mouseup", onMouseup)
 

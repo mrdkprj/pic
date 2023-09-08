@@ -167,14 +167,16 @@ const onMousedown = (e:MouseEvent) => {
         imageTransform.onMousedown(e);
     }
 
-    if(isHistoryOpen()){
-        closeHistory();
-    }
 }
 
 const onMouseup = (e:MouseEvent) => {
 
     if(!e.target || !(e.target instanceof HTMLElement)) return;
+
+    if(isHistoryOpen()){
+        closeHistory();
+        return;
+    }
 
     if(e.button == 2 && !State.mouseOnly){
         window.api.send("open-main-context", {})
