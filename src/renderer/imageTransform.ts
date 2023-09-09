@@ -213,6 +213,7 @@ export class ImageTransform{
         this.currentTransform.orgX = newOrigX;
         this.currentTransform.orgY = newOrigY;
 
+
         this.imagePosition.y = this.imagePadding.y + (newOrigY - newOrigY * this.scale) + translateY
         this.imagePosition.x = this.imagePadding.x + (newOrigX - newOrigX * this.scale) + translateX
 
@@ -220,22 +221,34 @@ export class ImageTransform{
 
     private adjustTransform(){
 
+        let adjustY;
+        let adjustX;
+
         if(this.imageRect.top == 0){
-            this.currentTransform.y = 0;
+            adjustY = 0;
         } else if(this.imagePosition.y > 0){
-            this.currentTransform.y -= this.imagePosition.y;
+            adjustY = -this.imagePosition.y
         } else if(this.imagePosition.y < this.imageRect.top * -1){
-            this.currentTransform.y += Math.abs(this.imagePosition.y) - this.imageRect.top;
+            adjustY = Math.abs(this.imagePosition.y) - this.imageRect.top;
+        }
+
+        if(adjustY){
+            this.currentTransform.y += adjustY;
+            this.imagePosition.y += adjustY;
         }
 
         if(this.imageRect.left == 0 ){
-            this.currentTransform.x = 0;
+            adjustX = 0;
         }else if(this.imagePosition.x > 0){
-            this.currentTransform.x -= this.imagePosition.x;
+            adjustX = -this.imagePosition.x;
         } else if(this.imagePosition.x < this.imageRect.left * -1){
-            this.currentTransform.x += Math.abs(this.imagePosition.x) - this.imageRect.left;
+            adjustX = Math.abs(this.imagePosition.x) - this.imageRect.left;
         }
 
+        if(adjustX){
+            this.currentTransform.x += adjustX
+            this.imagePosition.x += adjustX
+        }
     }
 
     private calculateBound(){
@@ -256,22 +269,42 @@ export class ImageTransform{
         const mouseMoveY = e.y - this.mousePosition.y;
         this.mousePosition.y = e.y;
 
-        if(this.imagePosition.y + mouseMoveY > 0 || this.imagePosition.y + mouseMoveY < this.imageRect.top * -1){
-            //
-        }else{
+        if(this.canMoveVertical(mouseMoveY)){
             this.imagePosition.y += mouseMoveY;
             this.currentTransform.y += mouseMoveY
         }
 
-        if(this.imagePosition.x + mouseMoveX > 0 || this.imagePosition.x + mouseMoveX < this.imageRect.left * -1){
-            //
-        }else{
+        if(this.canMoveHorizontal(mouseMoveX)){
             this.imagePosition.x += mouseMoveX;
             this.currentTransform.x += mouseMoveX
         }
 
         this.changeTransform();
 
+    }
+
+    private canMoveVertical(mouseMoveY:number){
+        if(mouseMoveY < 0){
+            return this.imagePosition.y + mouseMoveY >= -this.imageRect.top
+        }
+
+        if(mouseMoveY > 0){
+            return this.imagePosition.y + mouseMoveY <= 0
+        }
+
+        return false;
+    }
+
+    private canMoveHorizontal(mouseMoveX:number){
+        if(mouseMoveX < 0){
+            return this.imagePosition.x + mouseMoveX >= -this.imageRect.left
+        }
+
+        if(mouseMoveX > 0){
+            return this.imagePosition.x + mouseMoveX <= 0
+        }
+
+        return false;
     }
 
     private changeTransform(){
