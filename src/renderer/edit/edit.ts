@@ -522,6 +522,7 @@ const clear = () => {
     unlock();
     Dom.img.element.src = "";
     changeEditMode(State.editMode)
+    changeResizeMode(false)
 }
 
 const close = () => {

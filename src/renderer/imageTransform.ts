@@ -175,11 +175,8 @@ export class ImageTransform{
 
         const rect = this.img.getBoundingClientRect();
 
-        const left = rect.left
-        const top = rect.top
-
-        const mouseX = x - left;
-        const mouseY = y - top;
+        const mouseX = x - rect.left;
+        const mouseY = y - rect.top;
 
         const prevOrigX = this.currentTransform.orgX * this.previousScale
         const prevOrigY = this.currentTransform.orgY * this.previousScale
@@ -212,7 +209,6 @@ export class ImageTransform{
         this.currentTransform.y = translateY;
         this.currentTransform.orgX = newOrigX;
         this.currentTransform.orgY = newOrigY;
-
 
         this.imagePosition.y = this.imagePadding.y + (newOrigY - newOrigY * this.scale) + translateY
         this.imagePosition.x = this.imagePadding.x + (newOrigX - newOrigX * this.scale) + translateX
@@ -284,6 +280,9 @@ export class ImageTransform{
     }
 
     private canMoveVertical(mouseMoveY:number){
+
+        if(this.imageRect.top === 0) return false;
+
         if(mouseMoveY < 0){
             return this.imagePosition.y + mouseMoveY >= -this.imageRect.top
         }
@@ -296,6 +295,9 @@ export class ImageTransform{
     }
 
     private canMoveHorizontal(mouseMoveX:number){
+
+        if(this.imageRect.left == 0) return false;
+
         if(mouseMoveX < 0){
             return this.imagePosition.x + mouseMoveX >= -this.imageRect.left
         }
