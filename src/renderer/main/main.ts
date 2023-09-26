@@ -110,53 +110,60 @@ const onClick = (e:MouseEvent) => {
     if(!e.target || !(e.target instanceof HTMLElement)) return;
 
     if(e.target.id == "minimize"){
-        minimize();
+        return minimize();
     }
 
     if(e.target.id == "maximize"){
-        toggleMaximize();
+        return toggleMaximize();
     }
 
     if(e.target.id == "close"){
-        close();
+        return close();
     }
 
     if(e.target.id == "edit"){
-        request("open-edit-dialog", {})
+        return request("open-edit-dialog", {})
     }
 
     if(e.target.id == "deleteBtn"){
-        deleteFile();
+        return deleteFile();
     }
 
     if(e.target.id == "rotateLeft"){
-        rotateLeft();
+        return rotateLeft();
     }
 
     if(e.target.id == "pinBtn"){
-        pin();
+        return pin();
     }
 
     if(e.target.id == "rotateRight"){
-        rotateRight();
+        return rotateRight();
     }
 
     if(e.target.id == "setting"){
-        window.api.send("open-main-context", {})
+        return window.api.send("open-main-context", {})
     }
 
     if(e.target.id == "previous"){
-        startFetch(BACKWARD);
+        return startFetch(BACKWARD);
     }
 
     if(e.target.id == "next"){
-        startFetch(FORWARD);
+        return startFetch(FORWARD);
     }
 
     if(e.target.id == "closeHistoryBtn"){
-        closeHistory();
+        return closeHistory();
     }
 
+}
+
+const shouldCloseHistory = (e:MouseEvent) => {
+
+    if(!isHistoryOpen()) return false;
+
+    return !e.composedPath().some(target => target instanceof HTMLDivElement && target.classList.contains("history"))
 }
 
 const onMousedown = (e:MouseEvent) => {
@@ -173,9 +180,9 @@ const onMouseup = (e:MouseEvent) => {
 
     if(!e.target || !(e.target instanceof HTMLElement)) return;
 
-    if(isHistoryOpen()){
-        closeHistory();
-        return;
+    if(shouldCloseHistory(e)){
+        console.log(1)
+        return closeHistory();
     }
 
     if(e.button == 2 && !State.mouseOnly){
