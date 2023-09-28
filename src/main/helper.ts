@@ -231,15 +231,15 @@ export default class Helper{
                 id: "Light",
                 label:Labels.ThemeLight,
                 type:"checkbox",
-                checked: config.preference.theme == "Light",
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Theme, "Light"))
+                checked: config.preference.theme == "light",
+                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Theme, "light"))
             },
             {
                 id: "Dark",
                 label:Labels.ThemeDark,
                 type:"checkbox",
-                checked: config.preference.theme == "Dark",
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Theme, "Dark"))
+                checked: config.preference.theme == "dark",
+                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Theme, "dark"))
             },
         ]
 

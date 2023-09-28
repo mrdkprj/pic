@@ -1,4 +1,4 @@
-import {app, ipcMain, dialog, shell, protocol} from "electron"
+import {app, ipcMain, dialog, shell, protocol, nativeTheme} from "electron"
 import path from "path";
 import fs from "fs/promises"
 import proc from "child_process";
@@ -70,6 +70,8 @@ const mainContextMenuCallback = (menu:MainContextMenuTypes, args?:any) => {
 const mainContext = helper.createMainContextMenu(config.data, mainContextMenuCallback)
 
 app.on("ready", () => {
+
+    nativeTheme.themeSource = "dark"//config.data.preference.theme;
 
     currentIndex = 0;
 
@@ -646,6 +648,7 @@ const toggleMode = (mode:Pic.Mode) => {
 
 const toggleTheme = (theme:Pic.Theme) => {
     config.data.preference.theme = theme;
+    nativeTheme.themeSource = config.data.preference.theme;
     respond("Main", "toggle-theme", {preference:config.data.preference})
 }
 

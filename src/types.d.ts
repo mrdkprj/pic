@@ -63,9 +63,9 @@ declare global {
         type Timestamp = "Normal" | "Unchanged"
         type Mode = "Keyboard" | "Mouse";
         type Orientaion = "Normal" | "Flip"
-        type Theme = "Dark" | "Light";
+        type Theme = "dark" | "light";
         type SortType = "NameAsc" | "NameDesc" | "DateAsc" | "DateDesc"
-        type Options = Mode | Orientaion | Theme | SortType | Mtime
+        type Options = Mode | Orientaion | Theme | SortType | Timestamp
         type ImageTransformEvent = "transformchange" | "dragstart" | "dragend"
         type ImageSroucetype = "path" | "buffer" | "undefined"
         type EditMode = "Clip" | "Resize"

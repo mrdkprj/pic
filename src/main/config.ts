@@ -10,7 +10,7 @@ const DEFAULT_CONFIG :Pic.Config = {
         timestamp:"Unchanged",
         sort:"NameAsc",
         mode:"Keyboard",
-        theme:"Dark",
+        theme:"dark",
         orientation:"Normal",
     },
     history:{},

@@ -181,7 +181,6 @@ const onMouseup = (e:MouseEvent) => {
     if(!e.target || !(e.target instanceof HTMLElement)) return;
 
     if(shouldCloseHistory(e)){
-        console.log(1)
         return closeHistory();
     }
 
@@ -372,7 +371,7 @@ const changeMode = (mode:Pic.Mode) => {
 }
 
 const applyTheme = (theme:Pic.Theme) => {
-    if(theme === "Light"){
+    if(theme === "light"){
         document.documentElement.removeAttribute("dark")
         document.documentElement.setAttribute("light", "");
     }else{
