@@ -1,6 +1,9 @@
 import { ImageTransform } from "../imageTransform";
 import { DomElement } from "../dom"
+import { ContextMenu } from "../contextmenu";
 import { Orientations, FORWARD, BACKWARD } from "../../constants"
+
+const menu = new ContextMenu();
 
 const State = {
     isMaximized:false,
@@ -66,7 +69,6 @@ const onKeydown = (e:KeyboardEvent) => {
             e.preventDefault();
             pin();
         }
-
 
     }
 
@@ -141,10 +143,6 @@ const onClick = (e:MouseEvent) => {
         return rotateRight();
     }
 
-    if(e.target.id == "setting"){
-        return window.api.send("open-main-context", {})
-    }
-
     if(e.target.id == "previous"){
         return startFetch(BACKWARD);
     }
@@ -157,6 +155,10 @@ const onClick = (e:MouseEvent) => {
         return closeHistory();
     }
 
+    if(e.target.id == "setting"){
+        return menu.toggle(e);
+    }
+
 }
 
 const shouldCloseHistory = (e:MouseEvent) => {
@@ -166,7 +168,7 @@ const shouldCloseHistory = (e:MouseEvent) => {
     return !e.composedPath().some(target => target instanceof HTMLDivElement && target.classList.contains("history"))
 }
 
-const onMousedown = (e:MouseEvent) => {
+const onImageAreaMousedown = (e:MouseEvent) => {
 
     if(!e.target || !(e.target instanceof HTMLElement)) return;
 
@@ -185,7 +187,7 @@ const onMouseup = (e:MouseEvent) => {
     }
 
     if(e.button == 2 && !State.mouseOnly){
-        window.api.send("open-main-context", {})
+        menu.popup(e);
         return;
     }
 
@@ -292,7 +294,7 @@ const rotate = () => {
 }
 
 
-const prepare = () => {
+const beforeRequest = () => {
 
     if(Dom.loader.element.style.display == "block"){
         return false;
@@ -307,19 +309,19 @@ const prepare = () => {
 }
 
 const dropFile = (fullPath:string) => {
-    if(prepare()){
+    if(beforeRequest()){
         window.api.send("drop-file", {fullPath});
     }
 }
 
 const startFetch = (index:number) => {
-    if(prepare()){
+    if(beforeRequest()){
         request("fetch-image", {index});
     }
 }
 
 const deleteFile = () => {
-    if(prepare()){
+    if(beforeRequest()){
         request("delete", {});
     }
 }
@@ -328,16 +330,20 @@ const pin = () => {
     request("pin", {});
 }
 
-const applyConfig = (data:Pic.Config) => {
+const prepare = (e:Pic.ReadyEvent) => {
 
-    State.isMaximized = data.isMaximized;
+    State.isMaximized = e.config.isMaximized;
     changeMaximizeIcon();
 
-    changeMode(data.preference.mode);
+    changeMode(e.config.preference.mode);
 
-    applyTheme(data.preference.theme);
+    applyTheme(e.config.preference.theme);
 
-    changeHistory(data.history);
+    changeHistory(e.config.history);
+
+    menu.build(e.menu);
+    menu.onClick(e => window.api.send("menu-click", e))
+
 }
 
 const changePinStatus = () => {
@@ -511,7 +517,7 @@ const onResponse = (callback:() => void) => {
     callback();
 }
 
-window.api.receive("config-loaded", data => onResponse(() => applyConfig(data)))
+window.api.receive("ready", data => onResponse(() => prepare(data)))
 window.api.receive("after-fetch", data => onResponse(() => loadImage(data)))
 window.api.receive("after-pin", data => onResponse(() => onAfterPin(data)))
 window.api.receive("show-actual-size", () => onResponse(() => showActualSize()));
@@ -524,24 +530,13 @@ window.api.receive("after-toggle-maximize", data => onResponse(() => onAfterTogg
 
 window.onload = () => {
 
-    Dom.title.fill();
-    Dom.resizeBtn.fill();
-    Dom.viewport.fill();
-    Dom.img.fill();
-    Dom.imageArea.fill();
-    Dom.loader.fill();
-    Dom.history.fill();
-    Dom.scaleRate.fill();
-    Dom.counter.fill();
-    Dom.category.fill();
-
     Dom.img.element.addEventListener("load", onImageLoaded)
 
     Dom.imageArea.element.addEventListener("wheel", imageTransform.onWheel);
 
-    Dom.imageArea.element.addEventListener("mousedown", onMousedown)
+    Dom.imageArea.element.addEventListener("mousedown", onImageAreaMousedown)
 
-    const imageContainer = new DomElement("imageContainer").fill();
+    const imageContainer = new DomElement("imageContainer").element;
     imageContainer.addEventListener("dragover", e => e.preventDefault())
     imageContainer.addEventListener("drop", onDrop);
 

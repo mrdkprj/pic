@@ -45,6 +45,8 @@ export class ImageTransform{
 
         if(this.scaleForActualSize == this.defaultScale) return;
 
+        if(this.scaleForActualSize == this.scale) return;
+
         this.scale = this.scaleForActualSize
         this.zoom(this.imageRect.width / 2, this.imageRect.height / 2);
     }

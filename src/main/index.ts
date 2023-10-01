@@ -6,7 +6,7 @@ import url from "url"
 import Config from "./config";
 import Util from "./util";
 import Helper from "./helper";
-import { OrientationName, MainContextMenuTypes, EmptyImageFile, Extensions } from "../constants";
+import { OrientationName, EmptyImageFile, Extensions } from "../constants";
 
 protocol.registerSchemesAsPrivileged([
     { scheme: "app", privileges: { bypassCSP: true } }
@@ -26,52 +26,52 @@ const Renderers:Renderer = {
 let topRendererName:RendererName = "Main"
 let currentIndex = 0;
 
-const mainContextMenuCallback = (menu:MainContextMenuTypes, args?:any) => {
-    switch(menu){
-        case MainContextMenuTypes.OpenFile:
+const mainContextMenuCallback = (e:Pic.ContextMenuClickEvent) => {
+    switch(e.name){
+        case "OpenFile":
             openFile();
             break;
-        case MainContextMenuTypes.Reveal:
+        case "Reveal":
             reveal();
             break;
-        case MainContextMenuTypes.History:
+        case "History":
             respond("Main", "open-history", {});
             break;
-        case MainContextMenuTypes.ShowActualSize:
+        case "ShowActualSize":
             respond("Main", "show-actual-size", {});
             break;
-        case MainContextMenuTypes.ToFirst:
+        case "ToFirst":
             fetchFirst();
             break;
-        case MainContextMenuTypes.ToLast:
+        case "ToLast":
             fetchLast();
             break;
-        case MainContextMenuTypes.Sort:
-            sortImageFiles(args, getCurrentImageFile().fileName);
+        case "Sort":
+            sortImageFiles(e.value as Pic.SortType, getCurrentImageFile().fileName);
             break;
-        case MainContextMenuTypes.Timestamp:
-            changeTimestampMode(args);
+        case "Timestamp":
+            changeTimestampMode(e.value as Pic.Timestamp);
             break;
-        case MainContextMenuTypes.Mode:
-            toggleMode(args);
+        case "Mode":
+            toggleMode(e.value as Pic.Mode);
             break;
-        case MainContextMenuTypes.Orientaion:
-            changeOrientaionMode(args)
+        case "Orientation":
+            changeOrientaionMode(e.value as Pic.Orientaion)
             break;
-        case MainContextMenuTypes.Theme:
-            toggleTheme(args);
+        case "Theme":
+            toggleTheme(e.value as Pic.Theme);
             break;
-        case MainContextMenuTypes.Reload:
+        case "Reload":
             loadImage(getCurrentImageFile().fullPath);
             break;
     }
 }
 
-const mainContext = helper.createMainContextMenu(config.data, mainContextMenuCallback)
+const mainContext = helper.getContextMenu(config.data)
 
 app.on("ready", () => {
 
-    nativeTheme.themeSource = "dark"//config.data.preference.theme;
+    nativeTheme.themeSource = config.data.preference.theme;
 
     currentIndex = 0;
 
@@ -127,7 +127,7 @@ const registerIpcChannels = () => {
 
     addEventHandler("minimize", minimize)
     addEventHandler("toggle-maximize", toggleMaximize)
-    addEventHandler("open-main-context", openMainContext)
+    addEventHandler("menu-click", mainContextMenuCallback)
     addEventHandler("close", onClose)
     addEventHandler("drop-file", onDropRequest)
     addEventHandler("fetch-image", fetchImage)
@@ -161,7 +161,7 @@ const onReady = () => {
 
     Renderers.Main?.show();
 
-    respond("Main", "config-loaded", config.data)
+    respond("Main", "ready", {config:config.data, menu:mainContext})
 
     if(process.argv.length > 1 && process.argv[1] != "."){
         loadImage(process.argv[1]);
@@ -301,12 +301,6 @@ const sortImageFiles = (sortType:Pic.SortType, currentFileName?:string) => {
         currentIndex = imageFiles.findIndex(imageFile => imageFile.fileName === currentFileName);
     }
 
-}
-
-const openMainContext = () => {
-    if(!Renderers.Main) return;
-
-    mainContext.popup({window:Renderers.Main})
 }
 
 const rotate = async (orientation:number) => {

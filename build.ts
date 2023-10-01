@@ -16,7 +16,6 @@ build({
             fileAssociations: [
                 {
                   ext: ["ico", "gif", "png", "jpg", "jpeg", "webp", "svg"],
-                  description: "Image files",
                 },
             ]
         },
@@ -27,14 +26,13 @@ build({
             fileAssociations: [
                 {
                   ext: ["ico", "gif", "png", "jpg", "jpeg", "webp", "svg"],
-                  description: "Image files",
                 },
             ],
         },
         nsis: {
             oneClick: true,
-            allowToChangeInstallationDirectory: false,
-            runAfterFinish: false,
+            //allowToChangeInstallationDirectory: true,
+            //runAfterFinish: false,
         }
     },
 });

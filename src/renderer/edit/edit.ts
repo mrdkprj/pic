@@ -574,17 +574,6 @@ window.api.receive("after-toggle-maximize", data => onResponse(() => onAfterTogg
 
 window.onload = () => {
 
-    Dom.title.fill();
-    Dom.resizeBtn.fill();
-    Dom.viewport.fill();
-    Dom.titleBar.fill();
-    Dom.img.fill();
-    Dom.imageArea.fill();
-    Dom.loader.fill();
-    Dom.scaleText.fill();
-    Dom.clipArea.fill();
-    Dom.canvas.fill();
-
     Dom.img.element.addEventListener("mousedown", onImageMousedown)
     Dom.img.element.addEventListener("load", onImageLoaded)
 

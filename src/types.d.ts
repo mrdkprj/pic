@@ -24,14 +24,14 @@ declare global {
         "resize": Pic.ResizeRequest;
         "close-edit-dialog": Pic.Event;
         "close-file-dialog": Pic.Event;
-        "open-main-context": Pic.Event;
+        "menu-click": Pic.ContextMenuClickEvent;
         "restart": Pic.Event;
         "open-edit-dialog": Pic.Event;
         "save-image": Pic.SaveImageRequest;
     }
 
     type RendererChannelEventMap = {
-        "config-loaded": Pic.Config;
+        "ready": Pic.ReadyEvent;
         "after-fetch": Pic.FetchResult;
         "after-remove-history": Pic.RemoveHistoryResult;
         "after-pin": Pic.PinResult;
@@ -65,7 +65,25 @@ declare global {
         type Orientaion = "Normal" | "Flip"
         type Theme = "dark" | "light";
         type SortType = "NameAsc" | "NameDesc" | "DateAsc" | "DateDesc"
-        type Options = Mode | Orientaion | Theme | SortType | Timestamp
+        type ContextMenuOptions = Mode | Orientaion | Theme | SortType | Timestamp
+        type ContextMenuNames = "OpenFile" | "Reveal" | "Reload" | "Mode" | "Orientation" | "Theme" | "History" | "ToFirst" | "ToLast" | "Timestamp" | "Sort" | "ShowActualSize" | "None";
+
+        type ContextMenuType = "text" | "radio" | "checkbox" | "separator"
+
+        type ContextMenu = {
+            name:Pic.ContextMenuNames;
+            label?:string;
+            value?:Pic.ContextMenuOptions;
+            type?:Pic.ContextMenuType;
+            checked?:boolean;
+            submenu?:Pic.ContextMenu[];
+        }
+
+        type ContextMenuClickEvent = {
+            name:Pic.ContextMenuNames;
+            value?:Pic.ContextMenuOptions;
+        }
+
         type ImageTransformEvent = "transformchange" | "dragstart" | "dragend"
         type ImageSroucetype = "path" | "buffer" | "undefined"
         type EditMode = "Clip" | "Resize"
@@ -104,6 +122,11 @@ declare global {
         type ImageSize = {
             width:number;
             height:number;
+        }
+
+        type ReadyEvent = {
+            config:Pic.Config;
+            menu:Pic.ContextMenu[];
         }
 
         type Config = {

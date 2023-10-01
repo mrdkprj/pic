@@ -1,6 +1,6 @@
-import {  Menu, BrowserWindow } from "electron"
+import { BrowserWindow } from "electron"
 import path from "path"
-import { MainContextMenuTypes, Labels } from "../constants";
+import { Labels } from "../constants";
 
 export default class Helper{
 
@@ -65,197 +65,187 @@ export default class Helper{
         return widow;
     }
 
-    createMainContextMenu(config:Pic.Config, onclick: (menu:MainContextMenuTypes, args?:any) => void){
-        const mainContextTemplate:Electron.MenuItemConstructorOptions[] = [
+    getContextMenu(config:Pic.Config):Pic.ContextMenu[]{
+        return [
             {
+                name: "OpenFile",
                 label: Labels.OpenFile,
-                click: () => onclick(MainContextMenuTypes.OpenFile)
             },
             {
+                name: "Reveal",
                 label: Labels.Reveal,
-                click: () => onclick(MainContextMenuTypes.Reveal)
             },
             {
+                name: "History",
                 label: Labels.History,
-                click: () => onclick(MainContextMenuTypes.History)
             },
             {
+                name:"ShowActualSize",
                 label: Labels.ShowActualSize,
-                click: () => onclick(MainContextMenuTypes.ShowActualSize)
             },
-            { type: 'separator' },
+            { name:"None", type: "separator" },
             {
+                name: "ToFirst",
                 label: Labels.MoveFirst,
-                click: () => onclick(MainContextMenuTypes.ToFirst)
             },
             {
+                name: "ToLast",
                 label: Labels.MoveLast,
-                click: () => onclick(MainContextMenuTypes.ToLast)
             },
             {
+                name:"Sort",
                 label: Labels.SortBy,
-                submenu: this.createSortMenu(config, onclick)
+                submenu: this.createSortMenu(config)
             },
-            { type: 'separator' },
+            { name:"None", type: "separator" },
             {
+                name:"Timestamp",
                 label:Labels.Timestamp,
-                submenu: this.timestampSubMenu(config, onclick)
+                submenu: this.timestampSubMenu(config)
             },
             {
+                name:"Mode",
                 label: Labels.Mode,
-                submenu: this.modeSubMenu(config, onclick)
+                submenu: this.modeSubMenu(config)
             },
             {
+                name:"Orientation",
                 label: Labels.Orientation,
-                submenu: this.orientationSubMenu(config, onclick)
+                submenu: this.orientationSubMenu()
             },
             {
+                name:"Theme",
                 label: Labels.Theme,
-                submenu: this.themeSubMenu(config, onclick)
+                submenu: this.themeSubMenu(config)
             },
-            { type: 'separator' },
+            { name:"None", type: "separator" },
             {
+                name:"Reload",
                 label: Labels.Reload,
-                click: () => onclick(MainContextMenuTypes.Reload)
             },
         ]
-
-        return Menu.buildFromTemplate(mainContextTemplate)
     }
 
-    private createSortMenu(config:Pic.Config, onclick: (menu:MainContextMenuTypes, args?:Pic.Options) => void){
+    private createSortMenu(config:Pic.Config):Pic.ContextMenu[]{
 
-        const sortMenuTemplate:Electron.MenuItemConstructorOptions[] = [
+        const name = "Sort";
+        return [
             {
-                id: "NameAsc",
+                name,
                 label: Labels.NameAsc,
-                type: "checkbox",
+                type: "radio",
                 checked: config.preference.sort === "NameAsc",
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Sort, "NameAsc"))
+                value: "NameAsc"
             },
             {
-                id: "NameDesc",
+                name,
                 label: Labels.NameDesc,
-                type: "checkbox",
+                type: "radio",
                 checked: config.preference.sort === "NameDesc",
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Sort, "NameDesc"))
+                value: "NameDesc"
             },
             {
-                id: "DateAsc",
+                name,
                 label: Labels.DateAsc,
-                type: "checkbox",
+                type: "radio",
                 checked: config.preference.sort === "DateAsc",
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Sort, "DateAsc"))
+                value: "DateAsc"
             },
             {
-                id: "DateDesc",
+                name,
                 label: Labels.DateDesc,
-                type: "checkbox",
+                type: "radio",
                 checked: config.preference.sort === "DateDesc",
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Sort, "DateDesc"))
+                value: "DateDesc"
             },
         ]
 
-        return Menu.buildFromTemplate(sortMenuTemplate);
     }
 
-    private timestampSubMenu(config:Pic.Config, onclick: (menu:MainContextMenuTypes, args?:Pic.Options) => void){
+    private timestampSubMenu(config:Pic.Config,):Pic.ContextMenu[]{
 
-        const contextTemplate:Electron.MenuItemConstructorOptions[] = [
+        const name = "Timestamp"
+        return [
             {
-                id: "TimestampNormal",
+                name,
                 label:Labels.TimestampNormal,
-                type:"checkbox",
+                type:"radio",
                 checked: config.preference.timestamp === "Normal",
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Timestamp, "Normal"))
+                value: "Normal"
             },
             {
-                id: "TimestampUnchanged",
+                name,
                 label:Labels.TimestampUnchanged,
-                type:"checkbox",
+                type:"radio",
                 checked: config.preference.timestamp === "Unchanged",
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Timestamp, "Unchanged"))
+                value: "Unchanged"
             },
         ]
 
-        return Menu.buildFromTemplate(contextTemplate);
     }
 
-    private modeSubMenu(config:Pic.Config, onclick: (menu:MainContextMenuTypes, args?:Pic.Options) => void){
+    private modeSubMenu(config:Pic.Config):Pic.ContextMenu[]{
 
-        const contextTemplate:Electron.MenuItemConstructorOptions[] = [
+        const name = "Mode"
+        return [
             {
-                id: "Mouse",
+                name,
                 label:Labels.ModeMouse,
-                type:"checkbox",
+                type:"radio",
                 checked: config.preference.mode == "Mouse",
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Mode, "Mouse"))
+                value: "Mouse"
             },
             {
-                id: "Keyboard",
+                name,
                 label:Labels.ModeKeyboard,
-                type:"checkbox",
+                type:"radio",
                 checked: config.preference.mode == "Keyboard",
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Mode, "Keyboard"))
+                value: "Keyboard"
             },
         ]
 
-        return Menu.buildFromTemplate(contextTemplate);
     }
 
-    private orientationSubMenu(config:Pic.Config, onclick: (menu:MainContextMenuTypes, args?:Pic.Options) => void){
+    private orientationSubMenu():Pic.ContextMenu[]{
 
-        const contextTemplate:Electron.MenuItemConstructorOptions[] = [
+        const name = "Orientation"
+        return [
             {
-                id: "Normal",
+                name,
                 label:Labels.OrientationNormal,
-                type:"checkbox",
+                type:"radio",
                 checked:true,
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Orientaion, "Normal"))
+                value: "Normal"
             },
             {
-                id: "Flip",
+                name,
                 label:Labels.OrientationFlip,
-                type:"checkbox",
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Orientaion, "Flip"))
+                type:"radio",
+                value: "Flip"
             },
         ]
-
-        return Menu.buildFromTemplate(contextTemplate);
     }
 
-    private themeSubMenu(config:Pic.Config, onclick: (menu:MainContextMenuTypes, args?:Pic.Options) => void){
+    private themeSubMenu(config:Pic.Config):Pic.ContextMenu[]{
 
-        const contextTemplate:Electron.MenuItemConstructorOptions[] = [
+        const name = "Theme"
+        return [
             {
-                id: "Light",
+                name,
                 label:Labels.ThemeLight,
-                type:"checkbox",
+                type:"radio",
                 checked: config.preference.theme == "light",
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Theme, "light"))
+                value: "light"
             },
             {
-                id: "Dark",
+                name,
                 label:Labels.ThemeDark,
-                type:"checkbox",
+                type:"radio",
                 checked: config.preference.theme == "dark",
-                click: (menuItem) => this.toggleMenuItemCheckbox(menuItem, () => onclick(MainContextMenuTypes.Theme, "dark"))
+                value: "dark"
             },
         ]
-
-        return Menu.buildFromTemplate(contextTemplate);
     }
 
-    private toggleMenuItemCheckbox(menuItem:Electron.MenuItem, onclick:() => void){
 
-        menuItem.menu.items.forEach((item:Electron.MenuItem) => {
-            if(item.id === menuItem.id){
-                item.checked = true;
-            }else{
-                item.checked = false;
-            }
-        })
-
-        onclick()
-    }
 }
