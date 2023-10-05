@@ -165,7 +165,7 @@ const shouldCloseHistory = (e:MouseEvent) => {
 
     if(!isHistoryOpen()) return false;
 
-    return !e.composedPath().some(target => target instanceof HTMLDivElement && target.classList.contains("history"))
+    return !e.composedPath().some(target => target instanceof HTMLElement && target.classList.contains("history"))
 }
 
 const onImageAreaMousedown = (e:MouseEvent) => {
@@ -183,6 +183,7 @@ const onMouseup = (e:MouseEvent) => {
     if(!e.target || !(e.target instanceof HTMLElement)) return;
 
     if(shouldCloseHistory(e)){
+        console.log(e.composedPath())
         return closeHistory();
     }
 

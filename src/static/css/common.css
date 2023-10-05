@@ -262,6 +262,10 @@ body{
     position: absolute;
 }
 
+.can-focus:focus{
+    outline: none;
+}
+
 #loader{
     display:none;
 }
