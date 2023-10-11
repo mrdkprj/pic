@@ -43,6 +43,11 @@
     transition-property: visibility;
 }
 
+.revert .submenu{
+    right: calc(100% + 30px);
+    left: unset;
+}
+
 .submenu-container{
     position: relative;
 }

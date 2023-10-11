@@ -1,16 +1,16 @@
 type Size = {
+    bottom:number;
     width:number;
     height:number;
 }
 
-const menuItemHeight = 39;
+const menuItemHeight = 29;
 const separatorHeight = 1;
 
 export class ContextMenu{
 
-    options:Pic.ContextMenu[];
-    menu:HTMLElement;
-
+    private options:Pic.ContextMenu[];
+    private menu:HTMLElement;
     private size = {
         innerHeight:0,
         outerHeight:0,
@@ -108,7 +108,10 @@ export class ContextMenu{
         this.menu.style.left = "0px";
         this.menu.style.visibility = "hidden"
 
-        this.options.forEach(menuItem => this.menu.append(this.createMenu(menuItem)))
+        this.options.forEach(menuItem => {
+            this.menu.append(this.createMenu(menuItem))
+            this.size.innerHeight += menuItemHeight
+        })
 
         document.body.append(this.menu)
 
@@ -126,19 +129,19 @@ export class ContextMenu{
         this.size.outerHeight = menuRect.height
         this.size.outerWidth = menuRect.width;
 
-        const highestChild = Object.keys(this.submenuSize).reduce((a, b) => this.submenuSize[a].height > this.submenuSize[b].height ? a : b);
-        const highestSubmenu = this.menu.querySelector(`#${highestChild}`)?.querySelector(".submenu")
+        const keys = Object.keys(this.submenuSize);
 
-        if(highestSubmenu){
-            const submenuRect = highestSubmenu.getBoundingClientRect();
-            this.size.outerHeight = submenuRect.bottom - menuRect.top;
+        const overflowItems = keys.filter(key => this.submenuSize[key].bottom > this.size.innerHeight)
+        if(overflowItems.length){
+            const highestChild = overflowItems.reduce((a, b) => this.submenuSize[a].bottom > this.submenuSize[b].bottom ? a : b);
+            this.size.outerHeight = this.submenuSize[highestChild].bottom
         }
 
         const widestChild = Object.keys(this.submenuSize).reduce((a, b) => this.submenuSize[a].width > this.submenuSize[b].width ? a : b);
         const widestSubmenu = this.menu.querySelector(`#${widestChild}`)?.querySelector(".submenu")
         if(widestSubmenu){
             const submenuRect = widestSubmenu.getBoundingClientRect();
-            this.size.outerWidth = submenuRect.right - menuRect.left;
+            this.size.outerWidth = this.size.innerWidth + submenuRect.width;
         }
     }
 
@@ -146,7 +149,7 @@ export class ContextMenu{
         return "menu" + crypto.randomUUID();
     }
 
-    private createMenu(menuItem:Pic.ContextMenu){
+    private createMenu(menuItem:Pic.ContextMenu):Node{
 
         if(menuItem.type == "checkbox"){
             return this.createCheckboxMenu(menuItem)
@@ -191,7 +194,8 @@ export class ContextMenu{
         const submenu = document.createElement("div");
         submenu.classList.add("submenu")
         submenu.setAttribute("menu", "")
-        submenuMenuItems.forEach(menuItem => submenu.append(this.createMenu(menuItem)))
+        const menus = submenuMenuItems.map(menuItem => this.createMenu(menuItem))
+        submenu.append(...menus)
         container.append(submenu)
 
         this.submenuSize[container.id] = this.getSubmenuSize(submenuMenuItems)
@@ -216,7 +220,8 @@ export class ContextMenu{
             }
         })
 
-        return { width, height}
+        const bottom = this.size.innerHeight + height;
+        return { bottom, width, height}
     }
 
     private onSubmenuMouseEnter = (e:MouseEvent) => {
@@ -258,6 +263,7 @@ export class ContextMenu{
     }
 
     private setupMenu(menu:HTMLDivElement){
+
         menu.addEventListener("mousedown", e => {
             e.preventDefault()
             e.stopImmediatePropagation();
@@ -267,6 +273,7 @@ export class ContextMenu{
     }
 
     private createSeparator(){
+        this.size.innerHeight += separatorHeight
         const separator = document.createElement("div");
         separator.classList.add("menu-separator")
         return separator;
