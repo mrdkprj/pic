@@ -37,7 +37,6 @@ declare global {
         "after-pin": Pic.PinResult;
         "after-toggle-maximize": Pic.Config;
         "toggle-mode": Pic.ChangePreferenceEvent;
-        "toggle-theme": Pic.ChangePreferenceEvent;
         "open-history": Pic.Event;
         "prepare-file-dialog": Pic.OpenFileDialogEvent;
         "show-actual-size": Pic.Event;
@@ -49,14 +48,8 @@ declare global {
     interface Api {
         send: <K extends keyof MainChannelEventMap>(channel: K, data:MainChannelEventMap[K]) => void;
         receive: <K extends keyof RendererChannelEventMap>(channel:K, listener: (data: RendererChannelEventMap[K]) => void) => () => void;
+        removeAllListeners: <K extends keyof RendererChannelEventMap>(channel:K) => void;
     }
-
-    const MAIN_WINDOW_WEBPACK_ENTRY: string;
-    const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
-    const FILE_WINDOW_WEBPACK_ENTRY: string;
-    const FILE_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
-    const EDIT_WINDOW_WEBPACK_ENTRY:string;
-    const EDIT_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
     namespace Pic {
 

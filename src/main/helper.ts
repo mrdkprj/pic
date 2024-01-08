@@ -2,10 +2,22 @@ import { BrowserWindow } from "electron"
 import path from "path"
 import { Labels } from "../constants";
 
+const isDev = process.env.NODE_ENV === "development"
+
+const load = (window:BrowserWindow, name:RendererName) => {
+
+    if(isDev){
+        return window.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}/${name.toLowerCase()}/index.html`)
+    }
+
+    return window.loadFile(path.join(__dirname, `../renderer/${name.toLowerCase()}/index.html`))
+
+}
+
 export default class Helper{
 
     createMainWindow(config:Pic.Config){
-        const mainWindow = new BrowserWindow({
+        const window = new BrowserWindow({
             width: config.bounds.width,
             height: config.bounds.height,
             x:config.bounds.x,
@@ -13,7 +25,7 @@ export default class Helper{
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
-                preload:MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY
+                preload: path.join(__dirname, "../preload/preload.js"),
             },
             autoHideMenuBar: true,
             show: false,
@@ -21,38 +33,18 @@ export default class Helper{
             frame: false
         });
 
-        mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+        load(window, "Main")
 
-        return mainWindow;
+        return window;
 
-    }
-
-    createMoveFileWindow(parent:BrowserWindow){
-        const widow = new BrowserWindow({
-            parent:parent,
-            modal:true,
-            autoHideMenuBar: true,
-            show: false,
-            frame: false,
-            center:true,
-            webPreferences: {
-                nodeIntegration: false,
-                contextIsolation: true,
-                preload:FILE_WINDOW_PRELOAD_WEBPACK_ENTRY
-            },
-        });
-
-        widow.loadURL(FILE_WINDOW_WEBPACK_ENTRY)
-
-        return widow;
     }
 
     createEditWindow(){
-        const widow = new BrowserWindow({
+        const window = new BrowserWindow({
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
-                preload:EDIT_WINDOW_PRELOAD_WEBPACK_ENTRY
+                preload: path.join(__dirname, "../preload/preload.js"),
             },
             autoHideMenuBar: true,
             show: false,
@@ -60,9 +52,9 @@ export default class Helper{
             frame: false
         });
 
-        widow.loadURL(EDIT_WINDOW_WEBPACK_ENTRY)
+        load(window, "Edit")
 
-        return widow;
+        return window;
     }
 
     getContextMenu(config:Pic.Config):Pic.ContextMenu[]{

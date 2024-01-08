@@ -17,55 +17,52 @@
     pointer-events: none;
 }
 
-.clipping #clip{
+.clipping .clip{
     background-color: var(--clip-bgcolor);
 }
 
-#resize{
+.resize{
     color: var(--button-disabled);
     pointer-events: none;
 }
 
-.resized #resize{
+.resized .resize{
     color: var(--menu-color);
     pointer-events:auto;
 }
 
-#undo,
-#redo,
-#cancel{
+.undo,
+.redo{
     color: var(--button-disabled);
     pointer-events: none;
 }
 
-.can-undo #undo,
-.can-undo #cancel{
+.can-undo .undo{
     color: var(--menu-color);
     pointer-events:auto;
 }
 
-.can-redo #redo,
-.can-redo #cancel{
+.can-redo .redo{
     color: var(--menu-color);
     pointer-events:auto;
 }
 
-#shrink{
+.shrink{
     position: relative;
 }
 
-.shrink #shrink{
+.shrinkable .shrink{
     background-color: var(--button-selected);
 }
 
-#saveCopy,
-#save{
+.save-copy,
+.save{
     color: var(--button-disabled);
     pointer-events: none;
 }
 
-.edited #saveCopy,
-.edited #save{
+.edited .save-copy,
+.edited .save{
     color: var(--menu-color);
     pointer-events:auto;
 }
@@ -76,7 +73,7 @@
     position: relative;
 }
 
-.mg15{
+.image-area{
     margin: 15px;
 }
 

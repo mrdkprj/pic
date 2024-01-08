@@ -8,6 +8,10 @@ contextBridge.exposeInMainWorld(
 
         receive: (channel:keyof RendererChannelEventMap, listener:(data?: any) => void) => {
             ipcRenderer.on(channel, (event, ...args) => listener(...args));
-        }
+        },
+
+        removeAllListeners: (channel:keyof RendererChannelEventMap) => {
+            ipcRenderer.removeAllListeners(channel);
+        },
   }
 );

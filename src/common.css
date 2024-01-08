@@ -1,0 +1,269 @@
+:root{
+    --font:"Segoe UI",sans-serif;
+}
+
+@media (prefers-color-scheme: light) {
+    :root{
+        --img-bgcolor:#fff;
+        --primary-forecolor:#fff;
+
+        --menu-bgcolor:#fff;
+        --menu-color:#000;
+        --menu-border-color:#afa7a7;
+        --menu-shadow:inset 0 -1px 0 rgb(100 121 143 / 12%);
+
+        --edit-menu-bgcolor:#fff;
+        --edit-menu-separator-color: #5c5a5a;
+        --clip-bgcolor:#00000012;
+        --clip-canvas-bgcolor:#fff;
+        --clip-area-bgcolor:#000;
+
+        --primary-button-hover-color:#00000012;
+        --primary-button-hover-color2:#ededed;
+        --secondary-button-hover-color:#00000012;
+        --button-disabled:#c1aeae;
+        --button-selected:#00000012;
+        --next-prev-bgcolor:#d0caca12;
+
+        --arrow-color:#00000012;
+        --arrow-hover-color:#00000075;
+
+        --primary-highlight-color:#da0707c4;
+
+        --secondary-highlight-color:#5165dbc4;
+
+        --history-bgcolor:#fffbfb;
+        --history-color:#000;
+        --history-shadow:0 4px 10px 0 rgb(0 0 0 / 20%), 0 4px 20px 0 rgb(0 0 0 / 19%);
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root{
+        --img-bgcolor:#272626;
+        --primary-forecolor:#fff;
+
+        --menu-bgcolor: #272626;
+        --menu-color: #c3bebe;
+        --menu-border-color:#474343;
+        --menu-shadow:inset 0 -1px 0 rgb(116 117 119 / 12%);
+
+        --edit-menu-bgcolor:#000;
+        --edit-menu-separator-color: #5c5a5a;
+        --clip-bgcolor:#6b676775;
+        --clip-canvas-bgcolor:#000;
+        --clip-area-bgcolor:#fff;
+
+        --primary-button-hover-color:#5f5b5b;
+        --primary-button-hover-color2:#5f5b5b;
+        --secondary-button-hover-color:#6b676775;
+        --button-disabled:#524e4e;
+        --button-selected:#6b676775;
+        --next-prev-bgcolor:#d0caca12;
+
+        --arrow-color:#00000012;
+        --arrow-hover-color:#00000075;
+
+        --primary-highlight-color:#da0707c4;
+        --secondary-highlight-color:#5165dbc4;
+
+        --history-bgcolor:#2c2a2a;
+        --history-color:#c3bebe;
+        --history-shadow:0 4px 10px 0 rgb(0 0 0 / 20%), 0 4px 20px 0 rgb(0 0 0 / 19%);
+    }
+}
+
+html, body{
+    width:100%;
+    height:100%;
+}
+
+body{
+    margin:0;
+    font-family: var(--font);
+}
+
+div:focus{
+    outline: none;
+}
+
+.viewport{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.dragging{
+    cursor: pointer;
+}
+
+.title-bar{
+    height:35px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color:var(--menu-bgcolor);
+    color: var(--menu-color);
+    cursor: default;
+    -webkit-app-region: drag;
+}
+
+.icon-area{
+    font-size: 12px;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ico{
+    width: 16px;
+    height: 16px;
+    margin: 0 5px;
+}
+
+.window-area{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+}
+
+.minimize,
+.maximize,
+.close{
+    width: 45px;
+    height: 100%;
+    text-align: center;
+    line-height: 30px;
+    user-select: none;
+    position: relative;
+    -webkit-app-region: no-drag;
+}
+
+.maximize{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
+}
+
+.minimize:hover,
+.maximize:hover{
+    background-color: var(--primary-button-hover-color);
+}
+
+.maximize:hover .minbtn,
+.maximize:hover .maxbtn{
+    background-color: var(--primary-button-hover-color2);
+}
+
+.minbtn,
+.maxbtn{
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border: 1px solid var(--menu-color);
+    background-color: var(--menu-bgcolor);
+    pointer-events: none;
+}
+
+.maxbtn::after{
+    content: "";
+    width: 7px;
+    height: 7px;
+    position: absolute;
+    top: -3px;
+    left: 1px;
+    z-index: -1;
+    border: 1px solid var(--menu-color);
+}
+
+
+.container{
+    display:flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+.menu{
+    flex: 1 1 auto;
+    box-shadow: var(--menu-shadow);
+    color: var(--menu-color);
+    user-select: none;
+    height: 35px;
+    position: absolute;
+    width: 100%;
+}
+
+
+.btn-area{
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.btn,
+.btn-sm{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    -webkit-app-region: no-drag;
+}
+
+
+.btn svg{
+    width: 20px;
+    height: 20px;
+    padding: 0 20px;
+    pointer-events: none;
+}
+
+.btn:hover{
+    background-color: var(--secondary-button-hover-color);
+}
+
+.btn-sm svg{
+    width: 15px;
+    height: 15px;
+    padding: 0 10px;
+}
+
+.image-container{
+    display: flex;
+    width:100%;
+    height:80%;
+    position: relative;
+    flex: 1 1 auto;
+    overflow: hidden;
+    background-color: var(--img-bgcolor);
+}
+
+.image-area{
+    width:100%;
+    height:auto;
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    z-index: 10;
+}
+
+.pic{
+    max-width: 100%;
+    max-height: 100%;
+    user-select: none;
+    position: absolute;
+}
+
+.can-focus:focus{
+    outline: none;
+}
+

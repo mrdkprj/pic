@@ -80,7 +80,6 @@ app.on("ready", () => {
     registerIpcChannels();
 
     Renderers.Main = helper.createMainWindow(config.data);
-    Renderers.File = helper.createMoveFileWindow(Renderers.Main);
     Renderers.Edit = helper.createEditWindow()
 
     protocol.registerFileProtocol("app", (request, callback) => {
@@ -643,7 +642,6 @@ const toggleMode = (mode:Pic.Mode) => {
 const toggleTheme = (theme:Pic.Theme) => {
     config.data.preference.theme = theme;
     nativeTheme.themeSource = config.data.preference.theme;
-    respond("Main", "toggle-theme", {preference:config.data.preference})
 }
 
 const onToggleFullscreen = (e:Pic.FullscreenChangeEvent) => {
@@ -700,6 +698,7 @@ const onCloseEditDialog = () => changeTopRenderer("Main");
 
 const onRestartRequest = () => {
     Renderers.Main?.reload();
+    Renderers.Edit?.reload();
     respond("Edit", "edit-dialog-opened", {file:getCurrentImageFile(), config:config.data})
 }
 

@@ -1,24 +1,23 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ESNext",
     "allowJs": true,
-    "alwaysStrict":true,
-    "exactOptionalPropertyTypes":true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "noStrictGenericChecks": false,
-    "module": "commonjs",
+    "module": "CommonJS",
+    "isolatedModules": true,
     "skipLibCheck": true,
+    "strictNullChecks": true,
     "esModuleInterop": true,
     "noImplicitAny": true,
-    "sourceMap": true,
+    "sourceMap": false,
     "baseUrl": ".",
     "outDir": "dist",
-    "moduleResolution": "node",
+    "moduleResolution": "Node",
     "resolveJsonModule": true,
     "paths": {
       "*": ["node_modules/*"],
-    }
+    },
+    "types": ["electron-vite/node", "vite/client"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"]
   },
-  "include": ["./src/**/*"]
+  "include": ["src/*.ts","src/**/*.ts", "src/**/*.svelte"]
 }

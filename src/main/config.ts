@@ -20,7 +20,7 @@ const DEFAULT_CONFIG :Pic.Config = {
 
 export default class Config{
 
-    data:Pic.Config;
+    data:Pic.Config = DEFAULT_CONFIG;
 
     private file:string;
     private util = new Util();
