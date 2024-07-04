@@ -54,10 +54,9 @@ declare global {
 
         type Timestamp = "Normal" | "Unchanged"
         type Mode = "Keyboard" | "Mouse";
-        type Orientaion = "Normal" | "Flip"
         type Theme = "dark" | "light";
         type SortType = "NameAsc" | "NameDesc" | "DateAsc" | "DateDesc"
-        type ContextMenuOptions = Mode | Orientaion | Theme | SortType | Timestamp
+        type ContextMenuOptions = Mode | Theme | SortType | Timestamp
         type ContextMenuNames = "OpenFile" | "Reveal" | "Reload" | "Mode" | "Orientation" | "Theme" | "History" | "ToFirst" | "ToLast" | "Timestamp" | "Sort" | "ShowActualSize" | "None";
 
         type ContextMenuType = "text" | "radio" | "checkbox" | "separator"
@@ -92,7 +91,6 @@ declare global {
             sort:SortType;
             mode:Mode;
             theme:Theme;
-            orientation:Orientaion;
         }
 
         type ImageRectangle = {

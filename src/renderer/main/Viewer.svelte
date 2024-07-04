@@ -199,6 +199,10 @@
         request("rotate", {orientation:Orientations[orientationIndex]});
     }
 
+    const showFileInfo = () => {
+
+    }
+
     const beforeRequest = () => {
 
         if($appState.locked){
@@ -355,6 +359,9 @@
 
 <div class="viewport" class:dragging={$appState.dragging} class:pinned={$appState.isPinned} class:mouse={$appState.isMouseOnly} class:history-open={$appState.isHistoryOpen} class:full={$appState.isFullscreen}>
 
+    <div class="info">
+
+    </div>
     <div class="title-bar">
         <div class="icon-area">
             <img class="ico" src={icon} alt=""/>
@@ -382,6 +389,12 @@
                     </svg>
                 </div>
                 <div class="btn can-focus" on:click={rotateRight} on:keydown={handelKeydown} role="button" tabindex="-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="rotate-btn" viewBox="0 0 16 16" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                    </svg>
+                </div>
+                <div class="btn can-focus" on:click={showFileInfo} on:keydown={handelKeydown} role="button" tabindex="-1">
                     <svg xmlns="http://www.w3.org/2000/svg" class="rotate-btn" viewBox="0 0 16 16" fill="currentColor">
                         <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
                         <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>

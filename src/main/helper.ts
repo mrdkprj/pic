@@ -101,11 +101,6 @@ export default class Helper{
                 submenu: this.modeSubMenu(config)
             },
             {
-                name:"Orientation",
-                label: Labels.Orientation,
-                submenu: this.orientationSubMenu()
-            },
-            {
                 name:"Theme",
                 label: Labels.Theme,
                 submenu: this.themeSubMenu(config)
@@ -196,26 +191,6 @@ export default class Helper{
             },
         ]
 
-    }
-
-    private orientationSubMenu():Pic.ContextMenu[]{
-
-        const name = "Orientation"
-        return [
-            {
-                name,
-                label:Labels.OrientationNormal,
-                type:"radio",
-                checked:true,
-                value: "Normal"
-            },
-            {
-                name,
-                label:Labels.OrientationFlip,
-                type:"radio",
-                value: "Flip"
-            },
-        ]
     }
 
     private themeSubMenu(config:Pic.Config):Pic.ContextMenu[]{

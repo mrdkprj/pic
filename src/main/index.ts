@@ -1,12 +1,11 @@
 import {app, ipcMain, dialog, shell, protocol, nativeTheme} from "electron"
 import path from "path";
 import fs from "fs/promises"
-import proc from "child_process";
 import url from "url"
 import Config from "./config";
 import Util from "./util";
 import Helper from "./helper";
-import { OrientationName, EmptyImageFile, Extensions } from "../constants";
+import { EmptyImageFile, Extensions } from "../constants";
 
 protocol.registerSchemesAsPrivileged([
     { scheme: "app", privileges: { bypassCSP: true } }
@@ -53,9 +52,6 @@ const mainContextMenuCallback = (e:Pic.ContextMenuClickEvent) => {
             break;
         case "Mode":
             toggleMode(e.value as Pic.Mode);
-            break;
-        case "Orientation":
-            changeOrientaionMode(e.value as Pic.Orientaion)
             break;
         case "Theme":
             toggleTheme(e.value as Pic.Theme);
@@ -203,11 +199,6 @@ const sendImageData = async () => {
     const metadata = await util.getMetadata(imageFile.fullPath);
 
     imageFile.detail.orientation = metadata.orientation ?? 1;
-
-    if(config.data.preference.orientation === "Flip" && imageFile.detail.orientation != OrientationName.Clock180deg){
-        await rotate(OrientationName.Clock180deg);
-        imageFile.detail.orientation = OrientationName.Clock180deg;
-    }
 
     const {width = 0, height = 0} = metadata;
 
@@ -558,7 +549,7 @@ const reveal = () => {
 
     if(!imageFile.fullPath) return;
 
-    proc.exec(`explorer /e,/select, ${imageFile.fullPath}`);
+    shell.showItemInFolder(imageFile.fullPath)
 
 }
 
@@ -591,20 +582,6 @@ const pin = () => {
 
     saveHistory()
     respond("Main", "after-pin", {success:true, history:config.data.history});
-
-}
-
-const changeOrientaionMode = async (orientationName:Pic.Orientaion) => {
-
-    config.data.preference.orientation = orientationName;
-
-    if(!imageFiles.length) return;
-
-    const orientation = orientationName === "Flip" ? OrientationName.Clock180deg : OrientationName.None;
-
-    await rotate(orientation)
-
-    sendImageData();
 
 }
 

@@ -11,7 +11,6 @@ const DEFAULT_CONFIG :Pic.Config = {
         sort:"NameAsc",
         mode:"Keyboard",
         theme:"dark",
-        orientation:"Normal",
     },
     history:{},
     bounds: {width:1200, height:800, x:0, y:0},
