@@ -19,7 +19,6 @@ const helper = new Helper();
 
 const Renderers:Renderer = {
     Main:undefined,
-    File:undefined,
     Edit:undefined,
 }
 
@@ -115,45 +114,16 @@ app.on("ready", () => {
 
 });
 
-const registerIpcChannels = () => {
-
-    const addEventHandler = <K extends keyof MainChannelEventMap>(
-        channel:K,
-        handler: (data: MainChannelEventMap[K]) => void | Promise<void>
-    ) => {
-        ipcMain.on(channel, (_event, request) => handler(request))
-    }
-
-    addEventHandler("minimize", minimize)
-    addEventHandler("toggle-maximize", toggleMaximize)
-    addEventHandler("menu-click", mainContextMenuCallback)
-    addEventHandler("close", onClose)
-    addEventHandler("drop-file", onDropRequest)
-    addEventHandler("fetch-image", fetchImage)
-    addEventHandler("delete", deleteFile)
-    addEventHandler("pin", pin)
-    addEventHandler("rotate", onRotateRequest)
-    addEventHandler("restore", restoreFile)
-    addEventHandler("remove-history", removeHistory)
-    addEventHandler("toggle-fullscreen", onToggleFullscreen)
-    addEventHandler("open-edit-dialog", openEditDialog)
-    addEventHandler("close-edit-dialog", onCloseEditDialog)
-    addEventHandler("resize", resize)
-    addEventHandler("clip", clip)
-    addEventHandler("save-image", saveImage)
-    addEventHandler("set-category", onSetCategory)
-    addEventHandler("open-file-dialog", openFileFileDialog)
-    addEventHandler("close-file-dialog", onCloseFileDialog)
-    addEventHandler("restart", onRestartRequest)
-
-}
-
 const respond = <K extends keyof RendererChannelEventMap>(rendererName:RendererName, channel:K, data:RendererChannelEventMap[K]) => {
     Renderers[rendererName]?.webContents.send(channel, data);
 }
 
-const showErrorMessage = (ex:Error) => {
-    dialog.showMessageBox({type:"error", message:ex.message})
+const showErrorMessage = async (ex:any | string) => {
+    if(typeof ex == "string"){
+        await dialog.showMessageBox({type:"error", message:ex})
+    }else{
+        await dialog.showMessageBox({type:"error", message:ex.message})
+    }
 }
 
 const onReady = () => {
@@ -309,12 +279,11 @@ const rotate = async (orientation:number) => {
     if(imageFile.type === "undefined") return;
 
     try{
-
         const buffer = await util.rotate(imageFile.fullPath, imageFile.detail.orientation, orientation)
         if(config.data.preference.timestamp == "Normal"){
-            await util.saveImage(imageFile.fullPath, util.toBase64(buffer))
+            util.saveImage(imageFile.fullPath, util.toBase64(buffer))
         }else{
-            await util.saveImage(imageFile.fullPath, util.toBase64(buffer), imageFile.timestamp)
+            util.saveImage(imageFile.fullPath, util.toBase64(buffer), imageFile.timestamp)
         }
         imageFile.detail.orientation = orientation;
 
@@ -472,6 +441,15 @@ const getSaveDestPath = (request:Pic.SaveImageRequest) => {
 const saveImage = async (request:Pic.SaveImageRequest) => {
 
     if(request.image.type === "path") return;
+
+    if(!Renderers.Edit) return;
+
+    if(!request.saveCopy){
+        const result = dialog.showMessageBoxSync(Renderers.Edit, {message:"Overwrite image?",type:"question",buttons:["OK","Cancel"]});
+        if(result != 0) {
+            return respond("Edit", "after-save-image", {image:request.image, status:"Cancel"})
+        }
+    }
 
     const savePath = getSaveDestPath(request)
 
@@ -702,20 +680,35 @@ const onRestartRequest = () => {
     respond("Edit", "edit-dialog-opened", {file:getCurrentImageFile(), config:config.data})
 }
 
-const onSetCategory = (data:Pic.CategoryChangeEvent) => {
-    if(data.category){
-        imageFiles[currentIndex].detail.category = data.category;
-    }else{
-        imageFiles[currentIndex].detail.category = undefined;
-    }
-}
+const showErrorDialog = (e:Pic.ShowDialogRequest) => showErrorMessage(e.message);
 
-const openFileFileDialog = () => {
-    const files = imageFiles.filter(file => file.detail.category);
-    if(files.length > 0){
-        respond("File", "prepare-file-dialog", {files});
-        Renderers.File?.show()
-    }
-}
+const registerIpcChannels = () => {
 
-const onCloseFileDialog = () => Renderers.File?.hide();
+    const addEventHandler = <K extends keyof MainChannelEventMap>(
+        channel:K,
+        handler: (data: MainChannelEventMap[K]) => void | Promise<void>
+    ) => {
+        ipcMain.on(channel, (_event, request) => handler(request))
+    }
+
+    addEventHandler("minimize", minimize)
+    addEventHandler("toggle-maximize", toggleMaximize)
+    addEventHandler("menu-click", mainContextMenuCallback)
+    addEventHandler("close", onClose)
+    addEventHandler("drop-file", onDropRequest)
+    addEventHandler("fetch-image", fetchImage)
+    addEventHandler("delete", deleteFile)
+    addEventHandler("pin", pin)
+    addEventHandler("rotate", onRotateRequest)
+    addEventHandler("restore", restoreFile)
+    addEventHandler("remove-history", removeHistory)
+    addEventHandler("toggle-fullscreen", onToggleFullscreen)
+    addEventHandler("open-edit-dialog", openEditDialog)
+    addEventHandler("close-edit-dialog", onCloseEditDialog)
+    addEventHandler("resize", resize)
+    addEventHandler("clip", clip)
+    addEventHandler("save-image", saveImage)
+    addEventHandler("restart", onRestartRequest)
+    addEventHandler("error", showErrorDialog)
+
+}

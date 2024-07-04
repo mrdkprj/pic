@@ -63,10 +63,6 @@ export const Jpegs = [
     ".jpg",
 ]
 
-export const Messages = {
-    OverwriteImage:"Overwrite image?"
-}
-
 export const Labels = {
     OpenFile:"Open File",
     Reveal:"Reveal In Explorer",

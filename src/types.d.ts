@@ -3,7 +3,7 @@ declare global {
         api: Api;
     }
 
-    type RendererName = "Main" | "File" | "Edit";
+    type RendererName = "Main" | "Edit";
     type Renderer = {[key in RendererName] : Electron.BrowserWindow | undefined}
 
     type MainChannelEventMap = {
@@ -18,16 +18,14 @@ declare global {
         "rotate": Pic.RotateRequest;
         "remove-history": Pic.RemoveHistoryRequest;
         "toggle-fullscreen": Pic.FullscreenChangeEvent;
-        "set-category": Pic.CategoryChangeEvent;
-        "open-file-dialog": Pic.Event;
         "clip": Pic.ClipRequest;
         "resize": Pic.ResizeRequest;
         "close-edit-dialog": Pic.Event;
-        "close-file-dialog": Pic.Event;
         "menu-click": Pic.ContextMenuClickEvent;
         "restart": Pic.Event;
         "open-edit-dialog": Pic.Event;
         "save-image": Pic.SaveImageRequest;
+        "error": Pic.ShowDialogRequest;
     }
 
     type RendererChannelEventMap = {
@@ -43,6 +41,7 @@ declare global {
         "edit-dialog-opened": Pic.OpenEditEvent;
         "after-edit": Pic.EditResult;
         "after-save-image": Pic.SaveImageResult;
+        "after-confirm": Pic.ConfirmResult;
     }
 
     interface Api {
@@ -225,12 +224,9 @@ declare global {
             message?:string;
         }
 
-        type CategoryChangeEvent = {
-            category:number;
-        }
-
-        type OpenFileDialogEvent = {
-            files:ImageFile[]
+        type ShowDialogRequest = {
+            renderer:RendererName;
+            message:string;
         }
 
         type Event = {

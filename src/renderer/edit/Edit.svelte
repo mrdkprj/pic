@@ -4,7 +4,7 @@
     import icon from "../../assets/icon.ico"
     import { reducer, initialAppState } from "./appStateReducer";
     import { ImageTransform } from "../imageTransform";
-    import { OrientationName, Messages } from "../../constants"
+    import { OrientationName } from "../../constants"
 
     const { appState, dispatch } = reducer(initialAppState);
     const imageTransform = new ImageTransform();
@@ -340,20 +340,13 @@
     }
 
     const saveImage = (saveCopy:boolean) => {
-
-        if(!undoStack.length) return;
-
-        const executeSave = saveCopy ? true : window.confirm(Messages.OverwriteImage)
-        if(executeSave){
-            request("save-image", {image:$appState.currentImageFile, saveCopy})
-        }
-
+        request("save-image", {image:$appState.currentImageFile, saveCopy})
     }
 
     const afterSaveImage = (data:Pic.SaveImageResult) => {
 
         if(data.status == "Error"){
-            alert(data.message)
+            window.api.send("error", {renderer:"Edit", message:data.message ?? ""})
         }
 
         if(data.status == "Done"){
@@ -395,7 +388,7 @@
 
     const onAfterEdit = (data:Pic.EditResult) => {
         if(data.message){
-            alert(data.message);
+            window.api.send("error", {renderer:"Edit", message:data.message})
         }else{
             showEditResult(data);
         }
@@ -426,12 +419,18 @@
         window.api.receive("after-edit", data => onResponse(() => onAfterEdit(data)))
         window.api.receive("after-save-image", data => onResponse(() => afterSaveImage(data)))
         window.api.receive("after-toggle-maximize", data => onResponse(() => onAfterToggleMaximize(data)))
+        window.api.receive("after-confirm", data => {
+            if(data.result){
+                saveImage(true)
+            }
+        })
 
         return () => {
             window.api.removeAllListeners("edit-dialog-opened")
             window.api.removeAllListeners("after-edit")
             window.api.removeAllListeners("after-save-image")
             window.api.removeAllListeners("after-toggle-maximize")
+            window.api.removeAllListeners("after-confirm")
         }
     });
 

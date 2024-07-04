@@ -14,10 +14,8 @@
     }
 
     const removeHistory = (e:MouseEvent) => {
-        if(confirm("Remove history?")){
-            const fullPath = (e.target as HTMLElement).nextElementSibling?.textContent ?? ""
-            window.api.send("remove-history", {fullPath});
-        }
+        const fullPath = (e.target as HTMLElement).nextElementSibling?.textContent ?? ""
+        window.api.send("remove-history", {fullPath});
     }
 
     const handelKeydown = () => {}

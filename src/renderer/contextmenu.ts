@@ -21,7 +21,7 @@ export class ContextMenu{
     private complete = true;
     private handler:(e:Pic.ContextMenuClickEvent) => void;
     private initiator:HTMLElement;
-    private open = false;
+    open = false;
 
     constructor(options?:Pic.ContextMenu[]){
         if(options){

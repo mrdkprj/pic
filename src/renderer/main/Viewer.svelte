@@ -83,14 +83,6 @@
             startFetch(BACKWARD);
         }
 
-        if(isFinite(Number(e.key))){
-            request("set-category", {category:Number(e.key)})
-            setCategory(Number(e.key));
-        }
-
-        if(e.key === "F12"){
-            openFileDialog();
-        }
     }
 
     const shouldCloseHistory = (e:MouseEvent) => {
@@ -178,10 +170,6 @@
     }
 
     const changeInfoTexts = () => {
-
-        // const title = `${$appState.currentImageFile.fileName} (${$appState.currentImageFile.detail.renderedWidth} x ${$appState.currentImageFile.detail.renderedHeight})`;
-        // dispatch({type:"title", value:title})
-
         const scaleRate = `${Math.floor(imageTransform.getImageRatio() * 100)}%`
         dispatch({type:"scaleRate", value:scaleRate})
     }
@@ -309,10 +297,6 @@
     const setCategory = (categoryNumber:number | undefined) => {
         const category = categoryNumber ? `- [ @${categoryNumber} ]` : ""
         dispatch({type:"category", value:category})
-    }
-
-    const openFileDialog = () => {
-        window.api.send("open-file-dialog", {})
     }
 
     const onAfterPin = (data:Pic.PinResult) => {
