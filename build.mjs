@@ -12,7 +12,7 @@ build({
                     "x64",
                 ]
             },
-            icon: "/src/static/img/icon.ico",
+            icon: "/src/assets/icon.ico",
             fileAssociations: [
                 {
                   ext: ["ico", "gif", "png", "jpg", "jpeg", "webp", "svg"],
@@ -22,7 +22,7 @@ build({
         linux:{
             target: "deb",
             category: "Graphics",
-            icon: "./src/static/img/icon.icns",
+            icon: "./src/assets/icon.icns",
             fileAssociations: [
                 {
                   ext: ["ico", "gif", "png", "jpg", "jpeg", "webp", "svg"],
@@ -31,8 +31,8 @@ build({
         },
         nsis: {
             oneClick: true,
-            //allowToChangeInstallationDirectory: true,
-            //runAfterFinish: false,
+            deleteAppDataOnUninstall:true,
+            runAfterFinish: false,
         }
     },
 });
