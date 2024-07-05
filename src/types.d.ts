@@ -26,6 +26,7 @@ declare global {
         "open-edit-dialog": Pic.Event;
         "save-image": Pic.SaveImageRequest;
         "error": Pic.ShowDialogRequest;
+        "e2":Pic.Event;
     }
 
     type RendererChannelEventMap = {
