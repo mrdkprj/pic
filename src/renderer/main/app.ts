@@ -1,10 +1,10 @@
 import "./main.css";
 import "../../common.css";
-import "../../menu.css"
+import "../../menu.css";
 import Viewer from "./Viewer.svelte";
 
 const app = new Viewer({
-  target: document.body,
-})
+    target: document.body,
+});
 
-export default app
+export default app;

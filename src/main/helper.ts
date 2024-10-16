@@ -1,27 +1,24 @@
-import { BrowserWindow } from "electron"
-import path from "path"
+import { BrowserWindow } from "electron";
+import path from "path";
 import { Labels } from "../constants";
 
-const isDev = process.env.NODE_ENV === "development"
+const isDev = process.env.NODE_ENV === "development";
 
-const load = (window:BrowserWindow, name:RendererName) => {
-
-    if(isDev){
-        return window.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}/${name.toLowerCase()}/index.html`)
+const load = (window: BrowserWindow, name: RendererName) => {
+    if (isDev) {
+        return window.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}/${name.toLowerCase()}/index.html`);
     }
 
-    return window.loadFile(path.join(__dirname, `../renderer/${name.toLowerCase()}/index.html`))
+    return window.loadFile(path.join(__dirname, `../renderer/${name.toLowerCase()}/index.html`));
+};
 
-}
-
-export default class Helper{
-
-    createMainWindow(config:Pic.Config){
+export default class Helper {
+    createMainWindow(config: Pic.Config) {
         const window = new BrowserWindow({
             width: config.bounds.width,
             height: config.bounds.height,
-            x:config.bounds.x,
-            y:config.bounds.y,
+            x: config.bounds.x,
+            y: config.bounds.y,
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
@@ -30,16 +27,15 @@ export default class Helper{
             autoHideMenuBar: true,
             show: false,
             icon: path.join(__dirname, "..", "static", "img", "icon.ico"),
-            frame: false
+            frame: false,
         });
 
-        load(window, "Main")
+        load(window, "Main");
 
         return window;
-
     }
 
-    createEditWindow(){
+    createEditWindow() {
         const window = new BrowserWindow({
             webPreferences: {
                 nodeIntegration: false,
@@ -49,15 +45,15 @@ export default class Helper{
             autoHideMenuBar: true,
             show: false,
             icon: path.join(__dirname, "..", "static", "img", "icon.ico"),
-            frame: false
+            frame: false,
         });
 
-        load(window, "Edit")
+        load(window, "Edit");
 
         return window;
     }
 
-    getContextMenu(config:Pic.Config):Pic.ContextMenu[]{
+    getContextMenu(config: Pic.Config): Pic.ContextMenu[] {
         return [
             {
                 name: "OpenFile",
@@ -72,10 +68,10 @@ export default class Helper{
                 label: Labels.History,
             },
             {
-                name:"ShowActualSize",
+                name: "ShowActualSize",
                 label: Labels.ShowActualSize,
             },
-            { name:"None", type: "separator" },
+            { name: "None", type: "separator" },
             {
                 name: "ToFirst",
                 label: Labels.MoveFirst,
@@ -85,36 +81,35 @@ export default class Helper{
                 label: Labels.MoveLast,
             },
             {
-                name:"Sort",
+                name: "Sort",
                 label: Labels.SortBy,
-                submenu: this.createSortMenu(config)
+                submenu: this.createSortMenu(config),
             },
-            { name:"None", type: "separator" },
+            { name: "None", type: "separator" },
             {
-                name:"Timestamp",
-                label:Labels.Timestamp,
-                submenu: this.timestampSubMenu(config)
+                name: "Timestamp",
+                label: Labels.Timestamp,
+                submenu: this.timestampSubMenu(config),
             },
             {
-                name:"Mode",
+                name: "Mode",
                 label: Labels.Mode,
-                submenu: this.modeSubMenu(config)
+                submenu: this.modeSubMenu(config),
             },
             {
-                name:"Theme",
+                name: "Theme",
                 label: Labels.Theme,
-                submenu: this.themeSubMenu(config)
+                submenu: this.themeSubMenu(config),
             },
-            { name:"None", type: "separator" },
+            { name: "None", type: "separator" },
             {
-                name:"Reload",
+                name: "Reload",
                 label: Labels.Reload,
             },
-        ]
+        ];
     }
 
-    private createSortMenu(config:Pic.Config):Pic.ContextMenu[]{
-
+    private createSortMenu(config: Pic.Config): Pic.ContextMenu[] {
         const name = "Sort";
         return [
             {
@@ -122,97 +117,89 @@ export default class Helper{
                 label: Labels.NameAsc,
                 type: "radio",
                 checked: config.preference.sort === "NameAsc",
-                value: "NameAsc"
+                value: "NameAsc",
             },
             {
                 name,
                 label: Labels.NameDesc,
                 type: "radio",
                 checked: config.preference.sort === "NameDesc",
-                value: "NameDesc"
+                value: "NameDesc",
             },
             {
                 name,
                 label: Labels.DateAsc,
                 type: "radio",
                 checked: config.preference.sort === "DateAsc",
-                value: "DateAsc"
+                value: "DateAsc",
             },
             {
                 name,
                 label: Labels.DateDesc,
                 type: "radio",
                 checked: config.preference.sort === "DateDesc",
-                value: "DateDesc"
+                value: "DateDesc",
             },
-        ]
-
+        ];
     }
 
-    private timestampSubMenu(config:Pic.Config,):Pic.ContextMenu[]{
-
-        const name = "Timestamp"
+    private timestampSubMenu(config: Pic.Config): Pic.ContextMenu[] {
+        const name = "Timestamp";
         return [
             {
                 name,
-                label:Labels.TimestampNormal,
-                type:"radio",
+                label: Labels.TimestampNormal,
+                type: "radio",
                 checked: config.preference.timestamp === "Normal",
-                value: "Normal"
+                value: "Normal",
             },
             {
                 name,
-                label:Labels.TimestampUnchanged,
-                type:"radio",
+                label: Labels.TimestampUnchanged,
+                type: "radio",
                 checked: config.preference.timestamp === "Unchanged",
-                value: "Unchanged"
+                value: "Unchanged",
             },
-        ]
-
+        ];
     }
 
-    private modeSubMenu(config:Pic.Config):Pic.ContextMenu[]{
-
-        const name = "Mode"
+    private modeSubMenu(config: Pic.Config): Pic.ContextMenu[] {
+        const name = "Mode";
         return [
             {
                 name,
-                label:Labels.ModeMouse,
-                type:"radio",
+                label: Labels.ModeMouse,
+                type: "radio",
                 checked: config.preference.mode == "Mouse",
-                value: "Mouse"
+                value: "Mouse",
             },
             {
                 name,
-                label:Labels.ModeKeyboard,
-                type:"radio",
+                label: Labels.ModeKeyboard,
+                type: "radio",
                 checked: config.preference.mode == "Keyboard",
-                value: "Keyboard"
+                value: "Keyboard",
             },
-        ]
-
+        ];
     }
 
-    private themeSubMenu(config:Pic.Config):Pic.ContextMenu[]{
-
-        const name = "Theme"
+    private themeSubMenu(config: Pic.Config): Pic.ContextMenu[] {
+        const name = "Theme";
         return [
             {
                 name,
-                label:Labels.ThemeLight,
-                type:"radio",
+                label: Labels.ThemeLight,
+                type: "radio",
                 checked: config.preference.theme == "light",
-                value: "light"
+                value: "light",
             },
             {
                 name,
-                label:Labels.ThemeDark,
-                type:"radio",
+                label: Labels.ThemeDark,
+                type: "radio",
                 checked: config.preference.theme == "dark",
-                value: "dark"
+                value: "dark",
             },
-        ]
+        ];
     }
-
-
 }

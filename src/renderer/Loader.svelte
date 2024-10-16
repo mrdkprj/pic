@@ -4,17 +4,30 @@
 
 {#if show}
     <div class="overlay">
-        <div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+        <div class="lds-spinner">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
     </div>
 {/if}
 
 <style>
-    .overlay{
-        display:none;
-        position:fixed;
-        z-index:9999;
-        width:100%;
-        height:100%;
+    .overlay {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        width: 100%;
+        height: 100%;
         display: flex;
         justify-content: center;
         align-items: center;

@@ -3,7 +3,7 @@ import "../../common.css";
 import Edit from "./Edit.svelte";
 
 const app = new Edit({
-  target: document.body,
-})
+    target: document.body,
+});
 
-export default app
+export default app;
