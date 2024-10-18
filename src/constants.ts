@@ -26,6 +26,7 @@ export const EmptyImageFile: Pic.ImageFile = {
         height: 0,
         renderedWidth: 0,
         renderedHeight: 0,
+        format: undefined,
     },
 };
 

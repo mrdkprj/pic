@@ -105,7 +105,7 @@
         }
 
         if (!imageTransform.isImageMoved() && e.target.classList.contains("clickable")) {
-            if ($appState.isMouseOnly && $appState.imageSrc) {
+            if ($appState.isMouseOnly) {
                 e.preventDefault();
                 if (e.button == 0) {
                     startFetch(-1);
@@ -200,7 +200,7 @@
 
     const startFetch = (index: number) => {
         if (beforeRequest()) {
-            request("fetch-image", { index });
+            window.api.send("fetch-image", { index });
         }
     };
 
@@ -292,6 +292,8 @@
     const request = <K extends keyof MainChannelEventMap>(channel: K, data: MainChannelEventMap[K]) => {
         if ($appState.imageSrc) {
             window.api.send(channel, data);
+        } else {
+            unlock();
         }
     };
 
