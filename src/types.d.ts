@@ -1,3 +1,5 @@
+import type { FormatEnum } from "sharp";
+
 declare global {
     interface Window {
         api: Api;
@@ -114,11 +116,11 @@ declare global {
         };
 
         type ReadyEvent = {
-            config: Pic.Config;
+            settings: Pic.Settings;
             menu: Pic.ContextMenu[];
         };
 
-        type Config = {
+        type Settings = {
             directory: string;
             fullPath: string;
             preference: Preference;
@@ -137,12 +139,14 @@ declare global {
             detail: ImageDetail;
         };
 
+        type ImageFormat = keyof FormatEnum | undefined | "ico";
         type ImageDetail = {
             width: number;
             height: number;
             renderedWidth: number;
             renderedHeight: number;
             orientation: number;
+            format: Pic.ImageFormat;
             category?: number | undefined;
         };
 
@@ -203,6 +207,17 @@ declare global {
         type ResizeRequest = {
             image: ImageFile;
             size: ImageSize;
+            format?: Pic.ImageFormat;
+        };
+
+        type EditInput = {
+            file: string | Buffer;
+            format: Pic.ImageFormat;
+        };
+
+        type EditOutput = {
+            file: Buffer;
+            format: Pic.ImageFormat;
         };
 
         type EditResult = {

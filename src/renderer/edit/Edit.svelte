@@ -2,11 +2,11 @@
     import { onMount } from "svelte";
     import Loader from "../Loader.svelte";
     import icon from "../../assets/icon.ico";
-    import { reducer, initialAppState } from "./appStateReducer";
+    import { appState, dispatch } from "./appStateReducer";
     import { ImageTransform } from "../imageTransform";
     import { OrientationName } from "../../constants";
+    import Size from "./Size.svelte";
 
-    const { appState, dispatch } = reducer(initialAppState);
     const imageTransform = new ImageTransform();
 
     let imageArea: HTMLDivElement;
@@ -18,7 +18,11 @@
 
     const onKeydown = (e: KeyboardEvent) => {
         if (e.key == "Escape") {
-            close();
+            if ($appState.isSizeDialogOpen) {
+                dispatch({ type: "toggleSizeDialog", value: false });
+            } else {
+                close();
+            }
         }
 
         if (e.key == "F5") {
@@ -135,6 +139,10 @@
         requestEdit();
     };
 
+    const openSizeDialog = () => {
+        dispatch({ type: "toggleSizeDialog", value: true });
+    };
+
     const changeButtonState = () => {
         dispatch({
             type: "buttonState",
@@ -248,6 +256,19 @@
         };
     };
 
+    const onSizeFormatChange = (width: number, height: number, format: Pic.ImageFormat) => {
+        const size = {
+            width,
+            height,
+        };
+
+        if ($appState.currentImageFile.detail.format == format) {
+            request("resize", { image: $appState.currentImageFile, size });
+        } else {
+            request("resize", { image: $appState.currentImageFile, size, format });
+        }
+    };
+
     const requestEdit = () => {
         if ($appState.editMode === "Clip") {
             const clipInfo = getClipInfo();
@@ -309,7 +330,7 @@
 
         changeButtonState();
 
-        dispatch({ type: "title", value: imageTransform.getScale() });
+        dispatch({ type: "sizeText", value: imageTransform.getScale() });
         dispatch({ type: "imageScale", value: imageTransform.getImageRatio() });
     };
 
@@ -335,7 +356,7 @@
         }
     };
 
-    const applyConfig = (data: Pic.Config) => {
+    const applyConfig = (data: Pic.Settings) => {
         dispatch({ type: "isMaximized", value: data.isMaximized });
         undoStack.length = 0;
         redoStack.length = 0;
@@ -363,6 +384,7 @@
 
     const onOpen = (data: Pic.OpenEditEvent) => {
         applyConfig(data.config);
+        console.log(data.file.detail);
         loadImage(data.file);
     };
 
@@ -374,7 +396,7 @@
         }
     };
 
-    const onAfterToggleMaximize = (data: Pic.Config) => {
+    const onAfterToggleMaximize = (data: Pic.Settings) => {
         dispatch({ type: "isMaximized", value: data.isMaximized });
     };
 
@@ -429,10 +451,11 @@
         class:edited={$appState.isEdited}
         class:clipping={$appState.editMode == "Clip"}
         class:shrinkable={$appState.allowShrink}
+        class:is-icon={$appState.currentImageFile.detail.format == "ico"}
     >
         <div class="icon-area">
             <img class="ico" src={icon} alt="" />
-            <span id="title">{$appState.title}</span>
+            <span id="title">{$appState.currentImageFile.fileName}</span>
         </div>
         <div class="menu header">
             <div class="btn-area">
@@ -447,6 +470,14 @@
                             fill-rule="evenodd"
                             d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707zm4.344 0a.5.5 0 0 1 .707 0l4.096 4.096V11.5a.5.5 0 1 1 1 0v3.975a.5.5 0 0 1-.5.5H11.5a.5.5 0 0 1 0-1h2.768l-4.096-4.096a.5.5 0 0 1 0-.707zm0-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707zm-4.344 0a.5.5 0 0 1-.707 0L1.025 1.732V4.5a.5.5 0 0 1-1 0V.525a.5.5 0 0 1 .5-.5H4.5a.5.5 0 0 1 0 1H1.732l4.096 4.096a.5.5 0 0 1 0 .707z"
                         />
+                    </svg>
+                </div>
+                <div class="btn size" title="change size" on:click={openSizeDialog} on:keydown={handelKeydown} role="button" tabindex="-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="bi bi-layout-text-sidebar" viewBox="0 0 16 16">
+                        <path
+                            d="M3.5 3a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1zm0 3a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1zM3 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m.5 2.5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1z"
+                        />
+                        <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm12-1v14h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zm-1 0H2a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h9z" />
                     </svg>
                 </div>
                 <div class="separator btn"></div>
@@ -491,17 +522,25 @@
             </div>
         </div>
         <div class="window-area">
-            <div class="scale-text">{$appState.scaleText}</div>
-            <div class="minimize" on:click={minimize} on:keydown={handelKeydown} role="button" tabindex="-1">&minus;</div>
-            <div class="maximize" on:click={toggleMaximize} on:keydown={handelKeydown} role="button" tabindex="-1">
-                <div class:maxbtn={$appState.isMaximized} class:minbtn={!$appState.isMaximized}></div>
+            <div class="info-area">
+                <div class="scale-text">{$appState.sizeText}</div>
+                <div class="scale-text">{$appState.scaleText}</div>
             </div>
-            <div class="close" on:click={close} on:keydown={handelKeydown} role="button" tabindex="-1">&larr;</div>
+            <div class="control-area">
+                <div class="minimize" on:click={minimize} on:keydown={handelKeydown} role="button" tabindex="-1">&minus;</div>
+                <div class="maximize" on:click={toggleMaximize} on:keydown={handelKeydown} role="button" tabindex="-1">
+                    <div class:maxbtn={$appState.isMaximized} class:minbtn={!$appState.isMaximized}></div>
+                </div>
+                <div class="close" on:click={close} on:keydown={handelKeydown} role="button" tabindex="-1">&larr;</div>
+            </div>
         </div>
     </div>
 
     <div class="container clickable">
         <Loader show={$appState.loading} />
+        {#if $appState.isSizeDialogOpen}
+            <Size onApply={onSizeFormatChange} />
+        {/if}
         <div class="image-container clickable">
             <div bind:this={imageArea} class="image-area clickable" on:wheel={imageTransform.onWheel}>
                 {#if $appState.clipping}

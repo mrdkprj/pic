@@ -1,6 +1,7 @@
 import fs, { Dirent } from "fs";
 import path from "path";
 import sharp from "sharp";
+import ico from "sharp-ico";
 import { RotateDegree, Extensions, Jpegs } from "../constants";
 
 sharp.cache(false);
@@ -34,6 +35,7 @@ export default class Util {
                 height: 0,
                 renderedWidth: 0,
                 renderedHeight: 0,
+                format: undefined,
             },
         };
     }
@@ -60,20 +62,44 @@ export default class Util {
         return await sharp(fullPath).withMetadata().rotate(degree).withMetadata().toBuffer();
     }
 
-    async resizeBuffer(fullPath: string | Buffer, size: Pic.ImageSize) {
-        return await sharp(fullPath, { failOnError: false }).withMetadata().resize(size).withMetadata().jpeg().toBuffer();
+    async resizeBuffer(input: Pic.EditInput, size: Pic.ImageSize) {
+        return await sharp(input.file, { failOnError: false }).withMetadata().resize(size).withMetadata().jpeg().toBuffer();
     }
 
-    async clipBuffer(fullPath: string | Buffer, size: Pic.ClipRectangle) {
-        return await sharp(fullPath).withMetadata().extract(size).withMetadata().jpeg().toBuffer();
+    async clipBuffer(input: Pic.EditInput, size: Pic.ClipRectangle) {
+        return await sharp(input.file).withMetadata().extract(size).withMetadata().jpeg().toBuffer();
     }
 
     async getMetadata(fullPath: string) {
-        return await sharp(fullPath).metadata();
+        try {
+            return await sharp(fullPath).metadata();
+        } catch (ex: any) {
+            if (path.extname(fullPath) == ".ico") {
+                return await (ico.sharpsFromIco(fullPath)[0] as sharp.Sharp).metadata();
+            }
+            throw new Error(ex);
+        }
     }
 
-    saveImage(destPath: string, data: string, mtime?: number) {
+    async toBuffer(image: Pic.ImageFile, format: Pic.ImageFormat) {
+        if (format == "png") {
+            return await sharp(image.fullPath).png().toBuffer();
+        } else {
+            return await sharp(image.fullPath).jpeg().toBuffer();
+        }
+    }
+
+    async toIcon(destPath: string, sourcePath: string, mtime?: number) {
+        await ico.sharpsToIco([sharp(sourcePath)], destPath, { sizes: "default", resizeOptions: {} });
+        if (mtime) {
+            const modifiedDate = new Date(mtime);
+            fs.utimesSync(destPath, modifiedDate, modifiedDate);
+        }
+    }
+
+    async saveImage(destPath: string, data: string, mtime?: number) {
         fs.writeFileSync(destPath, data, "base64");
+
         if (mtime) {
             const modifiedDate = new Date(mtime);
             fs.utimesSync(destPath, modifiedDate, modifiedDate);

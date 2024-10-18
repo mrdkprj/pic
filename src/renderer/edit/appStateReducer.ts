@@ -12,7 +12,7 @@ type ClipPosition = {
 type AppState = {
     currentImageFile: Pic.ImageFile;
     imageSrc: string;
-    title: string;
+    sizeText: string;
     clipCanvasStyle: string;
     clipPosition: ClipPosition;
     clipAreaStyle: string;
@@ -27,12 +27,13 @@ type AppState = {
     clipping: boolean;
     allowShrink: boolean;
     scaleText: string;
+    isSizeDialogOpen: boolean;
 };
 
 type AppAction =
     | { type: "loadImage"; value: Pic.ImageFile }
     | { type: "clearImage" }
-    | { type: "title"; value: number }
+    | { type: "sizeText"; value: number }
     | { type: "startClip"; value: { rect: DOMRect; position: ClipPosition } }
     | { type: "moveClip"; value: { x: number; y: number } }
     | { type: "editMode"; value: Pic.EditMode }
@@ -42,12 +43,13 @@ type AppAction =
     | { type: "buttonState"; value: { canUndo: boolean; canRedo: boolean; isResized: boolean } }
     | { type: "clipping"; value: boolean }
     | { type: "allowShrink"; value: boolean }
-    | { type: "imageScale"; value: number };
+    | { type: "imageScale"; value: number }
+    | { type: "toggleSizeDialog"; value: boolean };
 
 export const initialAppState: AppState = {
     currentImageFile: EmptyImageFile,
     imageSrc: "",
-    title: "",
+    sizeText: "",
     clipCanvasStyle: "",
     clipPosition: {
         startX: 0,
@@ -65,17 +67,18 @@ export const initialAppState: AppState = {
     clipping: false,
     allowShrink: false,
     scaleText: "",
+    isSizeDialogOpen: false,
 };
 
 const updater = (state: AppState, action: AppAction): AppState => {
     switch (action.type) {
-        case "title": {
+        case "sizeText": {
             const size = {
                 width: Math.floor(state.currentImageFile.detail.renderedWidth * action.value),
                 height: Math.floor(state.currentImageFile.detail.renderedHeight * action.value),
             };
-            const title = `${state.currentImageFile.fileName} (${size.width} x ${size.height})`;
-            return { ...state, title };
+            const sizeText = `${size.width} x ${size.height}`;
+            return { ...state, sizeText };
         }
 
         case "loadImage": {
@@ -134,17 +137,18 @@ const updater = (state: AppState, action: AppAction): AppState => {
         case "imageScale":
             return { ...state, scaleText: `${Math.floor(action.value * 100)}%` };
 
+        case "toggleSizeDialog":
+            return { ...state, isSizeDialogOpen: action.value };
+
         default:
             return state;
     }
 };
 
-export const reducer = (state: AppState) => {
-    const store = writable(state);
+const store = writable(initialAppState);
 
-    const dispatch = (action: AppAction) => {
-        store.update((state) => updater(state, action));
-    };
-
-    return { appState: store, dispatch };
+export const dispatch = (action: AppAction) => {
+    store.update((state) => updater(state, action));
 };
+
+export const appState = store;

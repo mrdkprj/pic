@@ -188,6 +188,8 @@ export class ContextMenu {
 
         this.submenuSize[container.id] = this.getSubmenuSize(submenuMenuItems);
 
+        this.setupMenu(container);
+
         return container;
     }
 
@@ -269,6 +271,8 @@ export class ContextMenu {
         const targetType = target.getAttribute("data-type");
 
         if (!targetType) return;
+
+        if (targetType == "submenu") return;
 
         if (targetType == "checkbox" || targetType == "radio") {
             this.toggleCheck(e);

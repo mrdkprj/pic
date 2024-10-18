@@ -3,13 +3,12 @@
     import Loader from "../Loader.svelte";
     import History from "./History.svelte";
     import icon from "../../assets/icon.ico";
-    import { reducer, initialAppState } from "./appStateReducer";
+    import { appState, dispatch } from "./appStateReducer";
     import { ImageTransform } from "../imageTransform";
     import { ContextMenu } from "../contextmenu";
     import { Orientations, FORWARD, BACKWARD } from "../../constants";
 
     const menu = new ContextMenu();
-    const { appState, dispatch } = reducer(initialAppState);
 
     let orientationIndex = 0;
     let imageArea: HTMLDivElement;
@@ -180,8 +179,6 @@
         request("rotate", { orientation: Orientations[orientationIndex] });
     };
 
-    const showFileInfo = () => {};
-
     const beforeRequest = () => {
         if ($appState.locked) {
             return false;
@@ -218,11 +215,11 @@
     };
 
     const prepare = (e: Pic.ReadyEvent) => {
-        dispatch({ type: "isMaximized", value: e.config.isMaximized });
+        dispatch({ type: "isMaximized", value: e.settings.isMaximized });
 
-        changeMode(e.config.preference.mode);
+        changeMode(e.settings.preference.mode);
 
-        dispatch({ type: "history", value: e.config.history });
+        dispatch({ type: "history", value: e.settings.history });
 
         menu.build(e.menu);
         menu.onClick((e) => window.api.send("menu-click", e));
@@ -288,7 +285,7 @@
         dispatch({ type: "history", value: data.history });
     };
 
-    const onAfterToggleMaximize = (data: Pic.Config) => {
+    const onAfterToggleMaximize = (data: Pic.Settings) => {
         dispatch({ type: "isMaximized", value: data.isMaximized });
     };
 
@@ -344,12 +341,13 @@
     class:history-open={$appState.isHistoryOpen}
     class:full={$appState.isFullscreen}
 >
-    <div class="info"></div>
     <div class="title-bar">
         <div class="icon-area">
             <img class="ico" src={icon} alt="" />
-            <span class="title">{`${$appState.currentImageFile.fileName} (${$appState.currentImageFile.detail.renderedWidth} x ${$appState.currentImageFile.detail.renderedHeight})`}</span>
-            <span class="category">{$appState.category}</span>
+            <div class="title">
+                {$appState.currentImageFile.fileName}
+            </div>
+            <div class="category">{$appState.category}</div>
         </div>
         <div class="menu header">
             <div class="btn-area">
@@ -385,12 +383,6 @@
                         <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
                     </svg>
                 </div>
-                <div class="btn can-focus" on:click={showFileInfo} on:keydown={handelKeydown} role="button" tabindex="-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="rotate-btn" viewBox="0 0 16 16" fill="currentColor">
-                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
-                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
-                    </svg>
-                </div>
                 <div class="btn can-focus" on:click={pin} on:keydown={handelKeydown} role="button" tabindex="-1">
                     {#if $appState.isPinned}
                         <svg xmlns="http://www.w3.org/2000/svg" class="pinned-btn" viewBox="0 0 16 16" fill="currentColor">
@@ -414,13 +406,18 @@
             </div>
         </div>
         <div class="window-area">
-            <div class="text">{$appState.scaleRate}</div>
-            <div class="text">{$appState.counter}</div>
-            <div class="minimize" on:click={minimize} on:keydown={handelKeydown} role="button" tabindex="-1">&minus;</div>
-            <div class="maximize" on:click={toggleMaximize} on:keydown={handelKeydown} role="button" tabindex="-1">
-                <div class:maxbtn={$appState.isMaximized} class:minbtn={!$appState.isMaximized}></div>
+            <div class="info-area">
+                <div class="text">{`${$appState.currentImageFile.detail.renderedWidth} x ${$appState.currentImageFile.detail.renderedHeight}`}</div>
+                <div class="text">{$appState.scaleRate}</div>
+                <div class="text">{$appState.counter}</div>
             </div>
-            <div class="close" on:click={close} on:keydown={handelKeydown} role="button" tabindex="-1">&times;</div>
+            <div class="control-area">
+                <div class="minimize" on:click={minimize} on:keydown={handelKeydown} role="button" tabindex="-1">&minus;</div>
+                <div class="maximize" on:click={toggleMaximize} on:keydown={handelKeydown} role="button" tabindex="-1">
+                    <div class:maxbtn={$appState.isMaximized} class:minbtn={!$appState.isMaximized}></div>
+                </div>
+                <div class="close" on:click={close} on:keydown={handelKeydown} role="button" tabindex="-1">&times;</div>
+            </div>
         </div>
     </div>
 

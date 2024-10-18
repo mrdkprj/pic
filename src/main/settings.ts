@@ -2,8 +2,8 @@ import fs from "fs";
 import path from "path";
 import Util from "./util";
 
-const CONFIG_FILE_NAME = "picviewer.config.json";
-const DEFAULT_CONFIG: Pic.Config = {
+const SETTINGS_FILE_NAME = "picviewer.config.json";
+const DEFAULT_SETTINGS: Pic.Settings = {
     directory: "",
     fullPath: "",
     preference: {
@@ -17,16 +17,17 @@ const DEFAULT_CONFIG: Pic.Config = {
     isMaximized: false,
 };
 
-export default class Config {
-    data: Pic.Config = DEFAULT_CONFIG;
+export default class Settings {
+    data: Pic.Settings = DEFAULT_SETTINGS;
 
     private file: string;
     private util = new Util();
+    private timestamp = 0;
 
     constructor(workingDirectory: string) {
         const directory = process.env.NODE_ENV === "development" ? path.join(__dirname, "..", "..", "temp") : path.join(workingDirectory, "temp");
         this.util.exists(directory, true);
-        this.file = path.join(directory, CONFIG_FILE_NAME);
+        this.file = path.join(directory, SETTINGS_FILE_NAME);
         this.init();
     }
 
@@ -34,36 +35,43 @@ export default class Config {
         const fileExists = this.util.exists(this.file, false);
 
         if (fileExists) {
+            this.timestamp = fs.statSync(this.file).mtimeMs;
             const rawData = fs.readFileSync(this.file, { encoding: "utf8" });
             this.data = this.createConfig(JSON.parse(rawData));
         } else {
             this.save();
+            this.timestamp = fs.statSync(this.file).mtimeMs;
         }
     }
 
-    private createConfig(rawConfig: any): Pic.Config {
-        const config = { ...DEFAULT_CONFIG } as any;
+    private createConfig(rawSettings: any): Pic.Settings {
+        const Settings = { ...DEFAULT_SETTINGS } as any;
 
-        Object.keys(rawConfig).forEach((key) => {
-            if (!(key in config)) return;
+        Object.keys(rawSettings).forEach((key) => {
+            if (!(key in Settings)) return;
 
-            const value = rawConfig[key];
+            const value = rawSettings[key];
 
             if (typeof value === "object" && key !== "history") {
                 Object.keys(value).forEach((valueKey) => {
-                    if (valueKey in config[key]) {
-                        config[key][valueKey] = value[valueKey];
+                    if (valueKey in Settings[key]) {
+                        Settings[key][valueKey] = value[valueKey];
                     }
                 });
             } else {
-                config[key] = value;
+                Settings[key] = value;
             }
         });
 
-        return config;
+        return Settings;
     }
 
     save() {
+        const newTimestamp = fs.statSync(this.file).mtimeMs;
+        if (newTimestamp > this.timestamp) {
+            const settings = JSON.parse(fs.readFileSync(this.file, { encoding: "utf8" })) as Pic.Settings;
+            this.data.history = { ...this.data.history, ...settings.history };
+        }
         fs.writeFileSync(this.file, JSON.stringify(this.data));
     }
 }

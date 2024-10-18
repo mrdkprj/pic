@@ -8,6 +8,7 @@
     border-radius: 4px;
     font-size: 13px;
     z-index: 9999;
+    box-shadow:3px 3px 3px 3px rgba(0, 0, 0, 0.2);
 }
 
 .menu-item{
@@ -31,7 +32,7 @@
 
 .submenu{
     position: relative;
-    top:-100%;
+    top:calc(-100% - 7px);
     left: calc(100% + 30px);
     outline: 1px solid var(--menu-border-color);
     border-radius: 4px;
@@ -41,6 +42,7 @@
     flex-direction: column;
     transition-delay: 0.5s;
     transition-property: visibility;
+    box-shadow:3px 3px 3px 3px rgba(0, 0, 0, 0.2);
 }
 
 .revert .submenu{

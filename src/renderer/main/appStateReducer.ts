@@ -97,12 +97,10 @@ const updater = (state: AppState, action: AppAction): AppState => {
     }
 };
 
-export const reducer = (state: AppState) => {
-    const store = writable(state);
+const store = writable(initialAppState);
 
-    const dispatch = (action: AppAction) => {
-        store.update((state) => updater(state, action));
-    };
-
-    return { appState: store, dispatch };
+export const dispatch = (action: AppAction) => {
+    store.update((state) => updater(state, action));
 };
+
+export const appState = store;

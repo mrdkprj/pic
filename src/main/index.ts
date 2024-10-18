@@ -2,7 +2,7 @@ import { app, ipcMain, dialog, shell, protocol, nativeTheme } from "electron";
 import path from "path";
 import fs from "fs/promises";
 import url from "url";
-import Config from "./config";
+import Settings from "./settings";
 import Util from "./util";
 import Helper from "./helper";
 import { EmptyImageFile, Extensions } from "../constants";
@@ -11,7 +11,7 @@ protocol.registerSchemesAsPrivileged([{ scheme: "app", privileges: { bypassCSP: 
 
 const imageFiles: Pic.ImageFile[] = [];
 const util = new Util();
-const config = new Config(app.getPath("userData"));
+const settings = new Settings(app.getPath("userData"));
 const helper = new Helper();
 
 const Renderers: Renderer = {
@@ -60,10 +60,10 @@ const mainContextMenuCallback = (e: Pic.ContextMenuClickEvent) => {
     }
 };
 
-const mainContext = helper.getContextMenu(config.data);
+const mainContext = helper.getContextMenu(settings.data);
 
 app.on("ready", () => {
-    nativeTheme.themeSource = config.data.preference.theme;
+    nativeTheme.themeSource = settings.data.preference.theme;
 
     currentIndex = 0;
 
@@ -71,7 +71,7 @@ app.on("ready", () => {
 
     registerIpcChannels();
 
-    Renderers.Main = helper.createMainWindow(config.data);
+    Renderers.Main = helper.createMainWindow(settings.data);
     Renderers.Edit = helper.createEditWindow();
 
     protocol.registerFileProtocol("app", (request, callback) => {
@@ -81,10 +81,10 @@ app.on("ready", () => {
     });
 
     Renderers.Main.on("ready-to-show", () => {
-        if (config.data.isMaximized) {
+        if (settings.data.isMaximized) {
             Renderers.Main?.maximize();
         }
-        Renderers.Main?.setBounds(config.data.bounds);
+        Renderers.Main?.setBounds(settings.data.bounds);
 
         onReady();
     });
@@ -118,15 +118,15 @@ const showErrorMessage = async (ex: any | string) => {
 const onReady = () => {
     Renderers.Main?.show();
 
-    respond("Main", "ready", { config: config.data, menu: mainContext });
+    respond("Main", "ready", { settings: settings.data, menu: mainContext });
 
     if (process.argv.length > 1 && process.argv[1] != ".") {
         loadImage(process.argv[1]);
         return;
     }
 
-    if (config.data.fullPath && util.exists(config.data.fullPath)) {
-        loadImage(config.data.fullPath);
+    if (settings.data.fullPath && util.exists(settings.data.fullPath)) {
+        loadImage(settings.data.fullPath);
     }
 };
 
@@ -152,7 +152,7 @@ const loadImage = async (fullPath: string) => {
 
     allDirents.filter((dirent) => util.isImageFile(dirent)).forEach(({ name }) => imageFiles.push(util.toImageFile(path.join(directory, name))));
 
-    sortImageFiles(config.data.preference.sort, targetFile);
+    sortImageFiles(settings.data.preference.sort, targetFile);
 
     sendImageData();
 };
@@ -165,7 +165,7 @@ const loadImages = async (directory: string) => {
 
     allDirents.filter((dirent) => util.isImageFile(dirent)).forEach(({ name }) => imageFiles.push(util.toImageFile(path.join(directory, name))));
 
-    sortImageFiles(config.data.preference.sort);
+    sortImageFiles(settings.data.preference.sort);
 
     sendImageData();
 };
@@ -177,7 +177,7 @@ const sendImageData = async () => {
         image: imageFile,
         currentIndex: currentIndex + 1,
         fileCount: imageFiles.length,
-        pinned: !!config.data.history[imageFile.directory] && config.data.history[imageFile.directory] == imageFile.fileName,
+        pinned: !!settings.data.history[imageFile.directory] && settings.data.history[imageFile.directory] == imageFile.fileName,
     };
 
     if (imageFile.type === "undefined") {
@@ -195,6 +195,11 @@ const sendImageData = async () => {
     const orientation = metadata.orientation ?? 1;
     imageFile.detail.renderedWidth = orientation % 2 === 0 ? height : width;
     imageFile.detail.renderedHeight = orientation % 2 === 0 ? width : height;
+    if (path.extname(imageFile.fullPath) == ".ico") {
+        imageFile.detail.format = "ico";
+    } else {
+        imageFile.detail.format = metadata.format;
+    }
 
     respond("Main", "after-fetch", result);
 };
@@ -234,7 +239,7 @@ const fetchLast = () => {
 };
 
 const sortImageFiles = (sortType: Pic.SortType, currentFileName?: string) => {
-    config.data.preference.sort = sortType;
+    settings.data.preference.sort = sortType;
 
     if (!imageFiles.length) return;
 
@@ -252,7 +257,7 @@ const rotate = async (orientation: number) => {
 
     try {
         const buffer = await util.rotate(imageFile.fullPath, imageFile.detail.orientation, orientation);
-        if (config.data.preference.timestamp == "Normal") {
+        if (settings.data.preference.timestamp == "Normal") {
             util.saveImage(imageFile.fullPath, util.toBase64(buffer));
         } else {
             util.saveImage(imageFile.fullPath, util.toBase64(buffer), imageFile.timestamp);
@@ -307,28 +312,28 @@ const restoreFile = (data: Pic.RestoreRequest) => {
 };
 
 const reconstructHistory = (directory: string) => {
-    delete config.data.history[directory];
+    delete settings.data.history[directory];
 
-    if (config.data.directory == directory) {
-        config.data.directory = "";
-        config.data.fullPath = "";
+    if (settings.data.directory == directory) {
+        settings.data.directory = "";
+        settings.data.fullPath = "";
 
-        const historyDirectories = Object.keys(config.data.history);
+        const historyDirectories = Object.keys(settings.data.history);
         if (historyDirectories.length > 0) {
             const newDirectory = historyDirectories[0];
-            config.data.directory = newDirectory;
-            config.data.fullPath = config.data.history[newDirectory];
+            settings.data.directory = newDirectory;
+            settings.data.fullPath = settings.data.history[newDirectory];
         }
     }
 };
 
 const removeHistory = (data: Pic.RemoveHistoryRequest) => {
     reconstructHistory(path.dirname(data.fullPath));
-    respond("Main", "after-remove-history", { history: config.data.history });
+    respond("Main", "after-remove-history", { history: settings.data.history });
 };
 
-const startEditImage = (imageFile: Pic.ImageFile) => {
-    return imageFile.type === "path" ? imageFile.fullPath : util.fromBase64(imageFile.fullPath);
+const startEditImage = (imageFile: Pic.ImageFile): Pic.EditInput => {
+    return { file: imageFile.type === "path" ? imageFile.fullPath : util.fromBase64(imageFile.fullPath), format: imageFile.detail.format };
 };
 
 const endEditImage = (result: Buffer, imageFile: Pic.ImageFile, width: number, height: number) => {
@@ -356,34 +361,71 @@ const resize = async (request: Pic.ResizeRequest) => {
     const imageFile = request.image;
 
     try {
+        if (request.format) {
+            return await convertImage(request.image, request.format);
+        }
+
         const input = startEditImage(imageFile);
         const result = await util.resizeBuffer(input, request.size);
         const image = endEditImage(result, imageFile, request.size.width, request.size.height);
-
         respond("Edit", "after-edit", { image });
     } catch (ex: any) {
         respond("Edit", "after-edit", { image: imageFile, message: ex.message });
     }
 };
 
-const getSaveDestPath = (request: Pic.SaveImageRequest) => {
+const getSaveDestPath = (image: Pic.ImageFile, saveCopy: boolean, format?: Pic.ImageFormat) => {
     if (!Renderers.Edit) return undefined;
 
     let savePath = getCurrentImageFile().fullPath;
 
-    if (request.saveCopy) {
-        const ext = path.extname(request.image.fileName);
-        const fileName = request.image.fileName.replace(ext, "");
+    if (saveCopy) {
+        const ext = format ? `.${format}` : path.extname(image.fileName);
+        const fileName = image.fileName.replace(ext, "");
         const saveFileName = `${fileName}-${new Date().getTime()}${ext}`;
 
         savePath =
             dialog.showSaveDialogSync(Renderers.Edit, {
-                defaultPath: path.join(request.image.directory, saveFileName),
-                filters: [{ name: "Image", extensions: ["jpeg", "jpg"] }],
+                defaultPath: path.join(image.directory, saveFileName),
+                filters: [{ name: "Image", extensions: format ? [format] : ["jpeg", "jpg"] }],
             }) ?? "";
     }
 
     return savePath;
+};
+
+const convertImage = async (image: Pic.ImageFile, format: Pic.ImageFormat) => {
+    if (!Renderers.Edit) return;
+
+    const savePath = getSaveDestPath(image, true, format);
+
+    if (!savePath) return respond("Edit", "after-save-image", { image, status: "Cancel" });
+
+    try {
+        if (format == "ico") {
+            if (settings.data.preference.timestamp == "Normal") {
+                util.toIcon(savePath, image.fullPath);
+            } else {
+                util.toIcon(savePath, image.fullPath, image.timestamp);
+            }
+        } else {
+            const buffer = await util.toBuffer(image, format);
+            if (settings.data.preference.timestamp == "Normal") {
+                util.saveImage(savePath, util.toBase64(buffer));
+            } else {
+                util.saveImage(savePath, util.toBase64(buffer), image.timestamp);
+            }
+        }
+
+        image.fullPath = savePath;
+        image.directory = path.dirname(savePath);
+        image.fileName = path.basename(savePath);
+        image.type = "path";
+        respond("Edit", "after-save-image", { image, status: "Done" });
+        loadImage(imageFiles[currentIndex].fullPath);
+    } catch (ex: any) {
+        respond("Edit", "after-save-image", { image, status: "Error", message: ex.message });
+    }
 };
 
 const saveImage = async (request: Pic.SaveImageRequest) => {
@@ -398,12 +440,12 @@ const saveImage = async (request: Pic.SaveImageRequest) => {
         }
     }
 
-    const savePath = getSaveDestPath(request);
+    const savePath = getSaveDestPath(request.image, request.saveCopy);
 
     if (!savePath) return respond("Edit", "after-save-image", { image: request.image, status: "Cancel" });
 
     try {
-        if (config.data.preference.timestamp == "Normal") {
+        if (settings.data.preference.timestamp == "Normal") {
             util.saveImage(savePath, request.image.fullPath);
         } else {
             util.saveImage(savePath, request.image.fullPath, request.image.timestamp);
@@ -423,14 +465,14 @@ const saveImage = async (request: Pic.SaveImageRequest) => {
 const saveConfig = () => {
     if (!Renderers.Main) return;
 
-    config.data.isMaximized = Renderers.Main.isMaximized();
+    settings.data.isMaximized = Renderers.Main.isMaximized();
 
-    if (!config.data.isMaximized) {
-        config.data.bounds = Renderers.Main.getBounds();
+    if (!settings.data.isMaximized) {
+        settings.data.bounds = Renderers.Main.getBounds();
     }
 
     try {
-        config.save();
+        settings.save();
     } catch (ex: any) {
         return showErrorMessage(ex);
     }
@@ -441,9 +483,9 @@ const saveHistory = () => {
 
     if (!imageFile.fullPath) return;
 
-    config.data.fullPath = imageFile.fullPath;
-    config.data.directory = path.dirname(config.data.fullPath);
-    config.data.history[path.dirname(config.data.fullPath)] = path.basename(config.data.fullPath);
+    settings.data.fullPath = imageFile.fullPath;
+    settings.data.directory = path.dirname(settings.data.fullPath);
+    settings.data.history[path.dirname(settings.data.fullPath)] = path.basename(settings.data.fullPath);
 };
 
 const toggleMaximize = () => {
@@ -453,9 +495,9 @@ const toggleMaximize = () => {
 
     if (renderer.isMaximized()) {
         renderer.unmaximize();
-        renderer.setBounds(config.data.bounds);
+        renderer.setBounds(settings.data.bounds);
     } else {
-        config.data.bounds = renderer.getBounds();
+        settings.data.bounds = renderer.getBounds();
         renderer.maximize();
     }
 };
@@ -474,13 +516,13 @@ const changeTopRenderer = (name: RendererName) => {
     const topRenderer = topRendererName === "Main" ? Renderers.Main : Renderers.Edit;
     const hiddenRenderer = topRendererName === "Main" ? Renderers.Edit : Renderers.Main;
 
-    topRenderer?.setBounds(config.data.bounds);
+    topRenderer?.setBounds(settings.data.bounds);
 
-    if (config.data.isMaximized && !topRenderer?.isMaximized()) {
+    if (settings.data.isMaximized && !topRenderer?.isMaximized()) {
         topRenderer?.maximize();
     }
 
-    if (!config.data.isMaximized && topRenderer?.isMaximized()) {
+    if (!settings.data.isMaximized && topRenderer?.isMaximized()) {
         topRenderer.unmaximize();
     }
 
@@ -502,13 +544,13 @@ const openFile = async () => {
     const result = await dialog.showOpenDialog(Renderers.Main, {
         properties: ["openFile"],
         title: "Select image",
-        defaultPath: config.data.directory ? config.data.directory : ".",
+        defaultPath: settings.data.directory ? settings.data.directory : ".",
         filters: [{ name: "Image file", extensions: Extensions }],
     });
 
     if (result.filePaths.length == 1) {
         const file = result.filePaths[0];
-        config.data.directory = path.dirname(file);
+        settings.data.directory = path.dirname(file);
         loadImage(file);
     }
 };
@@ -519,21 +561,21 @@ const pin = () => {
     if (!imageFile.fullPath) return;
 
     saveHistory();
-    respond("Main", "after-pin", { success: true, history: config.data.history });
+    respond("Main", "after-pin", { success: true, history: settings.data.history });
 };
 
 const changeTimestampMode = (timestampMode: Pic.Timestamp) => {
-    config.data.preference.timestamp = timestampMode;
+    settings.data.preference.timestamp = timestampMode;
 };
 
 const toggleMode = (mode: Pic.Mode) => {
-    config.data.preference.mode = mode;
-    respond("Main", "toggle-mode", { preference: config.data.preference });
+    settings.data.preference.mode = mode;
+    respond("Main", "toggle-mode", { preference: settings.data.preference });
 };
 
 const toggleTheme = (theme: Pic.Theme) => {
-    config.data.preference.theme = theme;
-    nativeTheme.themeSource = config.data.preference.theme;
+    settings.data.preference.theme = theme;
+    nativeTheme.themeSource = settings.data.preference.theme;
 };
 
 const onToggleFullscreen = (e: Pic.FullscreenChangeEvent) => {
@@ -546,7 +588,7 @@ const onToggleFullscreen = (e: Pic.FullscreenChangeEvent) => {
 };
 
 const openEditDialog = () => {
-    respond("Edit", "edit-dialog-opened", { file: getCurrentImageFile(), config: config.data });
+    respond("Edit", "edit-dialog-opened", { file: getCurrentImageFile(), config: settings.data });
 
     changeTopRenderer("Edit");
 };
@@ -554,7 +596,7 @@ const openEditDialog = () => {
 const onClose = async () => {
     const imageFile = getCurrentImageFile();
 
-    if (imageFile.fullPath && config.data.history[imageFile.directory]) {
+    if (imageFile.fullPath && settings.data.history[imageFile.directory]) {
         saveHistory();
     }
 
@@ -565,13 +607,13 @@ const onClose = async () => {
 };
 
 const onUnmaximize = () => {
-    config.data.isMaximized = false;
-    respond(topRendererName, "after-toggle-maximize", config.data);
+    settings.data.isMaximized = false;
+    respond(topRendererName, "after-toggle-maximize", settings.data);
 };
 
 const onMaximize = () => {
-    config.data.isMaximized = true;
-    respond(topRendererName, "after-toggle-maximize", config.data);
+    settings.data.isMaximized = true;
+    respond(topRendererName, "after-toggle-maximize", settings.data);
 };
 
 const onDropRequest = async (data: Pic.DropRequest) => await loadImage(data.fullPath);
@@ -586,7 +628,7 @@ const onCloseEditDialog = () => changeTopRenderer("Main");
 const onRestartRequest = () => {
     Renderers.Main?.reload();
     Renderers.Edit?.reload();
-    respond("Edit", "edit-dialog-opened", { file: getCurrentImageFile(), config: config.data });
+    respond("Edit", "edit-dialog-opened", { file: getCurrentImageFile(), config: settings.data });
 };
 
 const showErrorDialog = (e: Pic.ShowDialogRequest) => showErrorMessage(e.message);

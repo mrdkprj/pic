@@ -83,7 +83,7 @@ body{
     font-family: var(--font);
 }
 
-div:focus{
+div:focus:not(.menu-container){
     outline: none;
 }
 
@@ -117,6 +117,8 @@ div:focus{
     align-items: center;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 30%;
 }
 
 .ico{
@@ -125,9 +127,47 @@ div:focus{
     margin: 0 5px;
 }
 
+.title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.menu{
+    flex: 1 1 auto;
+    box-shadow: var(--menu-shadow);
+    color: var(--menu-color);
+    user-select: none;
+    height: 35px;
+    width: 40%;
+}
+
+.btn-area{
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
 .window-area{
+    height: 100%;
+    width: 30%;
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+}
+
+.info-area{
+    flex: 1 1 auto;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    white-space: nowrap;
+    height: 100%;
+}
+
+.control-area{
+    display: flex;
+    justify-content: flex-end;
     align-items: center;
     height: 100%;
 }
@@ -188,24 +228,6 @@ div:focus{
     flex-direction: column;
     flex: 1 1 auto;
     overflow: hidden;
-}
-
-.menu{
-    flex: 1 1 auto;
-    box-shadow: var(--menu-shadow);
-    color: var(--menu-color);
-    user-select: none;
-    height: 35px;
-    position: absolute;
-    width: 100%;
-}
-
-
-.btn-area{
-    display:flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
 }
 
 .btn,

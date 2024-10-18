@@ -17,6 +17,15 @@
     pointer-events: none;
 }
 
+.is-icon .clip,
+.is-icon .resize,
+.is-icon.resized .resize,
+.is-icon .save,
+.is-icon .save-copy{
+    color: var(--button-disabled);
+    pointer-events: none;
+}
+
 .clipping .clip{
     background-color: var(--clip-bgcolor);
 }
@@ -71,6 +80,7 @@
     font-size: 14px;
     margin: 0px 15px;
     position: relative;
+    width: 100%;
 }
 
 .image-area{

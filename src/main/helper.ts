@@ -13,7 +13,7 @@ const load = (window: BrowserWindow, name: RendererName) => {
 };
 
 export default class Helper {
-    createMainWindow(config: Pic.Config) {
+    createMainWindow(config: Pic.Settings) {
         const window = new BrowserWindow({
             width: config.bounds.width,
             height: config.bounds.height,
@@ -53,7 +53,7 @@ export default class Helper {
         return window;
     }
 
-    getContextMenu(config: Pic.Config): Pic.ContextMenu[] {
+    getContextMenu(config: Pic.Settings): Pic.ContextMenu[] {
         return [
             {
                 name: "OpenFile",
@@ -109,7 +109,7 @@ export default class Helper {
         ];
     }
 
-    private createSortMenu(config: Pic.Config): Pic.ContextMenu[] {
+    private createSortMenu(config: Pic.Settings): Pic.ContextMenu[] {
         const name = "Sort";
         return [
             {
@@ -143,7 +143,7 @@ export default class Helper {
         ];
     }
 
-    private timestampSubMenu(config: Pic.Config): Pic.ContextMenu[] {
+    private timestampSubMenu(config: Pic.Settings): Pic.ContextMenu[] {
         const name = "Timestamp";
         return [
             {
@@ -163,7 +163,7 @@ export default class Helper {
         ];
     }
 
-    private modeSubMenu(config: Pic.Config): Pic.ContextMenu[] {
+    private modeSubMenu(config: Pic.Settings): Pic.ContextMenu[] {
         const name = "Mode";
         return [
             {
@@ -183,7 +183,7 @@ export default class Helper {
         ];
     }
 
-    private themeSubMenu(config: Pic.Config): Pic.ContextMenu[] {
+    private themeSubMenu(config: Pic.Settings): Pic.ContextMenu[] {
         const name = "Theme";
         return [
             {
