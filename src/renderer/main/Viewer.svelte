@@ -429,7 +429,7 @@
             <History history={$appState.history} onClose={closeHistory} />
         {/if}
 
-        <div class="image-container can-focus" on:dragover={(e) => e.preventDefault()} on:drop={onDrop} role="button" tabindex="-1">
+        <div class="image-container can-focus" on:dragover={(e) => e.preventDefault()} on:drop={onDrop} role="button" tabindex="-1" draggable="false">
             <div class="prev-area prev" on:click={() => startFetch(BACKWARD)} on:keydown={handelKeydown} role="button" tabindex="-1">
                 <span class="arrow left"></span>
             </div>
@@ -442,7 +442,7 @@
                 role="button"
                 tabindex="-1"
             >
-                <img src={$appState.imageSrc} bind:this={img} class="pic clickable" alt="" on:load={onImageLoaded} />
+                <img src={$appState.imageSrc} bind:this={img} class="pic clickable" alt="" on:load={onImageLoaded} draggable="false" />
                 {#if $appState.currentImageFile.type == "undefined"}
                     <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" fill="currentColor" style="color:#727070;" viewBox="0 0 16 16">
                         <path

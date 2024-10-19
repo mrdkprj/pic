@@ -384,7 +384,6 @@
 
     const onOpen = (data: Pic.OpenEditEvent) => {
         applyConfig(data.config);
-        console.log(data.file.detail);
         loadImage(data.file);
     };
 
@@ -536,7 +535,7 @@
         </div>
     </div>
 
-    <div class="container clickable">
+    <div class="container clickable" draggable="false">
         <Loader show={$appState.loading} />
         {#if $appState.isSizeDialogOpen}
             <Size onApply={onSizeFormatChange} />
@@ -549,7 +548,7 @@
                     </div>
                 {/if}
                 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                <img src={$appState.imageSrc} bind:this={img} class="pic clickable" alt="" on:mousedown={onImageMousedown} on:load={onImageLoaded} />
+                <img src={$appState.imageSrc} bind:this={img} class="pic clickable" alt="" on:mousedown={onImageMousedown} on:load={onImageLoaded} draggable="false" />
             </div>
         </div>
     </div>
