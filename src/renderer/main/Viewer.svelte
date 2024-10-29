@@ -130,12 +130,21 @@
 
     const onDrop = (e: DragEvent) => {
         e.preventDefault();
+        e.stopPropagation();
 
-        if (!e.dataTransfer) return;
+        const items = e.dataTransfer ? e.dataTransfer.items : [];
 
-        if (e.dataTransfer.items[0].kind === "file" && e.dataTransfer.items[0].type.includes("image")) {
-            const fullPath = e.dataTransfer.items[0].getAsFile()?.path ?? "";
-            dropFile(fullPath);
+        const files = Array.from(items)
+            .filter((item) => item.kind === "file" && item.type.includes("image"))
+            .map((item) => item.getAsFile())
+            .filter((item) => item != null);
+
+        if (!files.length) return [];
+
+        const fullPaths = window.api.onFileDrop(files);
+
+        if (fullPaths.length) {
+            dropFile(fullPaths[0]);
         }
     };
 
