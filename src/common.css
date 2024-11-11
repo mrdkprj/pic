@@ -163,6 +163,7 @@ div:focus:not(.menu-container){
     align-items: center;
     white-space: nowrap;
     height: 100%;
+    overflow: hidden;
 }
 
 .control-area{
