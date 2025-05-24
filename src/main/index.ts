@@ -22,8 +22,8 @@ const Renderers: Renderer = {
 let topRendererName: RendererName = "Main";
 let currentIndex = 0;
 
-const mainContextMenuCallback = (e: Pic.ContextMenuClickEvent) => {
-    switch (e.name) {
+const mainContextMenuCallback = (menu: keyof Pic.ContextMenuSubTypeMap, args?: Pic.ContextMenuSubTypeMap[keyof Pic.ContextMenuSubTypeMap]) => {
+    switch (menu) {
         case "OpenFile":
             openFile();
             break;
@@ -43,24 +43,22 @@ const mainContextMenuCallback = (e: Pic.ContextMenuClickEvent) => {
             fetchLast();
             break;
         case "Sort":
-            sortImageFiles(e.value as Pic.SortType, getCurrentImageFile().fileName);
+            sortImageFiles(args as Pic.SortType, getCurrentImageFile().fileName);
             break;
         case "Timestamp":
-            changeTimestampMode(e.value as Pic.Timestamp);
+            changeTimestampMode(args as Pic.Timestamp);
             break;
         case "Mode":
-            toggleMode(e.value as Pic.Mode);
+            toggleMode(args as Pic.Mode);
             break;
         case "Theme":
-            toggleTheme(e.value as Pic.Theme);
+            toggleTheme(args as Pic.Theme);
             break;
         case "Reload":
             loadImage(getCurrentImageFile().fullPath);
             break;
     }
 };
-
-const mainContext = helper.getContextMenu(settings.data);
 
 app.on("ready", () => {
     nativeTheme.themeSource = settings.data.preference.theme;
@@ -73,6 +71,8 @@ app.on("ready", () => {
 
     Renderers.Main = helper.createMainWindow(settings.data);
     Renderers.Edit = helper.createEditWindow();
+
+    helper.createContextMenu(Renderers.Main, mainContextMenuCallback, settings.data);
 
     protocol.registerFileProtocol("app", (request, callback) => {
         const filePath = url.fileURLToPath("file://" + request.url.slice("app://".length));
@@ -118,7 +118,7 @@ const showErrorMessage = async (ex: any | string) => {
 const onReady = () => {
     Renderers.Main?.show();
 
-    respond("Main", "ready", { settings: settings.data, menu: mainContext });
+    respond("Main", "ready", { settings: settings.data });
 
     if (process.argv.length > 1 && process.argv[1] != ".") {
         loadImage(process.argv[1]);
@@ -576,6 +576,7 @@ const toggleMode = (mode: Pic.Mode) => {
 const toggleTheme = (theme: Pic.Theme) => {
     settings.data.preference.theme = theme;
     nativeTheme.themeSource = settings.data.preference.theme;
+    helper.changeTheme(theme);
 };
 
 const onToggleFullscreen = (e: Pic.FullscreenChangeEvent) => {
@@ -604,6 +605,7 @@ const onClose = async () => {
 
     Renderers.Edit?.close();
     Renderers.Main?.close();
+    app.quit();
 };
 
 const onUnmaximize = () => {
@@ -631,6 +633,10 @@ const onRestartRequest = () => {
     respond("Edit", "edit-dialog-opened", { file: getCurrentImageFile(), config: settings.data });
 };
 
+const openContextMenu = async (e: Pic.Position) => {
+    await helper.popup(e.x, e.y);
+};
+
 const showErrorDialog = (e: Pic.ShowDialogRequest) => showErrorMessage(e.message);
 
 const registerIpcChannels = () => {
@@ -656,5 +662,6 @@ const registerIpcChannels = () => {
     addEventHandler("clip", clip);
     addEventHandler("save-image", saveImage);
     addEventHandler("restart", onRestartRequest);
+    addEventHandler("menu", openContextMenu);
     addEventHandler("error", showErrorDialog);
 };

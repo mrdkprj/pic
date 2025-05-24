@@ -5,10 +5,7 @@
     import icon from "../../assets/icon.ico";
     import { appState, dispatch } from "./appStateReducer";
     import { ImageTransform } from "../imageTransform";
-    import { ContextMenu } from "../contextmenu";
     import { Orientations, FORWARD, BACKWARD } from "../../constants";
-
-    const menu = new ContextMenu();
 
     let orientationIndex = 0;
     let imageArea: HTMLDivElement;
@@ -92,6 +89,10 @@
         }
     };
 
+    const openContextMenu = (e: MouseEvent) => {
+        window.api.send("menu", { x: e.screenX, y: e.screenY });
+    };
+
     const onMouseup = (e: MouseEvent) => {
         if (!e.target || !(e.target instanceof HTMLElement)) return;
 
@@ -100,8 +101,7 @@
         }
 
         if (e.button == 2 && !$appState.isMouseOnly) {
-            menu.popup(e);
-            return;
+            return openContextMenu(e);
         }
 
         if (!imageTransform.isImageMoved() && e.target.classList.contains("clickable")) {
@@ -229,9 +229,6 @@
         changeMode(e.settings.preference.mode);
 
         dispatch({ type: "history", value: e.settings.history });
-
-        menu.build(e.menu);
-        menu.onClick((e) => window.api.send("menu-click", e));
     };
 
     const changeMode = (mode: Pic.Mode) => {
@@ -409,7 +406,7 @@
                         </svg>
                     {/if}
                 </div>
-                <div class="btn can-focus" on:click={(e) => menu?.toggle(e)} on:keydown={handelKeydown} role="button" tabindex="-1">
+                <div class="btn can-focus" on:contextmenu={openContextMenu} on:click={openContextMenu} on:keydown={handelKeydown} role="button" tabindex="-1">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
                         <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" />
                     </svg>

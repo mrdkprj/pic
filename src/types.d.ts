@@ -27,6 +27,7 @@ declare global {
         restart: Pic.Event;
         "open-edit-dialog": Pic.Event;
         "save-image": Pic.SaveImageRequest;
+        menu: Pic.Position;
         error: Pic.ShowDialogRequest;
     };
 
@@ -58,24 +59,23 @@ declare global {
         type Mode = "Keyboard" | "Mouse";
         type Theme = "dark" | "light";
         type SortType = "NameAsc" | "NameDesc" | "DateAsc" | "DateDesc";
-        type ContextMenuOptions = Mode | Theme | SortType | Timestamp;
-        type ContextMenuNames = "OpenFile" | "Reveal" | "Reload" | "Mode" | "Orientation" | "Theme" | "History" | "ToFirst" | "ToLast" | "Timestamp" | "Sort" | "ShowActualSize" | "None";
 
-        type ContextMenuType = "text" | "radio" | "checkbox" | "separator";
-
-        type ContextMenu = {
-            name: Pic.ContextMenuNames;
-            label?: string;
-            value?: Pic.ContextMenuOptions;
-            type?: Pic.ContextMenuType;
-            checked?: boolean;
-            submenu?: Pic.ContextMenu[];
+        type ContextMenuSubTypeMap = {
+            OpenFile: null;
+            Reveal: null;
+            Reload: null;
+            Mode: Mode;
+            Orientation: null;
+            Theme: Pic.Theme;
+            History: null;
+            ToFirst: null;
+            ToLast: null;
+            Timestamp: Timestamp;
+            Sort: SortType;
+            ShowActualSize: null;
         };
 
-        type ContextMenuClickEvent = {
-            name: Pic.ContextMenuNames;
-            value?: Pic.ContextMenuOptions;
-        };
+        type ContextMenuCallback<K extends keyof ContextMenuSubTypeMap> = (menu: K, args?: Mp.ContextMenuSubTypeMap[K]) => void;
 
         type ImageTransformEvent = "transformchange" | "dragstart" | "dragend";
         type ImageSroucetype = "path" | "buffer" | "undefined";
@@ -84,6 +84,11 @@ declare global {
         type Bounds = {
             width: number;
             height: number;
+            x: number;
+            y: number;
+        };
+
+        type Position = {
             x: number;
             y: number;
         };
@@ -118,7 +123,6 @@ declare global {
 
         type ReadyEvent = {
             settings: Pic.Settings;
-            menu: Pic.ContextMenu[];
         };
 
         type Settings = {
@@ -128,6 +132,7 @@ declare global {
             history: { [key: string]: string };
             bounds: Bounds;
             isMaximized: boolean;
+            theme: Pic.Theme;
         };
 
         type ImageFile = {

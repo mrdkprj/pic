@@ -27,7 +27,6 @@
     "electron-builder": "^23.6.0",
     "electron-vite": "^2.3.0",
     "eslint": "^8.56.1",
-    "eslint-plugin-import": "^2.25.0",
     "eslint-plugin-svelte": "^2.35.1",
     "prettier-plugin-svelte": "^3.2.7",
     "svelte": "^4.2.8",
@@ -38,6 +37,7 @@
   },
   "dependencies": {
     "sharp": "^0.33.5",
-    "sharp-ico": "^0.1.5"
+    "sharp-ico": "^0.1.5",
+    "wcpopup-node": "^0.1.6"
   }
 }

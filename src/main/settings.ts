@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS: Pic.Settings = {
     },
     history: {},
     bounds: { width: 1200, height: 800, x: 0, y: 0 },
+    theme: "dark",
     isMaximized: false,
 };
 
